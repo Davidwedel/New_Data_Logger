@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 # Shared variables for all functions
 xmlFolder = None
-failed_dir = "./corrupt_files"
+failed_dir = "../corrupt_files"
 howLongToSaveOldFiles = None
 getCoolerTempAM = None
 getCoolerTempPM = None

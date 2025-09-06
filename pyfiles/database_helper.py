@@ -52,7 +52,7 @@ def insert_log(conn, table, **kwargs):
     conn.commit()
     return cur.lastrowid  # return the new row ID
 
-def insert_botdailylog():
+def insert_botdailylog(timestamp, date, eggs, feed, lightson, lightsoff, water, weight, dooropen, doorclosed, insidelow, insidehigh, outsidelow, outsidehigh, coolertimeam, coolertempam, coolertimepm, coolertemppm):
 # Insert some data
     conn = sqlite3.connect("database.db")
 
@@ -61,22 +61,22 @@ def insert_botdailylog():
         "botdailylog",
         TimeStamp=timestamp,
         Date_Of_Data=date,
-        Belt_Eggs=INTEGER,
+        Belt_Eggs=eggs,
         Feed_Consumption=feed,
-        Lights_On=TEXT,
-        Lights_Off=TEXT,
-        Water_Consumption=REAL,
-        Body_Weight=REAL,
-        Door_Open=TEXT,
-        Door_Closed=TEXT,
-        Inside_Low_Temp=REAL,
-        Inside_High_Temp=REAL,
-        Outside_Low_Temp=REAL,
-        Outside_High_Temp=REAL,
-        Cooler_Time_AM=TEXT, 
-        Cooler_Temp_AM=REAL,
-        Cooler_Time_PM=TEXT,
-        Cooler_Temp_PM=REAL
+        Lights_On=lightson,
+        Lights_Off=lightsoff,
+        Water_Consumption=water,
+        Body_Weight=weight,
+        Door_Open=doorsopen,
+        Door_Closed=doorsclosed,
+        Inside_Low_Temp=insidelow,
+        Inside_High_Temp=insidehigh,
+        Outside_Low_Temp=outsidelow,
+        Outside_High_Temp=outsidehigh,
+        Cooler_Time_AM=coolertimeam, 
+        Cooler_Temp_AM=coolertempam,
+        Cooler_Time_PM=coolertimepm,
+        Cooler_Temp_PM=coolertemppm
     )
 
     # Close the connection
