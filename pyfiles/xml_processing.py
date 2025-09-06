@@ -5,6 +5,7 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
+from database_helper import insert_botdailylog as log_to_db
 
 # Shared variables for all functions
 xmlFolder = None
@@ -330,10 +331,7 @@ def run_xml_stuff():
     coolerTempTimePM = round_hhmm_to_15(t[0])
     coolerTempPM = c_to_f(t[1])
 
-    # Values to append (list of rows, each row is a list of columns)
-    values = [[formatted_now, formatted_yesterday, "Nightly Log", outsideHigh, outsideLow, insideHigh, insideLow, mortality, feedConsumption, waterConsumption, avgWeight, coolerTempTimeAM, coolerTempAM, coolerTempTimePM, coolerTempPM, lightOnTime, lightOffTime]]
+    # null values may be added at a later date.
+    log_to_db(formatted_now, formatted_yesterday, Belt_Eggs = NULL, feedConsumption, lightOnTime, lightOffTime, waterConsumption, avgWeight, doorOpen = NULL, doorClosed = NULL, insideLow, insideHigh, outsideLow, outsideHigh, coolerTempTimeAM, coolerTempAM, coolerTempTimePM, coolerTempPM)
 
-    print(values)
-
-    return values
 
