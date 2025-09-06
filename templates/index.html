@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Data Logger</title>
+<style>
+  body { font-family: sans-serif; }
+  .tab-container { display: flex; border-bottom: 2px solid #ccc; }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #eee;
+    margin-right: 2px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+  .tab.active { background: white; font-weight: bold; }
+  .tab-content { border: 1px solid #ccc; padding: 20px; background: white; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="tab-container">
+  <div class="tab active" onclick="openTab('dailyentry')">Daily Entry</div>
+  <div class="tab" onclick="openTab('palletentry')">Pallet Entry</div>
+  <div class="tab" onclick="openTab('dailylog')">Daily Log</div>
+  <div class="tab" onclick="openTab('palletlog')">Pallet Log</div>
+  <!--<div class="tab" onclick="openTab('win3')">Window 3</div>-->
+</div>
+
+<div class="tab-content">
+  <div id="dailyentry" class="tab-pane active">This is content for window 1.</div>
+  <div id="palletentry" class="tab-pane">Here’s window 2 content.</div>
+
+ <!-- Daily Log Tab -->
+  <div id="dailylog" class="tab-pane">
+    <table id="dailylog-table" border="1">
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Date</th>
+          <th>Feed Consumption</th>
+          <th>Body Weight</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- rows will be inserted here by JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <div id="palletlog" class="tab-pane">Here’s window 2 content.</div>
+  <!--<div id="win3" class="tab-pane">And this is window 3.</div>-->
+</div>
+
+
+<script>
+async function loadDailyLog() {
+    try {
+        const response = await fetch('/api/dailylog');
+        const logs = await response.json();
+        const tbody = document.querySelector("#dailylog-table tbody");
+        tbody.innerHTML = ""; // clear existing rows
+
+        logs.forEach(log => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${log.timestamp}</td>
+                <td>${log.date}</td>
+                <td>${log.feed}</td>
+                <td>${log.weight}</td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (err) {
+        console.error("Failed to load daily log:", err);
+    }
+}
+
+// Load when page loads
+window.addEventListener("DOMContentLoaded", () => {
+    // If daily log tab is active on load
+    if (document.querySelector("#dailylog").classList.contains("active")) {
+        loadDailyLog();
+    }
+});
+
+// Listen for tab clicks (assuming Bootstrap-style tabs)
+document.querySelectorAll('.tab-pane').forEach(tab => {
+    tab.addEventListener('show.bs.tab', event => {
+        if (event.target.id === 'dailylog') {
+            loadDailyLog();
+        }
+    });
+});
+
+// Fallback: if not using Bootstrap, simple click listener
+document.querySelector("a[href='#dailylog']").addEventListener("click", loadDailyLog);
+</script>
+
+</body>
+</html>
