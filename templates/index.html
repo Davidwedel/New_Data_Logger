@@ -59,6 +59,26 @@
 
 
 <script>
+function openTab(tabId) {
+    // Hide all tab panes
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    // Remove active class from all tabs
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+
+    // Show selected tab
+    const pane = document.getElementById(tabId);
+    if (pane) pane.classList.add('active');
+
+    // Highlight selected tab
+    const tab = Array.from(document.querySelectorAll('.tab')).find(t => t.getAttribute('onclick').includes(tabId));
+    if (tab) tab.classList.add('active');
+
+    // Load daily log if that tab is opened
+    if (tabId === 'dailylog') {
+        loadDailyLog();
+    }
+}
+
 async function loadDailyLog() {
     try {
         const response = await fetch('/api/dailylog');
@@ -81,25 +101,13 @@ async function loadDailyLog() {
     }
 }
 
-// Load when page loads
+// Optionally load the tab that is active on page load
 window.addEventListener("DOMContentLoaded", () => {
-    // If daily log tab is active on load
-    if (document.querySelector("#dailylog").classList.contains("active")) {
+    const activePane = document.querySelector(".tab-pane.active");
+    if (activePane && activePane.id === "dailylog") {
         loadDailyLog();
     }
 });
-
-// Listen for tab clicks (assuming Bootstrap-style tabs)
-document.querySelectorAll('.tab-pane').forEach(tab => {
-    tab.addEventListener('show.bs.tab', event => {
-        if (event.target.id === 'dailylog') {
-            loadDailyLog();
-        }
-    });
-});
-
-// Fallback: if not using Bootstrap, simple click listener
-document.querySelector("a[href='#dailylog']").addEventListener("click", loadDailyLog);
 </script>
 
 </body>
