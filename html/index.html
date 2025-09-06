@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Data Logger</title>
+<style>
+  body { font-family: sans-serif; }
+  .tab-container { display: flex; border-bottom: 2px solid #ccc; }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #eee;
+    margin-right: 2px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+  }
+  .tab.active { background: white; font-weight: bold; }
+  .tab-content { border: 1px solid #ccc; padding: 20px; background: white; }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="tab-container">
+  <div class="tab active" onclick="openTab('dailyentry')">Daily Entry</div>
+  <div class="tab" onclick="openTab('palletentry')">Pallet Entry</div>
+  <div class="tab" onclick="openTab('dailylog')">Daily Log</div>
+  <div class="tab" onclick="openTab('palletlog')">Pallet Log</div>
+  <!--<div class="tab" onclick="openTab('win3')">Window 3</div>-->
+</div>
+
+<div class="tab-content">
+  <div id="dailyentry" class="tab-pane active">This is content for window 1.</div>
+  <div id="palletentry" class="tab-pane">Here’s window 2 content.</div>
+  <div id="dailylog" class="tab-pane active">This is content for window 1.</div>
+  <div id="palletlog" class="tab-pane">Here’s window 2 content.</div>
+  <!--<div id="win3" class="tab-pane">And this is window 3.</div>-->
+</div>
+
+<script>
+function openTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+</script>
+
+</body>
+</html>
