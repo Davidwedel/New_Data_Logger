@@ -514,8 +514,8 @@
     </thead>
     <tbody>
       <tr>
-        <td><input type="text" placeholder="Enter Pallet ID"></td>
-        <td><input type="number" value="0" min="0" step="1"></td>
+        <td><input type="text" id="palletId" placeholder="Enter Pallet ID"></td>
+        <td><input type="number" id="palletWeight" value="0" min="0" step="1"></td>
       </tr>
     </tbody>
   </table>
@@ -529,7 +529,7 @@
 <label><input type="radio" name="yolkColor" value="E"> E</label>
 <br>
 <br>
-<button onclick="clearPallets()">Submit Pallet Data</button>
+<button onclick="submitPallets()">Submit Pallet Data</button>
 </div>
 
 <script>
@@ -540,17 +540,40 @@ function submitDailyForm() {
   // Optional: clear fields here if you want
 }
 
-function clearPallets() {
-  // Select all text and number inputs inside the pallet table
-  const palletInputs = document.querySelectorAll('#pallet table input');
-  palletInputs.forEach(input => {
-    if(input.type === 'number') {
-      input.value = 0;   // reset weight
-    } else {
-      input.value = '';  // reset pallet ID and notes
+async function submitPallets() {
+  const palletId = document.getElementById("palletId").value;
+  const weight = document.getElementById("palletWeight").value;
+  const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
+
+  try {
+    const response = await fetch("/add_pallet", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ pallet_id: palletId, weight: weight, yolk_color: yolkColor })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
     }
-  });
+
+    const result = await response.json();
+    alert(result.message);
+
+    // Reset inputs
+    const palletInputs = document.querySelectorAll('#pallet table input');
+    palletInputs.forEach(input => {
+      if (input.type === 'number') {
+        input.value = 0;
+      } else {
+        input.value = '';
+      }
+    });
+  } catch (error) {
+    console.error("Submit failed:", error);
+    alert("Failed to save pallet data. Please try again.");
+  }
 }
+
 function openTab(evt, tabName) {
   var i, tabcontent, tablinks;
   tabcontent = document.getElementsByClassName("tabcontent");
