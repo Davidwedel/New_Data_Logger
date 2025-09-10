@@ -535,11 +535,98 @@
 <script>
 
 // Submit Daily Form
-function submitDailyForm() {
-  alert("Daily Farm Data submitted!");
-  // Optional: clear fields here if you want
-}
 
+async function submitDailyForm() {
+  // Gather spinner values
+  const beltEggs = parseInt(document.getElementById("egg1").value || 0);
+  const floorEggs = parseInt(document.getElementById("egg2").value || 0);
+  const mortalityIndoor = parseInt(document.getElementById("num1").value || 0);
+  const mortalityOutdoor = parseInt(document.getElementById("num2").value || 0);
+  const euthIndoor = parseInt(document.getElementById("num3").value || 0);
+  const euthOutdoor = parseInt(document.getElementById("num4").value || 0);
+  const depopNum = parseInt(document.getElementById("depopnum").value || 0);
+  const amtDelivered = parseInt(document.getElementById("amtdelivered").value || 0);
+
+  // Gather checkbox groups
+  const mortalityReasons = Array.from(document.querySelectorAll('input[name="mortalityReason"]:checked'))
+    .map(cb => cb.value);
+  const cullReasons = Array.from(document.querySelectorAll('input[name="cullReason"]:checked'))
+    .map(cb => cb.value);
+
+  // Textareas
+  const mortalityComments = document.getElementById("mortalitycomments").value;
+  const coolerLogComments = document.getElementById("coolerlogcomments").value;
+  const addedSupplements = document.getElementById("addedsupplements").value;
+  const birdsRestrictedReason = document.getElementById("birdsrestrictedreason").value;
+  const comments = document.getElementById("comments").value;
+
+  // Radios / selects
+  const weather = document.querySelector('input[name="weather"]:checked')?.value || "";
+  const airSensory = document.querySelector('input[name="airSensory"]:checked')?.value || "";
+  const ration = document.getElementById("ration").value;
+  const drinkersClean = document.querySelector('input[name="drinkersClean"]:checked')?.value || "";
+  const birdsUnderSlats = document.querySelector('input[name="birdsUnderSlats"]:checked')?.value || "";
+  const safeIndoors = document.querySelector('input[name="safeIndoors"]:checked')?.value || "";
+  const safeOutdoors = document.querySelector('input[name="safeOutdoors"]:checked')?.value || "";
+  const equipmentFunctioning = document.querySelector('input[name="equipmentFunctioning"]:checked')?.value || "";
+  const predatorActivity = document.querySelector('input[name="predatorActivity"]:checked')?.value || "";
+
+  // Booleans
+  const eggsPickedUp = document.getElementById("eggspickedup").checked;
+
+  // Time inputs
+  const doorOpen = document.getElementById("doorOpen").value;
+  const doorClosed = document.getElementById("doorClosed").value;
+
+  // Build payload
+  const dailyData = {
+    belt_eggs: beltEggs,
+    floor_eggs: floorEggs,
+    mortality_indoor: mortalityIndoor,
+    mortality_outdoor: mortalityOutdoor,
+    euthanized_indoor: euthIndoor,
+    euthanized_outdoor: euthOutdoor,
+    depop: depopNum,
+    amount_delivered: amtDelivered,
+    mortality_reasons: mortalityReasons,
+    cull_reasons: cullReasons,
+    mortality_comments: mortalityComments,
+    coolerlog_comments: coolerLogComments,
+    added_supplements: addedSupplements,
+    birds_restricted_reason: birdsRestrictedReason,
+    comments: comments,
+    weather: weather,
+    air_sensory: airSensory,
+    ration: ration,
+    drinkers_clean: drinkersClean,
+    birds_under_slats: birdsUnderSlats,
+    safe_indoors: safeIndoors,
+    safe_outdoors: safeOutdoors,
+    equipment_functioning: equipmentFunctioning,
+    predator_activity: predatorActivity,
+    eggs_picked_up: eggsPickedUp,
+    door_open: doorOpen,
+    door_closed: doorClosed
+  };
+
+  try {
+    const response = await fetch("/add_daily_userlog", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dailyData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    alert(result.message);
+  } catch (error) {
+    console.error("Daily submit failed:", error);
+    alert("Failed to save daily data. Please try again.");
+  }
+}
 async function submitPallets() {
   const palletId = document.getElementById("palletId").value;
   const weight = document.getElementById("palletWeight").value;
