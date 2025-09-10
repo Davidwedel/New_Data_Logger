@@ -193,6 +193,9 @@
   <label><input type="checkbox" name="cullReason" value="Rooster"> Rooster</label><br>
   <label><input type="checkbox" name="cullReason" value="Runt"> Runt</label><br>
   <label><input type="checkbox" name="cullReason" value="Sick"> Sick</label>
+  <br>
+  <br>
+  <div id="result">Total Mortality/Euthanized: 0</div>
 
   <p><strong>Weather Condition:</strong></p>
   <label><input type="radio" name="weather" value="Cloudy"> Cloudy</label><br>
@@ -207,10 +210,14 @@
   <label><input type="radio" name="weather" value="Snow"> Snow</label><br>
   <label><input type="radio" name="weather" value="Sunny"> Sunny</label><br>
   <label><input type="radio" name="weather" value="Winter Storm"> Winter Storm</label>
-
-  <div id="eggresult">Egg Total: 0</div>
-  <div id="result">Total Mortality/Euthanized: 0</div>
 </div>
+
+<br>
+<label for="eggspickedup">Eggs Picked Up</label>
+<input type="checkbox" id="eggspickedup" name="eggspickedup">
+
+  <p><strong>CoolerLog Comments:</strong></p>
+  <textarea id="comments" rows="2" placeholder="Eggs Picked up/cooler log comments"></textarea>
 
 <!-- Pallet Entry Tab -->
 <div id="pallet" class="tabcontent">
