@@ -110,6 +110,21 @@
     </div>
   </div>
 
+
+<p><strong>Mortality Reasons:</strong></p>
+<label><input type="checkbox" name="mortalityReason" value="Unknown"> Unknown</label><br>
+<label><input type="checkbox" name="mortalityReason" value="N Natural"> N Natural</label><br>
+<label><input type="checkbox" name="mortalityReason" value="PR Predator"> PR Predator</label><br>
+<label><input type="checkbox" name="mortalityReason" value="PC Pecking"> PC Pecking</label><br>
+<label><input type="checkbox" name="mortalityReason" value="S Sick"> S Sick</label><br>
+<label><input type="checkbox" name="mortalityReason" value="PL Prolapse"> PL Prolapse</label><br>
+<label><input type="checkbox" name="mortalityReason" value="C Cull"> C Cull</label><br>
+<label><input type="checkbox" name="mortalityReason" value="B Broody"> B Broody</label><br>
+<label><input type="checkbox" name="mortalityReason" value="O Other"> O Other</label><br>
+<label><input type="checkbox" name="mortalityReason" value="PI Piling"> PI Piling</label><br>
+<label><input type="checkbox" name="mortalityReason" value="SO Starveout"> SO Starveout</label><br>
+<label><input type="checkbox" name="mortalityReason" value="I Injured"> I Injured</label>
+
   <div class="spinner-container">
     <span class="spinner-label">Euthanized Indoor</span>
     <div class="spinner">
@@ -128,28 +143,32 @@
     </div>
   </div>
 
+
+<p><strong>Cull Reasons:</strong></p>
+<label><input type="checkbox" name="cullReason" value="Aggressive"> Aggressive</label><br>
+<label><input type="checkbox" name="cullReason" value="Broody"> Broody</label><br>
+<label><input type="checkbox" name="cullReason" value="Injured"> Injured</label><br>
+<label><input type="checkbox" name="cullReason" value="Rooster"> Rooster</label><br>
+<label><input type="checkbox" name="cullReason" value="Runt"> Runt</label><br>
+<label><input type="checkbox" name="cullReason" value="Sick"> Sick</label>
   <div id="result">Total Mortality/Euthanized: 0</div>
   <br>
   <br>
 
-  <label for="weather">Weather Condition:</label>
-  <input list="weatherOptions" id="weather" name="weather" placeholder="Select or type...">
 
-  <datalist id="weatherOptions">
-    <option value="Cloudy">
-    <option value="Cloudy/Windy">
-    <option value="Freezing Rain">
-    <option value="Mostly Cloudy">
-    <option value="Partly Cloudy">
-    <option value="Partly Sunny">
-    <option value="Rain">
-    <option value="Severe Storm">
-    <option value="Sleet">
-    <option value="Snow">
-    <option value="Sunny">
-    <option value="Winter Storm">
-  </datalist>
-
+<p><strong>Weather Condition:</strong></p>
+<label><input type="radio" name="weather" value="Cloudy"> Cloudy</label><br>
+<label><input type="radio" name="weather" value="Cloudy/Windy"> Cloudy/Windy</label><br>
+<label><input type="radio" name="weather" value="Freezing Rain"> Freezing Rain</label><br>
+<label><input type="radio" name="weather" value="Mostly Cloudy"> Mostly Cloudy</label><br>
+<label><input type="radio" name="weather" value="Partly Cloudy"> Partly Cloudy</label><br>
+<label><input type="radio" name="weather" value="Partly Sunny"> Partly Sunny</label><br>
+<label><input type="radio" name="weather" value="Rain"> Rain</label><br>
+<label><input type="radio" name="weather" value="Severe Storm"> Severe Storm</label><br>
+<label><input type="radio" name="weather" value="Sleet"> Sleet</label><br>
+<label><input type="radio" name="weather" value="Snow"> Snow</label><br>
+<label><input type="radio" name="weather" value="Sunny"> Sunny</label><br>
+<label><input type="radio" name="weather" value="Winter Storm"> Winter Storm</label>
   <script>
     function increment(id) {
       const input = document.getElementById(id);
