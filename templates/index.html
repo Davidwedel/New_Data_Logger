@@ -2,75 +2,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Farm Data Entry</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f0f0;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farm Data Entry Tabs</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: #f0f0f0;
+  }
 
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
 
-    .spinner-container {
-      display: flex;
-      align-items: center;
-      margin: 10px 0;
-    }
+  /* Tabs */
+  .tab {
+    overflow: hidden;
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 20px;
+  }
 
-    .spinner-label {
-      width: 160px;
-      font-weight: bold;
-      font-size: 18px;
-    }
+  .tab button {
+    background-color: inherit;
+    border: none;
+    outline: none;
+    padding: 14px 20px;
+    cursor: pointer;
+    font-size: 16px;
+  }
 
-    .spinner {
-      display: inline-flex;
-      align-items: center;
-    }
+  .tab button.active {
+    border-bottom: 3px solid #007BFF;
+    font-weight: bold;
+  }
 
-    .spinner button {
-      width: 50px;
-      height: 50px;
-      font-size: 24px;
-      cursor: pointer;
-      border: none;
-      background-color: #ccc;
-      border-radius: 5px;
-    }
+  /* Tab content */
+  .tabcontent {
+    display: none;
+  }
 
-    .spinner input {
-      width: 80px;
-      height: 50px;
-      text-align: center;
-      font-size: 22px;
-      margin: 0 10px;
-      border-radius: 5px;
-      border: 1px solid #999;
-    }
+  .spinner-container {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+  }
 
-    .spinner button:active {
-      background-color: #aaa;
-    }
+  .spinner-label {
+    width: 160px;
+    font-weight: bold;
+  }
 
-    #eggresult, #result {
-      margin-top: 20px;
-      font-weight: bold;
-      font-size: 20px;
-      text-align: center;
-    }
-  </style>
+  .spinner {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .spinner button {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+    cursor: pointer;
+    margin: 0 2px;
+  }
+
+  .spinner input {
+    width: 60px;
+    text-align: center;
+    font-size: 16px;
+  }
+
+  input[type="number"] {
+    min: 0;
+  }
+
+  textarea {
+    width: 100%;
+    font-size: 16px;
+    padding: 5px;
+    box-sizing: border-box;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+
+  th {
+    background-color: #ddd;
+  }
+</style>
 </head>
 <body>
 
-  <h1>Daily Farm Data Entry</h1>
+<h1>Farm Data Entry System</h1>
 
-  <!-- Egg Inputs -->
+<!-- Tab buttons -->
+<div class="tab">
+  <button class="tablinks active" onclick="openTab(event, 'daily')">Daily Farm Data Entry</button>
+  <button class="tablinks" onclick="openTab(event, 'pallet')">Pallet Entry</button>
+</div>
+
+<!-- Daily Farm Data Entry Tab -->
+<div id="daily" class="tabcontent" style="display:block;">
   <div class="spinner-container">
     <span class="spinner-label">Belt Eggs</span>
     <div class="spinner">
@@ -91,7 +133,6 @@
 
   <div id="eggresult">Egg Total: 0</div>
 
-  <!-- Mortality / Euthanized Inputs -->
   <div class="spinner-container">
     <span class="spinner-label">Mortality Indoor</span>
     <div class="spinner">
@@ -110,24 +151,22 @@
     </div>
   </div>
 
+  <p><strong>Mortality Reasons:</strong></p>
+  <label><input type="checkbox" name="mortalityReason" value="Unknown"> Unknown</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="N Natural"> N Natural</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PR Predator"> PR Predator</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PC Pecking"> PC Pecking</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="S Sick"> S Sick</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PL Prolapse"> PL Prolapse</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="C Cull"> C Cull</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="B Broody"> B Broody</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="O Other"> O Other</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PI Piling"> PI Piling</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="SO Starveout"> SO Starveout</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="I Injured"> I Injured</label>
 
-<p><strong>Mortality Reasons:</strong></p>
-<label><input type="checkbox" name="mortalityReason" value="Unknown"> Unknown</label><br>
-<label><input type="checkbox" name="mortalityReason" value="N Natural"> N Natural</label><br>
-<label><input type="checkbox" name="mortalityReason" value="PR Predator"> PR Predator</label><br>
-<label><input type="checkbox" name="mortalityReason" value="PC Pecking"> PC Pecking</label><br>
-<label><input type="checkbox" name="mortalityReason" value="S Sick"> S Sick</label><br>
-<label><input type="checkbox" name="mortalityReason" value="PL Prolapse"> PL Prolapse</label><br>
-<label><input type="checkbox" name="mortalityReason" value="C Cull"> C Cull</label><br>
-<label><input type="checkbox" name="mortalityReason" value="B Broody"> B Broody</label><br>
-<label><input type="checkbox" name="mortalityReason" value="O Other"> O Other</label><br>
-<label><input type="checkbox" name="mortalityReason" value="PI Piling"> PI Piling</label><br>
-<label><input type="checkbox" name="mortalityReason" value="SO Starveout"> SO Starveout</label><br>
-<label><input type="checkbox" name="mortalityReason" value="I Injured"> I Injured</label>
-
-
-<p><strong>Mortality Comments:</strong></p>
-<textarea id="comments" name="comments" rows="2" cols="50" placeholder=""></textarea>
+  <p><strong>Mortality Comments:</strong></p>
+  <textarea id="comments" rows="2" placeholder="Enter any notes here..."></textarea>
 
   <div class="spinner-container">
     <span class="spinner-label">Euthanized Indoor</span>
@@ -147,63 +186,110 @@
     </div>
   </div>
 
+  <p><strong>Cull Reasons:</strong></p>
+  <label><input type="checkbox" name="cullReason" value="Aggressive"> Aggressive</label><br>
+  <label><input type="checkbox" name="cullReason" value="Broody"> Broody</label><br>
+  <label><input type="checkbox" name="cullReason" value="Injured"> Injured</label><br>
+  <label><input type="checkbox" name="cullReason" value="Rooster"> Rooster</label><br>
+  <label><input type="checkbox" name="cullReason" value="Runt"> Runt</label><br>
+  <label><input type="checkbox" name="cullReason" value="Sick"> Sick</label>
 
-<p><strong>Cull Reasons:</strong></p>
-<label><input type="checkbox" name="cullReason" value="Aggressive"> Aggressive</label><br>
-<label><input type="checkbox" name="cullReason" value="Broody"> Broody</label><br>
-<label><input type="checkbox" name="cullReason" value="Injured"> Injured</label><br>
-<label><input type="checkbox" name="cullReason" value="Rooster"> Rooster</label><br>
-<label><input type="checkbox" name="cullReason" value="Runt"> Runt</label><br>
-<label><input type="checkbox" name="cullReason" value="Sick"> Sick</label>
+  <p><strong>Weather Condition:</strong></p>
+  <label><input type="radio" name="weather" value="Cloudy"> Cloudy</label><br>
+  <label><input type="radio" name="weather" value="Cloudy/Windy"> Cloudy/Windy</label><br>
+  <label><input type="radio" name="weather" value="Freezing Rain"> Freezing Rain</label><br>
+  <label><input type="radio" name="weather" value="Mostly Cloudy"> Mostly Cloudy</label><br>
+  <label><input type="radio" name="weather" value="Partly Cloudy"> Partly Cloudy</label><br>
+  <label><input type="radio" name="weather" value="Partly Sunny"> Partly Sunny</label><br>
+  <label><input type="radio" name="weather" value="Rain"> Rain</label><br>
+  <label><input type="radio" name="weather" value="Severe Storm"> Severe Storm</label><br>
+  <label><input type="radio" name="weather" value="Sleet"> Sleet</label><br>
+  <label><input type="radio" name="weather" value="Snow"> Snow</label><br>
+  <label><input type="radio" name="weather" value="Sunny"> Sunny</label><br>
+  <label><input type="radio" name="weather" value="Winter Storm"> Winter Storm</label>
+
+  <div id="eggresult">Egg Total: 0</div>
   <div id="result">Total Mortality/Euthanized: 0</div>
+</div>
+
+<!-- Pallet Entry Tab -->
+<div id="pallet" class="tabcontent">
+  <h2>Pallet Entry</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Pallet ID</th>
+        <th>Weight (lbs)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" placeholder="Enter Pallet ID"></td>
+        <td><input type="number" value="0" min="0" step="1"></td>
+      </tr>
+    </tbody>
+  </table>
   <br>
-  <br>
+<button onclick="clearPallets()">Submit Pallet Data</button>
+</div>
 
+<script>
 
-<p><strong>Weather Condition:</strong></p>
-<label><input type="radio" name="weather" value="Cloudy"> Cloudy</label><br>
-<label><input type="radio" name="weather" value="Cloudy/Windy"> Cloudy/Windy</label><br>
-<label><input type="radio" name="weather" value="Freezing Rain"> Freezing Rain</label><br>
-<label><input type="radio" name="weather" value="Mostly Cloudy"> Mostly Cloudy</label><br>
-<label><input type="radio" name="weather" value="Partly Cloudy"> Partly Cloudy</label><br>
-<label><input type="radio" name="weather" value="Partly Sunny"> Partly Sunny</label><br>
-<label><input type="radio" name="weather" value="Rain"> Rain</label><br>
-<label><input type="radio" name="weather" value="Severe Storm"> Severe Storm</label><br>
-<label><input type="radio" name="weather" value="Sleet"> Sleet</label><br>
-<label><input type="radio" name="weather" value="Snow"> Snow</label><br>
-<label><input type="radio" name="weather" value="Sunny"> Sunny</label><br>
-<label><input type="radio" name="weather" value="Winter Storm"> Winter Storm</label>
-  <script>
-    function increment(id) {
-      const input = document.getElementById(id);
-      input.value = parseInt(input.value || 0) + 1;
-      updateSums();
+function clearPallets() {
+  // Select all text and number inputs inside the pallet table
+  const palletInputs = document.querySelectorAll('#pallet table input');
+  palletInputs.forEach(input => {
+    if(input.type === 'number') {
+      input.value = 0;   // reset weight
+    } else {
+      input.value = '';  // reset pallet ID and notes
     }
+  });
+}
+function openTab(evt, tabName) {
+  var i, tabcontent, tablinks;
+  tabcontent = document.getElementsByClassName("tabcontent");
+  for (i = 0; i < tabcontent.length; i++) {
+    tabcontent[i].style.display = "none";
+  }
+  tablinks = document.getElementsByClassName("tablinks");
+  for (i = 0; i < tablinks.length; i++) {
+    tablinks[i].className = tablinks[i].className.replace(" active", "");
+  }
+  document.getElementById(tabName).style.display = "block";
+  evt.currentTarget.className += " active";
+}
 
-    function decrement(id) {
-      const input = document.getElementById(id);
-      let value = parseInt(input.value || 0);
-      if (value > 0) input.value = value - 1;
-      updateSums();
-    }
+// Spinner functions
+function increment(id) {
+  const input = document.getElementById(id);
+  input.value = parseInt(input.value || 0) + 1;
+  updateSums();
+}
 
-    function updateSums() {
-      // Eggs sum
-      const e1 = parseInt(document.getElementById('egg1').value || 0);
-      const e2 = parseInt(document.getElementById('egg2').value || 0);
-      document.getElementById('eggresult').textContent = "Egg Total: " + (e1 + e2);
+function decrement(id) {
+  const input = document.getElementById(id);
+  let value = parseInt(input.value || 0);
+  if (value > 0) input.value = value - 1;
+  updateSums();
+}
 
-      // Mortality / Euthanized sum
-      const n1 = parseInt(document.getElementById('num1').value || 0);
-      const n2 = parseInt(document.getElementById('num2').value || 0);
-      const n3 = parseInt(document.getElementById('num3').value || 0);
-      const n4 = parseInt(document.getElementById('num4').value || 0);
-      document.getElementById('result').textContent = "Total Mortality/Euthanized: " + (n1 + n2 + n3 + n4);
-    }
+// Update totals
+function updateSums() {
+  const e1 = parseInt(document.getElementById('egg1').value || 0);
+  const e2 = parseInt(document.getElementById('egg2').value || 0);
+  document.getElementById('eggresult').textContent = "Egg Total: " + (e1 + e2);
 
-    // Initialize sums on page load
-    updateSums();
-  </script>
+  const n1 = parseInt(document.getElementById('num1').value || 0);
+  const n2 = parseInt(document.getElementById('num2').value || 0);
+  const n3 = parseInt(document.getElementById('num3').value || 0);
+  const n4 = parseInt(document.getElementById('num4').value || 0);
+  document.getElementById('result').textContent = "Total Mortality/Euthanized: " + (n1 + n2 + n3 + n4);
+}
+
+// Initialize sums on page load
+updateSums();
+</script>
 
 </body>
 </html>
