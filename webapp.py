@@ -1,6 +1,7 @@
 
 from flask import Flask, request, jsonify, render_template
 import sqlite3
+from datetime import date
 
 app = Flask(__name__)
 
@@ -11,7 +12,7 @@ def init_db():
     #pallet log table
     c.execute('''CREATE TABLE IF NOT EXISTS pallets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    date TEXT,
+                    thedate TEXT,
                     pallet_id TEXT,
                     house_id REAL,
                     total_pallet_weight REAL,
@@ -73,14 +74,20 @@ def index():
 @app.route("/add_pallet", methods=["POST"])
 def add_pallet():
     data = request.json
+    thedate = date.today().isoformat() 
     pallet_id = data.get("pallet_id")
-    weight = data.get("weight")
+    house_id = 1
+    total_pallet_weight = float(data.get("weight", 0))
+    case_weight = (total_pallet_weight - 192) / 30
+    flock_age = 22.5
     yolk_color = data.get("yolk_color")
 
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("INSERT INTO pallets (pallet_id, weight, yolk_color) VALUES (?, ?, ?)",
-              (pallet_id, weight, yolk_color))
+    c.execute(
+        "INSERT INTO pallets (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
+    )
     conn.commit()
     conn.close()
 
