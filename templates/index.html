@@ -57,6 +57,26 @@
   <h1>Data Entry</h1>
 
   <div class="spinner-container">
+    <span class="spinner-label">Belt Eggs</span>
+    <div class="spinner">
+      <button onclick="decrement('egg1')">-</button>
+      <input type="number" id="egg1" value="0">
+      <button onclick="increment('egg1')">+</button>
+    </div>
+  </div>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Floor Eggs</span>
+    <div class="spinner">
+      <button onclick="decrement('egg2')">-</button>
+      <input type="number" id="egg2" value="0">
+      <button onclick="increment('egg2')">+</button>
+    </div>
+  </div>
+
+  <div id="eggresult"></div>
+
+  <div class="spinner-container">
     <span class="spinner-label">Mortality Indoor</span>
     <div class="spinner">
       <button onclick="decrement('num1')">-</button>
