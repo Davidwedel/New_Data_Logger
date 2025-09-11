@@ -332,6 +332,25 @@ def run_xml_stuff():
     coolerTempPM = c_to_f(t[1])
 
     # null values may be added at a later date.
-    log_to_db(formatted_now, formatted_yesterday, Belt_Eggs = NULL, feedConsumption, lightOnTime, lightOffTime, waterConsumption, avgWeight, doorOpen = NULL, doorClosed = NULL, insideLow, insideHigh, outsideLow, outsideHigh, coolerTempTimeAM, coolerTempAM, coolerTempTimePM, coolerTempPM)
 
+    log_to_db(
+        formatted_now=formatted_now,
+        formatted_yesterday=formatted_yesterday,
+        Belt_Eggs=None,
+        feedConsumption=feedConsumption,
+        lightOnTime=lightOnTime,
+        lightOffTime=lightOffTime,
+        waterConsumption=waterConsumption,
+        avgWeight=avgWeight,
+        doorOpen=None,
+        doorClosed=None,
+        insideLow=insideLow,
+        insideHigh=insideHigh,
+        outsideLow=outsideLow,
+        outsideHigh=outsideHigh,
+        coolerTempTimeAM=coolerTempTimeAM,
+        coolerTempAM=coolerTempAM,
+        coolerTempTimePM=coolerTempTimePM,
+        coolerTempPM=coolerTempPM
+    )
 
