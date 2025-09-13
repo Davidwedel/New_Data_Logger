@@ -67,7 +67,7 @@ webapp.run(debug=True)
 if args.LogToDatabase:
     valuesFromXML = run_xml_stuff()
     write_to_sheet(valuesFromXML, XML_TO_SHEET_RANGE_NAME)
-    runstate.save_data("XML_TO_SHEET")
+    runstate.save_data("XML_TO_DB")
 
     #delete all old files, so directory doesn't fill up.
     if not args.NoDelete:
@@ -85,8 +85,8 @@ else:
     print(f"Running in Forever Run mode.")
 
     do_unitas_stuff = False
-    xml_to_sheet_ran = runstate.load_data("XML_TO_SHEET")
-    sheet_to_unitas_ran = runstate.load_data("SHEET_TO_PRODUCTION")
+    xml_to_sheet_ran = runstate.load_data("XML_TO_DB")
+    sheet_to_unitas_ran = runstate.load_data("DB_TO_PRODUCTION")
 
 
     # ─── Scheduling ───
