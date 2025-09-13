@@ -1,0 +1,3 @@
+check that pallet data is full and correct
+add date box to pallet entry
+add box for emtpy pallet weight

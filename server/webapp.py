@@ -5,69 +5,7 @@ from datetime import date
 
 app = Flask(__name__)
 
-# Ensure DB + table exist
-def init_db():
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    #pallet log table
-    c.execute('''CREATE TABLE IF NOT EXISTS pallets (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    thedate TEXT,
-                    pallet_id TEXT,
-                    house_id REAL,
-                    total_pallet_weight REAL,
-                    case_weight REAL,
-                    flock_age REAL,
-                    yolk_color TEXT
-                )''')
-
-    # daily userlog table
-
-# Daily farm data table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS daily_userdata (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date_entered TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            
-            belt_eggs INTEGER DEFAULT 0,
-            floor_eggs INTEGER DEFAULT 0,
-            
-            mortality_indoor INTEGER DEFAULT 0,
-            mortality_outdoor INTEGER DEFAULT 0,
-            euthanized_indoor INTEGER DEFAULT 0,
-            euthanized_outdoor INTEGER DEFAULT 0,
-            
-            depop INTEGER DEFAULT 0,
-            amount_delivered INTEGER DEFAULT 0,
-            
-            mortality_reasons TEXT,
-            cull_reasons TEXT,
-            mortality_comments TEXT,
-            coolerlog_comments TEXT,
-            added_supplements TEXT,
-            birds_restricted_reason TEXT,
-            comments TEXT,
-            
-            weather TEXT,
-            air_sensory INTEGER DEFAULT 0,
-            ration TEXT,
-            drinkers_clean INTEGER DEFAULT 0,
-            birds_under_slats INTEGER DEFAULT 0,
-            safe_indoors INTEGER DEFAULT 0,
-            safe_outdoors INTEGER DEFAULT 0,
-            equipment_functioning INTEGER DEFAULT 0,
-            predator_activity INTEGER DEFAULT 0,
-            
-            eggs_picked_up INTEGER DEFAULT 0,
-            door_open TEXT,
-            door_closed TEXT
-        )
-    ''')
-
-    conn.commit()
-    conn.close()
-
-@app.route("/")   # 👈 homepage route
+@app.route("/")   # homepage route
 def index():
     return render_template("index.html")
 
@@ -148,6 +86,3 @@ def add_daily_userlog():
     conn.close()
 
     return jsonify({"status": "ok", "message": "Daily userlog saved!"})
-if __name__ == "__main__":
-    init_db()
-    app.run(debug=True)
