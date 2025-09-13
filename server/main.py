@@ -53,7 +53,6 @@ COOLER_LOG_TO_UNITAS_CELL_RANGE = "Send_To_Bot!AV3:BC3"
 # ─── Init ───
 setup_db(DB_FILE)
 runstate.make_sure_exists()
-sheets_setup(secrets)
 setup_unitas_login(secrets)
 do_unitas_setup(secrets)
 do_xml_setup(secrets)
