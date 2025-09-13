@@ -6,6 +6,7 @@ import os
 import json
 from datetime import datetime, timedelta
 import pathlib
+import jobs as jobs
 
 sys.path.append("pyfiles")  # path to subdirectory with py files
 
@@ -89,9 +90,9 @@ else:
 
 
     # ─── Scheduling ───
-    schedule.every().day.at("00:00:00").do(reset_flags)      # reset daily
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(xml_to_sheet_job) # XML → Sheets
-    schedule.every(10).seconds.do(check_and_run_unitas)      # poll spreadsheet
+    schedule.every().day.at("00:00:00").do(jobs.reset_flags)      # reset daily
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job) # XML → Sheets
+    schedule.every(10).seconds.do(jobs.check_and_run_unitas)      # poll spreadsheet
 
     # define a helper to calculate the coolerlog->unitas run time
 
