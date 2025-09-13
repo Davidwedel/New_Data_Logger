@@ -7,6 +7,7 @@ import json
 from datetime import datetime, timedelta
 import pathlib
 import jobs as jobs
+import coolerlog as coolerlog
 
 sys.path.append("pyfiles")  # path to subdirectory with py files
 
@@ -95,6 +96,11 @@ else:
     schedule.every(10).seconds.do(jobs.check_and_run_unitas)      # poll spreadsheet
 
     # define a helper to calculate the coolerlog->unitas run time
+    if(LOG_COOLER_TO_UNITAS):
+        run_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 1)  #one minute after
+        schedule.every().day.at(run_time).do(coolerlog.run_coolerlog_to_unitas)
+
+        print(f"Job scheduled at {run_time}")
 
     try:
 

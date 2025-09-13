@@ -43,7 +43,3 @@ def schedule_offset(base_time="00:15:00", offset_minutes=15):
               + timedelta(minutes=offset_minutes))
     return target.strftime("%H:%M")
 
-run_time = schedule_offset(RETRIEVE_FROM_XML_TIME, 1)  #one minute after
-schedule.every().day.at(run_time).do(coolerlog_unitas)
-
-print(f"Job scheduled at {run_time}")
