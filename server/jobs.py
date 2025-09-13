@@ -1,7 +1,3 @@
-def coolerlog_unitas():
-    if(LOG_COOLER_TO_UNITAS):
-        coolerlog.run_coolerlog_to_unitas()
-
 
 def reset_flags():
     """Reset daily run flags at midnight."""
