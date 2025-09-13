@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 parser = argparse.ArgumentParser(
     epilog="If no args are provided, runs in Forever Mode."
 )
-parser.add_argument("--LogToSheet", "-LS", action="store_true", help="Log XML → Google Sheets (one-shot)")
-parser.add_argument("--LogToUnitas", "-LU", action="store_true", help="Log Google Sheets → Unitas (one-shot)")
+parser.add_argument("--LogToDatabase", "-LD", action="store_true", help="Log XML → Database (one-shot)")
+parser.add_argument("--LogToUnitas", "-LU", action="store_true", help="Log Database → Unitas (one-shot)")
 parser.add_argument("--CoolerLogToUnitas", "-CTU", action="store_true", help="Log cooler temps → Unitas (one-shot)")
 parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don’t delete old XML files")
 args = parser.parse_args()
@@ -64,7 +64,7 @@ webapp.run(debug=True)
     #log_from_xml_to_db()
 
 ## Go through args to see if we are doing single run or the continuous one
-if args.LogToSheet:
+if args.LogToDatabase:
     valuesFromXML = run_xml_stuff()
     write_to_sheet(valuesFromXML, XML_TO_SHEET_RANGE_NAME)
     runstate.save_data("XML_TO_SHEET")
