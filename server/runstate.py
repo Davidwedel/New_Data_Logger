@@ -4,9 +4,9 @@ from datetime import date
 
 # key values from .runstate.json
 
-#SHEET_TO_PRODUCTION
-#SHEET_TO_COOLER
-#XML_TO_SHEET
+#DB_TO_PRODUCTION
+#DB_TO_COOLER
+#XML_TO_DB
 
 RUNSTATE_FILE = pathlib.Path(__file__).parent / ".runstate.json"
 
