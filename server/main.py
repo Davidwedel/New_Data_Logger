@@ -6,12 +6,13 @@ import os
 import json
 from datetime import datetime, timedelta
 import pathlib
-import jobs as jobs
 #import coolerlog as coolerlog
 
 sys.path.append("pyfiles")  # path to subdirectory with py files
 
 #local imports
+import jobs as jobs
+import runstate as runstate
 import database_helper as db
 #from xml_processing import run_xml_stuff as log_from_xml
 from webapp import app as webapp
