@@ -1,7 +1,7 @@
-
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date
+import database_helper as db
 
 app = Flask(__name__)
 
@@ -20,14 +20,18 @@ def add_pallet():
     flock_age = 22.5
     yolk_color = data.get("yolk_color")
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute(
-        "INSERT INTO pallets (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
-    )
-    conn.commit()
-    conn.close()
+    db.insert_pallet_log(thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
+
+###
+#    conn = sqlite3.connect("database.db")
+#    c = conn.cursor()
+#    c.execute(
+#        "INSERT INTO pallets (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color) VALUES (?, ?, ?, ?, ?, ?, ?)",
+#        (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
+#    )
+#    conn.commit()
+#    conn.close()
+    
 
     return jsonify({"status": "ok", "message": "Pallet saved!"})
 

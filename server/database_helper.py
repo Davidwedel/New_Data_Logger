@@ -1,15 +1,16 @@
 import sqlite3
 
-def setup_db(DB_FILE):
-    # Connect to database (creates file if it doesn't exist)
-    conn = sqlite3.connect(DB_FILE)
+# ------------------- GLOBAL DB FILE -------------------
+DB_FILE = None
 
-    # Create a cursor object to execute SQL commands
+# ------------------- DATABASE SETUP -------------------
+def setup_db(db_file):
+    global DB_FILE
+    DB_FILE = db_file
+    conn = sqlite3.connect(DB_FILE)
     curr = conn.cursor()
 
-    # Create a table
-    #!!!!This needs help!!!!
-
+    # Data_Log table
     curr.execute('''CREATE TABLE IF NOT EXISTS Data_Log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date DATE,
@@ -64,107 +65,171 @@ def setup_db(DB_FILE):
         cooler_temp_pm REAL
     )''')
 
-    #pallet log table
+    # Pallet_Log table
     curr.execute('''CREATE TABLE IF NOT EXISTS Pallet_Log (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    thedate TEXT,
-                    pallet_id TEXT,
-                    house_id REAL,
-                    total_pallet_weight REAL,
-                    case_weight REAL,
-                    flock_age REAL,
-                    yolk_color TEXT
-                )''')
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        thedate TEXT,
+        pallet_id TEXT,
+        house_id REAL,
+        total_pallet_weight REAL,
+        case_weight REAL,
+        flock_age REAL,
+        yolk_color TEXT
+    )''')
 
-    # daily userlog table
-    curr.execute('''
-        CREATE TABLE IF NOT EXISTS Daily_User_Log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date_entered TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            
-            belt_eggs INTEGER DEFAULT 0,
-            floor_eggs INTEGER DEFAULT 0,
-            
-            mortality_indoor INTEGER DEFAULT 0,
-            mortality_outdoor INTEGER DEFAULT 0,
-            euthanized_indoor INTEGER DEFAULT 0,
-            euthanized_outdoor INTEGER DEFAULT 0,
-            
-            depop INTEGER DEFAULT 0,
-            amount_delivered INTEGER DEFAULT 0,
-            
-            mortality_reasons TEXT,
-            cull_reasons TEXT,
-            mortality_comments TEXT,
-            coolerlog_comments TEXT,
-            added_supplements TEXT,
-            birds_restricted_reason TEXT,
-            comments TEXT,
-            
-            weather TEXT,
-            air_sensory INTEGER DEFAULT 0,
-            ration TEXT,
-            drinkers_clean INTEGER DEFAULT 0,
-            birds_under_slats INTEGER DEFAULT 0,
-            safe_indoors INTEGER DEFAULT 0,
-            safe_outdoors INTEGER DEFAULT 0,
-            equipment_functioning INTEGER DEFAULT 0,
-            predator_activity INTEGER DEFAULT 0,
-            
-            eggs_picked_up INTEGER DEFAULT 0,
-            door_open TEXT,
-            door_closed TEXT
-        )
-    ''')
+    # Daily_User_Log table
+    curr.execute('''CREATE TABLE IF NOT EXISTS Daily_User_Log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date_entered TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        belt_eggs INTEGER DEFAULT 0,
+        floor_eggs INTEGER DEFAULT 0,
+        mortality_indoor INTEGER DEFAULT 0,
+        mortality_outdoor INTEGER DEFAULT 0,
+        euthanized_indoor INTEGER DEFAULT 0,
+        euthanized_outdoor INTEGER DEFAULT 0,
+        depop INTEGER DEFAULT 0,
+        amount_delivered INTEGER DEFAULT 0,
+        mortality_reasons TEXT,
+        cull_reasons TEXT,
+        mortality_comments TEXT,
+        coolerlog_comments TEXT,
+        added_supplements TEXT,
+        birds_restricted_reason TEXT,
+        comments TEXT,
+        weather TEXT,
+        air_sensory INTEGER DEFAULT 0,
+        ration TEXT,
+        drinkers_clean INTEGER DEFAULT 0,
+        birds_under_slats INTEGER DEFAULT 0,
+        safe_indoors INTEGER DEFAULT 0,
+        safe_outdoors INTEGER DEFAULT 0,
+        equipment_functioning INTEGER DEFAULT 0,
+        predator_activity INTEGER DEFAULT 0,
+        eggs_picked_up INTEGER DEFAULT 0,
+        door_open TEXT,
+        door_closed TEXT
+    )''')
+
     conn.commit()
     conn.close()
 
-def insert_log(conn, table, **kwargs):
-    """
-    Insert a row into the given table.
-    Pass values as keyword arguments matching the column names.
-    Missing columns will be NULL.
-    """
-    curr = conn.cursor()
 
-    # Extract column names and values
-    columns = ", ".join(kwargs.keys())
-    placeholders = ", ".join(["?"] * len(kwargs))
-    values = tuple(kwargs.values())
-
-    sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-    curr.execute(sql, values)
-
+# ------------------- GENERIC INSERT HELPER -------------------
+def _insert_into_table(table, data_dict):
+    if not data_dict:
+        raise ValueError("No data provided to insert.")
+    cols = ", ".join(data_dict.keys())
+    placeholders = ", ".join("?" for _ in data_dict)
+    sql = f"INSERT INTO {table} ({cols}) VALUES ({placeholders})"
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(data_dict.values()))
     conn.commit()
-    return curr.lastrowid  # return the new row ID
-
-def insert_botdailylog(timestamp, date, eggs, feed, lightson, lightsoff, water, weight, dooropen, doorclosed, insidelow, insidehigh, outsidelow, outsidehigh, coolertimeam, coolertempam, coolertimepm, coolertemppm):
-# Insert some data
-    conn = sqlite3.connect("database.db")
-
-    new_log = insert_log(
-        conn,
-        "botdailylog",
-        TimeStamp=timestamp,
-        Date_Of_Data=date,
-        Belt_Eggs=eggs,
-        Feed_Consumption=feed,
-        Lights_On=lightson,
-        Lights_Off=lightsoff,
-        Water_Consumption=water,
-        Body_Weight=weight,
-        Door_Open=doorsopen,
-        Door_Closed=doorsclosed,
-        Inside_Low_Temp=insidelow,
-        Inside_High_Temp=insidehigh,
-        Outside_Low_Temp=outsidelow,
-        Outside_High_Temp=outsidehigh,
-        Cooler_Time_AM=coolertimeam, 
-        Cooler_Temp_AM=coolertempam,
-        Cooler_Time_PM=coolertimepm,
-        Cooler_Temp_PM=coolertemppm
-    )
-
-    # Close the connection
+    lastrowid = cur.lastrowid
     conn.close()
+    return lastrowid
 
+
+# ------------------- INSERT FUNCTIONS -------------------
+
+def insert_data_log(
+    date=None,
+    bird_age=None,
+    eggs_to_minus=None,
+    mortality=None,
+    mortality_indoor=None,
+    mortality_outdoor=None,
+    euthanized_indoor=None,
+    euthanized_outdoor=None,
+    depop_number=None,
+    cull_reason=None,
+    mortality_reason=None,
+    mortality_comments=None,
+    total_eggs=None,
+    belt_eggs=None,
+    floor_eggs=None,
+    nutritionist=None,
+    ration_used=None,
+    feed_consumption=None,
+    ration_delivered=None,
+    amount_delivered=None,
+    lights_on=None,
+    lights_off=None,
+    added_supplements=None,
+    water_consumption=None,
+    body_weight=None,
+    case_weight=None,
+    yolk_color=None,
+    door_open=None,
+    door_closed=None,
+    birds_restricted=None,
+    birds_restricted_reason=None,
+    inside_low_temp=None,
+    inside_high_temp=None,
+    outside_low_temp=None,
+    outside_high_temp=None,
+    air_sensory=None,
+    weather_conditions=None,
+    outside_drinkers_clean=None,
+    birds_found_under_slats=None,
+    safe_environment_indoors=None,
+    safe_environment_outdoors=None,
+    equipment_functioning=None,
+    predator_activity=None,
+    comment=None,
+    eggs_shipped=None,
+    eggs_comments=None,
+    cooler_time_am=None,
+    cooler_temp_am=None,
+    cooler_time_pm=None,
+    cooler_temp_pm=None,
+):
+    payload = {k: v for k, v in locals().items() if v is not None}
+    return _insert_into_table("Data_Log", payload)
+
+
+def insert_pallet_log(
+    thedate=None,
+    pallet_id=None,
+    house_id=None,
+    total_pallet_weight=None,
+    case_weight=None,
+    flock_age=None,
+    yolk_color=None,
+):
+    payload = {k: v for k, v in locals().items() if v is not None}
+    return _insert_into_table("Pallet_Log", payload)
+
+
+def insert_daily_user_log(
+    date_entered=None,
+    belt_eggs=None,
+    floor_eggs=None,
+    mortality_indoor=None,
+    mortality_outdoor=None,
+    euthanized_indoor=None,
+    euthanized_outdoor=None,
+    depop=None,
+    amount_delivered=None,
+    mortality_reasons=None,
+    cull_reasons=None,
+    mortality_comments=None,
+    coolerlog_comments=None,
+    added_supplements=None,
+    birds_restricted_reason=None,
+    comments=None,
+    weather=None,
+    air_sensory=None,
+    ration=None,
+    drinkers_clean=None,
+    birds_under_slats=None,
+    safe_indoors=None,
+    safe_outdoors=None,
+    equipment_functioning=None,
+    predator_activity=None,
+    eggs_picked_up=None,
+    door_open=None,
+    door_closed=None,
+):
+    payload = {k: v for k, v in locals().items() if v is not None}
+    return _insert_into_table("Daily_User_Log", payload)

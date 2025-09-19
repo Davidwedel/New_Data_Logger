@@ -7,13 +7,13 @@ import json
 from datetime import datetime, timedelta
 import pathlib
 import jobs as jobs
-import coolerlog as coolerlog
+#import coolerlog as coolerlog
 
 sys.path.append("pyfiles")  # path to subdirectory with py files
 
 #local imports
-from database_helper import setup_db
-from xml_processing import run_xml_stuff as log_from_xml_to_db
+import database_helper as db
+#from xml_processing import run_xml_stuff as log_from_xml
 from webapp import app as webapp
 
 
@@ -37,12 +37,10 @@ parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don’t dele
 args = parser.parse_args()
 
 #──Config───
-DB_FILE = pathlib.Path(__file__).parent / "database.db"
-CONFIG_FILE = pathlib.Path(__file__).parent / "secrets.json"
+DB_FILE = pathlib.Path(__file__).parent / "../database.db"
+CONFIG_FILE = pathlib.Path(__file__).parent / "../secrets.json"
 secrets = json.loads(CONFIG_FILE.read_text())
 
-XML_TO_SHEET_RANGE_NAME = secrets["xml_to_sheet_range_name"]
-SHEET_TO_UNITAS_RANGE_NAME = secrets["sheet_to_unitas_range_name"]
 RETRIEVE_FROM_XML_TIME = secrets["retrieve_from_xml_time"]
 LOG_COOLER_TO_UNITAS = secrets["Cooler_Log_To_Unitas"]
 TIMEOUT = secrets["Timeout"]
@@ -51,22 +49,19 @@ checkbox_cell = "Send_To_Bot!AU3:AU3"
 COOLER_LOG_TO_UNITAS_CELL_RANGE = "Send_To_Bot!AV3:BC3"
 
 # ─── Init ───
-setup_db(DB_FILE)
-runstate.make_sure_exists()
-setup_unitas_login(secrets)
-do_unitas_setup(secrets)
-do_xml_setup(secrets)
-set_timeout(TIMEOUT)
-coolerlog.do_coolerlog_setup(secrets, COOLER_LOG_TO_UNITAS_CELL_RANGE)
+db.setup_db(DB_FILE)
+#runstate.make_sure_exists()
+#setup_unitas_login(secrets)
+#do_unitas_setup(secrets)
+#do_xml_setup(secrets)
+#set_timeout(TIMEOUT)
+#coolerlog.do_coolerlog_setup(secrets, COOLER_LOG_TO_UNITAS_CELL_RANGE)
 webapp.run(debug=True)
-
-
-    #log_from_xml_to_db()
 
 ## Go through args to see if we are doing single run or the continuous one
 if args.LogToDatabase:
-    valuesFromXML = run_xml_stuff()
-    write_to_sheet(valuesFromXML, XML_TO_SHEET_RANGE_NAME)
+    valuesFromXML = log_from_xml()
+
     runstate.save_data("XML_TO_DB")
 
     #delete all old files, so directory doesn't fill up.
@@ -81,7 +76,7 @@ elif args.LogToUnitas:
     run_unitas_stuff(valuesToSend)
 
 
-else:
+elif False :
     print(f"Running in Forever Run mode.")
 
     do_unitas_stuff = False
