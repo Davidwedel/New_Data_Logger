@@ -22,17 +22,6 @@ def add_pallet():
 
     db.insert_pallet_log(thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
 
-###
-#    conn = sqlite3.connect("database.db")
-#    c = conn.cursor()
-#    c.execute(
-#        "INSERT INTO pallets (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color) VALUES (?, ?, ?, ?, ?, ?, ?)",
-#        (thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
-#    )
-#    conn.commit()
-#    conn.close()
-    
-
     return jsonify({"status": "ok", "message": "Pallet saved!"})
 
 @app.route("/add_daily_userlog", methods=["POST"])
