@@ -1,6 +1,7 @@
+from os import wait
 from flask import Flask, request, jsonify, render_template
 import sqlite3
-from datetime import date
+from datetime import date, datetime
 import database_helper as db
 
 app = Flask(__name__)
@@ -26,56 +27,71 @@ def add_pallet():
 
 @app.route("/add_daily_userlog", methods=["POST"])
 def add_daily_userlog():
+    import json
     data = request.json
+    date_entered = datetime.now().isoformat()
+    belt_eggs = data.get("belt_eggs")
+    floor_eggs = data.get("floor_eggs")
+    mortality_indoor = data.get("mortality_indoor")
+    mortality_outdoor = data.get("mortality_outdoor")
+    euthanized_indoor = data.get("euthanized_indoor")
+    euthanized_outdoor = data.get("euthanized_outdoor")
+    depop = data.get("depop")
+    amount_delivered = data.get("amount_delivered")
+    mortality_reasons = data.get("mortality_reasons")
+    cull_reasons = data.get("cull_reasons")
+    if isinstance(mortality_reasons, list):
+        mortality_reasons = json.dumps(mortality_reasons)
+    if isinstance(cull_reasons, list):
+        cull_reasons = json.dumps(cull_reasons)
+    mortality_comments = data.get("mortality_comments")
+    coolerlog_comments = data.get("coolerlog_comments")
+    added_supplements = data.get("added_supplements")
+    birds_restricted_reason = data.get("birds_restricted_reason")
+    comments = data.get("comments")
+    weather = data.get("weather")
+    air_sensory = data.get("air_sensory")
+    ration = data.get("ration")
+    drinkers_clean = data.get("drinkers_clean")
+    birds_under_slats = data.get("birds_under_slats")
+    safe_indoors = data.get("safe_indoors")
+    safe_outdoors = data.get("safe_outdoors")
+    equipment_functioning = data.get("equipment_functioning")
+    predator_activity = data.get("predator_activity")
+    eggs_picked_up = data.get("eggs_picked_up")
+    door_open = data.get("door_open")
+    door_closed = data.get("door_closed")
 
-    # Extract checkbox arrays
-    mortality_reasons = ",".join(data.get("mortality_reasons", []))
-    cull_reasons = ",".join(data.get("cull_reasons", []))
+    db.insert_daily_user_log(
+        date_entered=date_entered,
+        belt_eggs=belt_eggs,
+        floor_eggs=floor_eggs,
+        mortality_indoor=mortality_indoor,
+        mortality_outdoor=mortality_outdoor,
+        euthanized_indoor=euthanized_indoor,
+        euthanized_outdoor=euthanized_outdoor,
+        depop=depop,
+        amount_delivered=amount_delivered,
+        mortality_reasons=mortality_reasons,
+        cull_reasons=cull_reasons,
+        mortality_comments=mortality_comments,
+        coolerlog_comments=coolerlog_comments,
+        added_supplements=added_supplements,
+        birds_restricted_reason=birds_restricted_reason,
+        comments=comments,
+        weather=weather,
+        air_sensory=air_sensory,
+        ration=ration,
+        drinkers_clean=drinkers_clean,
+        birds_under_slats=birds_under_slats,
+        safe_indoors=safe_indoors,
+        safe_outdoors=safe_outdoors,
+        equipment_functioning=equipment_functioning,
+        predator_activity=predator_activity,
+        eggs_picked_up=eggs_picked_up,
+        door_open=door_open,
+        door_closed=door_closed
+    )
 
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute('''
-        INSERT INTO daily_userdata (
-            belt_eggs, floor_eggs,
-            mortality_indoor, mortality_outdoor,
-            euthanized_indoor, euthanized_outdoor,
-            depop, amount_delivered,
-            mortality_reasons, cull_reasons,
-            mortality_comments, coolerlog_comments, added_supplements, birds_restricted_reason, comments,
-            weather, air_sensory, ration,
-            drinkers_clean, birds_under_slats, safe_indoors, safe_outdoors, equipment_functioning, predator_activity,
-            eggs_picked_up, door_open, door_closed
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    ''', (
-        data.get("belt_eggs", 0),
-        data.get("floor_eggs", 0),
-        data.get("mortality_indoor", 0),
-        data.get("mortality_outdoor", 0),
-        data.get("euthanized_indoor", 0),
-        data.get("euthanized_outdoor", 0),
-        data.get("depop", 0),
-        data.get("amount_delivered", 0),
-        mortality_reasons,
-        cull_reasons,
-        data.get("mortality_comments", ""),
-        data.get("coolerlog_comments", ""),
-        data.get("added_supplements", ""),
-        data.get("birds_restricted_reason", ""),
-        data.get("comments", ""),
-        data.get("weather", ""),
-        data.get("air_sensory", 0),
-        data.get("ration", ""),
-        data.get("drinkers_clean", 0),
-        data.get("birds_under_slats", 0),
-        data.get("safe_indoors", 0),
-        data.get("safe_outdoors", 0),
-        data.get("equipment_functioning", 0),
-        data.get("predator_activity", 0),
-        1 if data.get("eggs_picked_up") else 0,
-        data.get("door_open", ""),
-        data.get("door_closed", "")
-    ))
-    conn.commit()
-    conn.close()
 
     return jsonify({"status": "ok", "message": "Daily userlog saved!"})
