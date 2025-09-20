@@ -342,8 +342,6 @@ def run_xml_stuff():
         lights_off=lightOffTime,
         water_consumption=waterConsumption,
         body_weight=avgWeight,
-        case_weight=None,  # set if available
-        yolk_color=None,  # set if available
         door_open=None,
         door_closed=None,
         birds_restricted=None,
