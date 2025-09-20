@@ -5,3 +5,4 @@ __pycache__/
 .~lock*
 secrets.json
 .runstate.json
+settings.json

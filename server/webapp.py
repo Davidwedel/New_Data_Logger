@@ -1,4 +1,5 @@
-from os import wait
+import os
+import json
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date, datetime
@@ -95,3 +96,18 @@ def add_daily_userlog():
 
 
     return jsonify({"status": "ok", "message": "Daily userlog saved!"})
+
+@app.route("/save_settings", methods=["POST"])
+def save_settings():
+    data = request.json
+    settings = {
+        "hatch_date": data.get("hatch_date"),
+        "birds_arrived_date": data.get("birds_arrived_date")
+    }
+    settings_path = os.path.join(os.path.dirname(__file__), "..", "settings.json")
+    try:
+        with open(settings_path, "w") as f:
+            json.dump(settings, f, indent=2)
+        return jsonify({"status": "ok", "message": "Settings saved!"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to save settings: {e}"}), 500
