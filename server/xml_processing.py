@@ -5,7 +5,7 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
-from database_helper import insert_botdailylog as log_to_db
+from database_helper import insert_daily_bot_log as log_to_db
 
 # Shared variables for all functions
 xmlFolder = None
@@ -334,23 +334,25 @@ def run_xml_stuff():
     # null values may be added at a later date.
 
     log_to_db(
-        formatted_now=formatted_now,
-        formatted_yesterday=formatted_yesterday,
-        Belt_Eggs=None,
-        feedConsumption=feedConsumption,
-        lightOnTime=lightOnTime,
-        lightOffTime=lightOffTime,
-        waterConsumption=waterConsumption,
-        avgWeight=avgWeight,
-        doorOpen=None,
-        doorClosed=None,
-        insideLow=insideLow,
-        insideHigh=insideHigh,
-        outsideLow=outsideLow,
-        outsideHigh=outsideHigh,
-        coolerTempTimeAM=coolerTempTimeAM,
-        coolerTempAM=coolerTempAM,
-        coolerTempTimePM=coolerTempTimePM,
-        coolerTempPM=coolerTempPM
+    date=(date.today() - timedelta(days=1)).isoformat(),
+        bird_age=None,  # set if available
+        feed_consumption=feedConsumption,
+        lights_on=lightOnTime,
+        lights_off=lightOffTime,
+        water_consumption=waterConsumption,
+        body_weight=avgWeight,
+        case_weight=None,  # set if available
+        yolk_color=None,  # set if available
+        door_open=None,
+        door_closed=None,
+        birds_restricted=None,
+        inside_low_temp=insideLow,
+        inside_high_temp=insideHigh,
+        outside_low_temp=outsideLow,
+        outside_high_temp=outsideHigh,
+        cooler_time_am=coolerTempTimeAM,
+        cooler_temp_am=coolerTempAM,
+        cooler_time_pm=coolerTempTimePM,
+        cooler_temp_pm=coolerTempPM
     )
 

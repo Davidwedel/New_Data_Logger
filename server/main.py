@@ -14,7 +14,8 @@ sys.path.append("pyfiles")  # path to subdirectory with py files
 import jobs as jobs
 import runstate as runstate
 import database_helper as db
-#from xml_processing import run_xml_stuff as log_from_xml
+from xml_processing import run_xml_stuff as log_from_xml
+from xml_processing import deleteOldFiles, do_xml_setup
 from webapp import app as webapp
 
 
@@ -51,10 +52,10 @@ COOLER_LOG_TO_UNITAS_CELL_RANGE = "Send_To_Bot!AV3:BC3"
 
 # ─── Init ───
 db.setup_db(DB_FILE)
-#runstate.make_sure_exists()
+runstate.make_sure_exists()
 #setup_unitas_login(secrets)
 #do_unitas_setup(secrets)
-#do_xml_setup(secrets)
+do_xml_setup(secrets)
 #set_timeout(TIMEOUT)
 #coolerlog.do_coolerlog_setup(secrets, COOLER_LOG_TO_UNITAS_CELL_RANGE)
 webapp.run(debug=True)
@@ -62,6 +63,7 @@ webapp.run(debug=True)
 ## Go through args to see if we are doing single run or the continuous one
 if args.LogToDatabase:
     valuesFromXML = log_from_xml()
+    print(valuesFromXML)
 
     runstate.save_data("XML_TO_DB")
 
