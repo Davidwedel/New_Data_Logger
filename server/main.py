@@ -50,16 +50,19 @@ secrets = json.loads(CONFIG_FILE.read_text())
 RETRIEVE_FROM_XML_TIME = secrets["retrieve_from_xml_time"]
 LOG_COOLER_TO_UNITAS = secrets["Cooler_Log_To_Unitas"]
 TIMEOUT = secrets["Timeout"]
+UNITAS_LOGIN_URL = "https://vitalfarms.poultrycloud.com/login"  # confirm this
+
 
 # ─── Init ───
 db.setup_db(DB_FILE)
-runstate.make_sure_exists()
 setup_unitas_login(secrets)
+runstate.make_sure_exists()
 unitas.do_unitas_setup(secrets)
 do_xml_setup(secrets)
 helper_set_timeout(TIMEOUT)
 coolerlog.do_coolerlog_setup(secrets)
-webapp.run(debug=True)
+if False:
+    webapp.run(debug=True)
 
 ## Go through args to see if we are doing single run or the continuous one
 if args.LogToDatabase:
@@ -76,8 +79,7 @@ elif args.CoolerLogToUnitas:
     coolerlog.run_coolerlog_to_unitas()
 
 elif args.LogToUnitas:
-    valuesToSend = read_from_sheet(SHEET_TO_UNITAS_RANGE_NAME)
-    unitas.run_unitas_stuff(valuesToSend)
+    unitas.run_unitas_stuff(UNITAS_LOGIN_URL)
 
 
 else :

@@ -1,5 +1,4 @@
 from unitas_login import login
-from sheets_processing import read_from_sheet
 from webdriver_manager.firefox import GeckoDriverManager
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
@@ -15,13 +14,11 @@ FARM_ID = None
 HOUSE_ID = None
 COOLERLOG_URL = None
 TIMEOUT = None
-RANGE_NAME = None
 INITIALS = None
 
-def do_coolerlog_setup(secrets, range_name):
-    global FARM_ID, HOUSE_ID, COOLERLOG_URL, TIMEOUT, RANGE_NAME, INITIALS
+def do_coolerlog_setup(secrets):
+    global FARM_ID, HOUSE_ID, COOLERLOG_URL, TIMEOUT, INITIALS
     
-    RANGE_NAME = range_name
     FARM_ID = secrets["Farm_ID"]
     HOUSE_ID = secrets["House_ID"]
     TIMEOUT = secrets["Timeout"]

@@ -4,6 +4,7 @@ from selenium.webdriver.support import expected_conditions as EC
 import os
 import re
 from selenium.webdriver.common.by import By
+from database_helper import get_daily_user_log, get_daily_bot_log
 
 TIMEOUT = None
 
@@ -104,4 +105,3 @@ def fill_multiselect_box(driver, label, items):
 
     # Close the dropdown again
     dropdown.click()
-

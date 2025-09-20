@@ -169,3 +169,32 @@ def insert_daily_user_log(
 ):
     payload = {k: v for k, v in locals().items() if v is not None}
     return _insert_into_table("Daily_User_Log", payload)
+
+
+# Fetch latest record from Daily_User_Log
+
+def get_daily_user_log(date_str=None):
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    if date_str:
+        cur.execute("SELECT * FROM Daily_User_Log WHERE date(date_entered) = ? ORDER BY date_entered DESC LIMIT 1", (date_str,))
+    else:
+        cur.execute("SELECT * FROM Daily_User_Log ORDER BY date_entered DESC LIMIT 1")
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+# Fetch latest record from Daily_Bot_Log
+
+def get_daily_bot_log(date_str=None):
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    if date_str:
+        cur.execute("SELECT * FROM Daily_Bot_Log WHERE date = ? ORDER BY date DESC LIMIT 1", (date_str,))
+    else:
+        cur.execute("SELECT * FROM Daily_Bot_Log ORDER BY date DESC LIMIT 1")
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
