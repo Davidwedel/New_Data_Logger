@@ -6,6 +6,7 @@ import xml.etree.ElementTree as ET
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 from database_helper import insert_daily_bot_log as log_to_db
+from helpers import get_bird_age
 
 # Shared variables for all functions
 xmlFolder = None
@@ -334,8 +335,8 @@ def run_xml_stuff():
     # null values may be added at a later date.
 
     log_to_db(
-    date=(date.today() - timedelta(days=1)).isoformat(),
-        bird_age=None,  # set if available
+        date=(date.today() - timedelta(days=1)).isoformat(),
+        bird_age=get_bird_age(),  # set if available
         feed_consumption=feedConsumption,
         lights_on=lightOnTime,
         lights_off=lightOffTime,
