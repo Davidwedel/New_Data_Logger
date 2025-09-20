@@ -1,4 +1,5 @@
 import sys
+import schedule
 import logging
 import time
 import argparse
@@ -6,9 +7,8 @@ import os
 import json
 from datetime import datetime, timedelta
 import pathlib
-#import coolerlog as coolerlog
 
-sys.path.append("pyfiles")  # path to subdirectory with py files
+sys.path.append(os.path.join(os.path.dirname(__file__), "unitas_manager"))
 
 #local imports
 import jobs as jobs
@@ -17,6 +17,10 @@ import database_helper as db
 from xml_processing import run_xml_stuff as log_from_xml
 from xml_processing import deleteOldFiles, do_xml_setup
 from webapp import app as webapp
+import unitas_manager.unitas_coolerlog as coolerlog
+from unitas_manager.unitas_login import setup_unitas_login
+import unitas_manager.unitas_production as unitas
+from unitas_manager.unitas_helper import set_timeout as helper_set_timeout
 
 
 # ─── Logging ───
@@ -47,17 +51,14 @@ RETRIEVE_FROM_XML_TIME = secrets["retrieve_from_xml_time"]
 LOG_COOLER_TO_UNITAS = secrets["Cooler_Log_To_Unitas"]
 TIMEOUT = secrets["Timeout"]
 
-checkbox_cell = "Send_To_Bot!AU3:AU3"
-COOLER_LOG_TO_UNITAS_CELL_RANGE = "Send_To_Bot!AV3:BC3"
-
 # ─── Init ───
 db.setup_db(DB_FILE)
 runstate.make_sure_exists()
-#setup_unitas_login(secrets)
-#do_unitas_setup(secrets)
+setup_unitas_login(secrets)
+unitas.do_unitas_setup(secrets)
 do_xml_setup(secrets)
-#set_timeout(TIMEOUT)
-#coolerlog.do_coolerlog_setup(secrets, COOLER_LOG_TO_UNITAS_CELL_RANGE)
+helper_set_timeout(TIMEOUT)
+coolerlog.do_coolerlog_setup(secrets)
 webapp.run(debug=True)
 
 ## Go through args to see if we are doing single run or the continuous one
@@ -76,10 +77,10 @@ elif args.CoolerLogToUnitas:
 
 elif args.LogToUnitas:
     valuesToSend = read_from_sheet(SHEET_TO_UNITAS_RANGE_NAME)
-    run_unitas_stuff(valuesToSend)
+    unitas.run_unitas_stuff(valuesToSend)
 
 
-elif False :
+else :
     print(f"Running in Forever Run mode.")
 
     do_unitas_stuff = False
