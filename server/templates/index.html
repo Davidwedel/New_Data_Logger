@@ -692,6 +692,15 @@
       }
       document.getElementById(tabName).style.display = "block";
       evt.currentTarget.className += " active";
+      // If Farm Settings tab, fetch and fill values
+      if(tabName === 'settings') {
+        fetch('/get_settings')
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('hatchDate').value = data.hatch_date || '';
+            document.getElementById('birdsArrivedDate').value = data.birds_arrived_date || '';
+          });
+      }
     }
 
     // Spinner functions

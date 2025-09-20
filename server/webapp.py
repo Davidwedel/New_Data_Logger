@@ -111,3 +111,14 @@ def save_settings():
         return jsonify({"status": "ok", "message": "Settings saved!"})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save settings: {e}"}), 500
+
+# Endpoint to get farm settings
+@app.route("/get_settings", methods=["GET"])
+def get_settings():
+    import json, os
+    settings_path = os.path.join(os.path.dirname(__file__), "..", "settings.json")
+    if not os.path.exists(settings_path):
+        return jsonify({"hatch_date": "", "birds_arrived_date": ""})
+    with open(settings_path, "r") as f:
+        settings = json.load(f)
+    return jsonify(settings)
