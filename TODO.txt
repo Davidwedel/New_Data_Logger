@@ -1,3 +1,5 @@
 check that pallet data is full and correct
 add date box to pallet entry
-add box for emtpy pallet weight
+whole nightmare with if settings are all set up
+add box for emtpy pallet weight, startup week, 
+check all settings there
