@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from xml_processing import deleteOldFiles, log_from_xml
+from xml_processing import deleteOldFiles
+from xml_processing import run_xml_stuff as log_from_xml
 import runstate as runstate
 import unitas_manager.unitas_production as unitas
 def reset_flags():
