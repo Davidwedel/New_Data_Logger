@@ -1,4 +1,4 @@
-
+from datetime import datetime, timedelta
 def reset_flags():
     """Reset daily run flags at midnight."""
     global xml_to_sheet_ran, sheet_to_unitas_ran
@@ -6,7 +6,7 @@ def reset_flags():
     sheet_to_unitas_ran = False
     print("[Reset] Flags reset at midnight")
 
-def xml_to_sheet_job():
+def xml_to_sheet_job(args):
     """Run XML → Sheets logging once per day."""
     global xml_to_sheet_ran
     if not xml_to_sheet_ran:

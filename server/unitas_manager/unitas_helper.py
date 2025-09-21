@@ -76,8 +76,6 @@ def fill_multiselect_box(driver, label, items):
     if items == "":
         return
 
-    print(label)
-
     dropdown = WebDriverWait(driver, TIMEOUT).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, f'[aria-labelledby="{label}"] button'))
 )
@@ -89,6 +87,7 @@ def fill_multiselect_box(driver, label, items):
     )
 
     # Convert string to list if needed
+    print(items)
     if isinstance(items, str):
         items = [item.strip() for item in items.split(",")]
 

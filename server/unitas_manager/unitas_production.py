@@ -11,6 +11,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import date, timedelta
 import runstate as runstate
+import database_helper as db
 
 HEADLESS = None
 FARM_ID = None
@@ -40,8 +41,8 @@ def trigger_fill_production_form(driver, target_date=None):
     """
     if target_date is None:
         target_date = (date.today() - timedelta(days=1)).isoformat()
-    user_data = get_daily_user_log(target_date) or {}
-    bot_data = get_daily_bot_log(target_date) or {}
+    user_data = db.get_daily_user_log(target_date) or {}
+    bot_data = db.get_daily_bot_log(target_date) or {}
 
     # Merge, user_data takes precedence if overlap
     merged = {**bot_data, **user_data}
@@ -149,8 +150,8 @@ def fill_production_form(
     euthanized_indoor="0",
     euthanized_outdoor="0",
     depop_number="",
-    cull_reason=None,
-    mortality_reason=None,
+    cull_reason="",
+    mortality_reason="",
     mortality_comments="",
     total_eggs="",
     floor_eggs="",
@@ -188,6 +189,13 @@ def fill_production_form(
     predator_activity="",
     comment=""
 ):
+    # Ensure cull_reason and mortality_reason are never None
+    if cull_reason is None:
+        cull_reason = ""
+    if mortality_reason is None:
+        mortality_reason = ""
+    print("blah" + str(cull_reason))
+
     helper.fill_input_by_id(driver, "V33-H1", mortality_indoor or "0")
     helper.fill_input_by_id(driver, "V35-H1", mortality_outdoor or "0")
     helper.fill_input_by_id(driver, "V34-H1", euthanized_indoor or "0")
@@ -255,7 +263,7 @@ def run_unitas_stuff(secrets):
         login(driver, secrets)
         open_production_page(driver, FARM_ID, HOUSE_ID)
         get_yesterdays_form(driver, TIMEOUT)
-        helper.trigger_fill_production_form(driver, values)
+        trigger_fill_production_form(driver)
 
         #scroll back to top
         element = driver.find_element(By.ID, "V33-H1")

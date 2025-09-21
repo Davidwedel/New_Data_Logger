@@ -40,6 +40,7 @@ parser.add_argument("--LogToDatabase", "-LD", action="store_true", help="Log XML
 parser.add_argument("--LogToUnitas", "-LU", action="store_true", help="Log Database → Unitas (one-shot)")
 parser.add_argument("--CoolerLogToUnitas", "-CTU", action="store_true", help="Log cooler temps → Unitas (one-shot)")
 parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don’t delete old XML files")
+parser.add_argument("--WebApp", "-WA", action="store_true", help="Run the web application")
 args = parser.parse_args()
 
 #──Config───
@@ -60,11 +61,12 @@ unitas.do_unitas_setup(secrets)
 do_xml_setup(secrets)
 helper_set_timeout(TIMEOUT)
 coolerlog.do_coolerlog_setup(secrets)
-if False:
-    webapp.run(debug=True)
 
 ## Go through args to see if we are doing single run or the continuous one
-if args.LogToDatabase:
+if args.WebApp:
+    webapp.run(debug=True)
+
+elif args.LogToDatabase:
     valuesFromXML = log_from_xml()
     print(valuesFromXML)
 
@@ -87,11 +89,12 @@ else :
     do_unitas_stuff = False
     xml_to_sheet_ran = runstate.load_data("XML_TO_DB")
     sheet_to_unitas_ran = runstate.load_data("DB_TO_PRODUCTION")
+    webapp.run(debug=False)
 
 
     # ─── Scheduling ───
     schedule.every().day.at("00:00:00").do(jobs.reset_flags)      # reset daily
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job) # XML → Sheets
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job(args)) # XML → Sheets
     schedule.every(10).seconds.do(jobs.check_and_run_unitas)      # poll spreadsheet
 
     # define a helper to calculate the coolerlog->unitas run time
