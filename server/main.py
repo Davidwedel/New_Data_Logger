@@ -7,6 +7,7 @@ import os
 import json
 from datetime import datetime, timedelta
 import pathlib
+from helpers import check_all_settings_there as check_settings
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "unitas_manager"))
 
@@ -18,7 +19,6 @@ from xml_processing import run_xml_stuff as log_from_xml
 from xml_processing import deleteOldFiles, do_xml_setup
 from webapp import app as webapp
 import unitas_manager.unitas_coolerlog as coolerlog
-from unitas_manager.unitas_login import setup_unitas_login
 import unitas_manager.unitas_production as unitas
 from unitas_manager.unitas_helper import set_timeout as helper_set_timeout
 
@@ -50,12 +50,11 @@ secrets = json.loads(CONFIG_FILE.read_text())
 RETRIEVE_FROM_XML_TIME = secrets["retrieve_from_xml_time"]
 LOG_COOLER_TO_UNITAS = secrets["Cooler_Log_To_Unitas"]
 TIMEOUT = secrets["Timeout"]
-UNITAS_LOGIN_URL = "https://vitalfarms.poultrycloud.com/login"  # confirm this
 
 
 # ─── Init ───
 db.setup_db(DB_FILE)
-setup_unitas_login(secrets)
+check_settings(secrets)
 runstate.make_sure_exists()
 unitas.do_unitas_setup(secrets)
 do_xml_setup(secrets)
@@ -79,7 +78,7 @@ elif args.CoolerLogToUnitas:
     coolerlog.run_coolerlog_to_unitas()
 
 elif args.LogToUnitas:
-    unitas.run_unitas_stuff(UNITAS_LOGIN_URL)
+    unitas.run_unitas_stuff(secrets)
 
 
 else :

@@ -2,6 +2,17 @@ import json
 import os
 from datetime import datetime, timedelta, date
 
+def check_all_settings_there(secrets):
+    LOGIN_URL = "https://vitalfarms.poultrycloud.com/login"  # confirm this
+    print('LOGIN_URL in setup:', LOGIN_URL)
+    USERNAME = secrets["Unitas_Username"]
+    PASSWORD = secrets["Unitas_Password"]
+    TIMEOUT = secrets["Timeout"]
+
+    if not USERNAME or not PASSWORD:
+        raise SystemExit("Set Unitas_Username and Unitas_Password in secrets.json!")
+
+
 def get_hatch_date(settings_path=None):
     """Read hatch_date from settings.json."""
     if settings_path is None:

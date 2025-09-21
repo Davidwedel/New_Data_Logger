@@ -248,11 +248,11 @@ def fill_production_form(
     helper.fill_input_by_id(driver, "V88-H1", predator_activity)
     helper.fill_input_by_id(driver, "Comment-H1", comment)
 
-def run_unitas_stuff(login_url):
+def run_unitas_stuff(secrets):
 
     driver = make_driver(HEADLESS)
     try:
-        login(driver, login_url)
+        login(driver, secrets)
         open_production_page(driver, FARM_ID, HOUSE_ID)
         get_yesterdays_form(driver, TIMEOUT)
         helper.trigger_fill_production_form(driver, values)
