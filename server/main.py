@@ -7,11 +7,11 @@ import os
 import json
 from datetime import datetime, timedelta
 import pathlib
-from helpers import check_all_settings_there as check_settings
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "unitas_manager"))
 
 #local imports
+from helpers import check_all_settings_there as check_settings
 import jobs as jobs
 import runstate as runstate
 import database_helper as db
@@ -95,7 +95,7 @@ else :
     # ─── Scheduling ───
     schedule.every().day.at("00:00:00").do(jobs.reset_flags)      # reset daily
     schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job(args)) # XML → Sheets
-    schedule.every(10).seconds.do(jobs.check_and_run_unitas)      # poll spreadsheet
+    schedule.every(10).seconds.do(jobs.check_and_run_unitas(secrets))      # poll spreadsheet
 
     # define a helper to calculate the coolerlog->unitas run time
     if(LOG_COOLER_TO_UNITAS):

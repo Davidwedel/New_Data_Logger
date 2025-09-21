@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta
+from xml_processing import deleteOldFiles, log_from_xml
+import runstate as runstate
+import unitas_manager.unitas_production as unitas
 def reset_flags():
     """Reset daily run flags at midnight."""
     global xml_to_sheet_ran, sheet_to_unitas_ran
@@ -8,27 +11,24 @@ def reset_flags():
 
 def xml_to_sheet_job(args):
     """Run XML → Sheets logging once per day."""
-    global xml_to_sheet_ran
-    if not xml_to_sheet_ran:
+    have_we_ran = runstate.load_data("XML_TO_DB")
+    if not have_we_ran:
         if not args.LogToUnitas:
-            valuesFromXML = run_xml_stuff()
-            write_to_sheet(valuesFromXML,  XML_TO_SHEET_RANGE_NAME)
-            runstate.save_data("XML_TO_SHEET")
+            valuesFromXML = log_from_xml()
+            print(valuesFromXML)
+            runstate.save_data("XML_TO_DB")
             if not args.NoDelete:
                 deleteOldFiles()
-            xml_to_sheet_ran = True
             print("[XML] Logged XML → Sheets")
 
-def check_and_run_unitas():
+def check_and_run_unitas(secrets):
     """Poll spreadsheet and run Unitas if checkbox is TRUE."""
     global xml_to_sheet_ran, sheet_to_unitas_ran
     if xml_to_sheet_ran and not sheet_to_unitas_ran and not args.LogToSheet:
         do_unitas_stuff = read_from_sheet(checkbox_cell)
         bool_value = do_unitas_stuff[0][0].upper() == 'TRUE'
         if bool_value:
-            valuesToSend = read_from_sheet(SHEET_TO_UNITAS_RANGE_NAME)
-            run_unitas_stuff(valuesToSend)
-            sheet_to_unitas_ran = True
+            unitas.run_unitas_stuff(secrets)
             print("[Unitas] Logged Sheet → Unitas")
 
 
