@@ -189,12 +189,6 @@ def fill_production_form(
     predator_activity="",
     comment=""
 ):
-    # Ensure cull_reason and mortality_reason are never None
-    if cull_reason is None:
-        cull_reason = ""
-    if mortality_reason is None:
-        mortality_reason = ""
-    print("blah" + str(cull_reason))
 
     helper.fill_input_by_id(driver, "V33-H1", mortality_indoor or "0")
     helper.fill_input_by_id(driver, "V35-H1", mortality_outdoor or "0")
