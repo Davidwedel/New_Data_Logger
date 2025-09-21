@@ -12,7 +12,9 @@ def index():
     today_str = date.today().isoformat()
     user_log = db.get_daily_user_log(today_str)
     bot_log = db.get_daily_bot_log(today_str)
-    return render_template("index.html", user_log=user_log, bot_log=bot_log)
+    user_logs = db.get_all_user_logs()
+    bot_logs = db.get_all_bot_logs()
+    return render_template("index.html", user_log=user_log, bot_log=bot_log, user_logs=user_logs, bot_logs=bot_logs)
 
 @app.route("/add_pallet", methods=["POST"])
 def add_pallet():
@@ -178,3 +180,16 @@ def update_bot_log():
         return jsonify({"status": "ok", "message": "Bot log updated."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/all_data")
+def all_data():
+    # Fetch all user and bot logs
+    user_logs = db.get_all_user_logs()
+    bot_logs = db.get_all_bot_logs()
+    return render_template("all_data.html", user_logs=user_logs, bot_logs=bot_logs)
+# API endpoint to fetch all user and bot logs as JSON for History tab
+@app.route("/api/all_data")
+def api_all_data():
+    user_logs = db.get_all_user_logs()
+    bot_logs = db.get_all_bot_logs()
+    return jsonify({"user_logs": user_logs, "bot_logs": bot_logs})

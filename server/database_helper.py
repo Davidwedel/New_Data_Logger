@@ -1,3 +1,22 @@
+# Fetch all user logs
+def get_all_user_logs():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Daily_User_Log ORDER BY date_entered DESC")
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+# Fetch all bot logs
+def get_all_bot_logs():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Daily_Bot_Log ORDER BY date DESC")
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 # ------------------- UPDATE FUNCTIONS -------------------
 def update_daily_user_log(date_entered, data):
     if not data:
