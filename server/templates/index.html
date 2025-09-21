@@ -133,7 +133,69 @@
     <button class="tablinks active" onclick="openTab(event, 'daily')">Daily Farm Data Entry</button>
     <button class="tablinks" onclick="openTab(event, 'pallet')">Pallet Entry</button>
     <button class="tablinks" onclick="openTab(event, 'settings')">Farm Settings</button>
+
+    <button class="tablinks" onclick="openTab(event, 'todaydata')">Today's Data</button>
   </div>
+  <!-- Today's Data Tab -->
+  <div id="todaydata" class="tabcontent" style="display:none;">
+    <h2>Today's Data</h2>
+    <h3>Daily User Log</h3>
+    {% if user_log %}
+    <div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">
+      <table style="font-size:12px; min-width:600px;">
+        <tr>
+    <th style="padding:4px 6px;">Flag</th>
+    {% for key in user_log.keys() %}
+    <th style="padding:4px 6px;">{{ key }}</th>
+    {% endfor %}
+        </tr>
+        <tr>
+    <td style="padding:4px 6px;"><input type="checkbox" id="userlog-flag" onchange="setFlag('USER_LOG_FLAG', this.checked)"></td>
+    {% for value in user_log.values() %}
+    <td style="padding:4px 6px;">{{ value }}</td>
+    {% endfor %}
+        </tr>
+      </table>
+    </div>
+    {% else %}
+    <p>No user log for today.</p>
+    {% endif %}
+
+    <h3>Daily Bot Log</h3>
+    {% if bot_log %}
+    <div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">
+      <table style="font-size:12px; min-width:600px;">
+        <tr>
+    <th style="padding:4px 6px;">Flag</th>
+    {% for key in bot_log.keys() %}
+    <th style="padding:4px 6px;">{{ key }}</th>
+    {% endfor %}
+        </tr>
+        <tr>
+    <td style="padding:4px 6px;"><input type="checkbox" id="botlog-flag" onchange="setFlag('BOT_LOG_FLAG', this.checked)"></td>
+    {% for value in bot_log.values() %}
+    <td style="padding:4px 6px;">{{ value }}</td>
+    {% endfor %}
+        </tr>
+      </table>
+    </div>
+    {% else %}
+    <p>No bot log for today.</p>
+    {% endif %}
+  </div>
+  <script>
+    function setFlag(flag, checked) {
+      if (!checked) return; // Only set flag on check
+      fetch('/set_flag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flag: flag })
+      })
+        .then(res => res.json())
+        .then(data => alert(data.message))
+        .catch(() => alert('Error setting flag.'));
+    }
+  </script>
 
 
   <!-- Farm Settings Tab -->

@@ -9,7 +9,10 @@ app = Flask(__name__)
 
 @app.route("/")   # homepage route
 def index():
-    return render_template("index.html")
+    today_str = date.today().isoformat()
+    user_log = db.get_daily_user_log(today_str)
+    bot_log = db.get_daily_bot_log(today_str)
+    return render_template("index.html", user_log=user_log, bot_log=bot_log)
 
 @app.route("/add_pallet", methods=["POST"])
 def add_pallet():
@@ -122,3 +125,19 @@ def get_settings():
     with open(settings_path, "r") as f:
         settings = json.load(f)
     return jsonify(settings)
+
+
+
+# API endpoint to set a flag in .runstate.json
+@app.route("/set_flag", methods=["POST"])
+def set_flag():
+    data = request.json
+    flag = data.get("flag")
+    if not flag:
+        return jsonify({"status": "error", "message": "No flag specified"}), 400
+    try:
+        import runstate
+        runstate.save_data(flag)
+        return jsonify({"status": "ok", "message": f"Flag '{flag}' set for today"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
