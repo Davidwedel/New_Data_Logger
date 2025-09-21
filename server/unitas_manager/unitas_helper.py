@@ -13,19 +13,6 @@ def set_timeout(timeout):
     global TIMEOUT
     TIMEOUT = timeout
 
-def col_to_num(col):
-    num = 0
-    for c in col:
-        num = num * 26 + (ord(c.upper()) - ord('A') + 1)
-    return num
-
-def count_columns_in_range(range_str):
-    match = re.search(r'!([A-Z]+)\d+:([A-Z]+)\d+', range_str)
-    if not match:
-        raise ValueError("Invalid range format")
-    start_col, end_col = match.groups()
-    return col_to_num(end_col) - col_to_num(start_col) + 1
-
 def click_when_clickable(driver, by, locator):
     return WebDriverWait(driver, TIMEOUT).until(EC.element_to_be_clickable((by, locator)))
 
