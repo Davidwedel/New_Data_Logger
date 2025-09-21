@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Server",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/main.py"
+    },
+    {
+      "name": "Run App",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/app/ui.py"
+    }
+  ]
+}
