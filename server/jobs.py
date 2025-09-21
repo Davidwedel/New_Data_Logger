@@ -19,7 +19,7 @@ def xml_to_sheet_job(args):
             runstate.save_data("XML_TO_DB")
             if not args.NoDelete:
                 deleteOldFiles()
-            print("[XML] Logged XML → Sheets")
+            print("[XML] Logged XML → DB")
 
 def check_and_run_unitas(secrets):
     """Poll spreadsheet and run Unitas if checkbox is TRUE."""
@@ -29,7 +29,7 @@ def check_and_run_unitas(secrets):
         bool_value = do_unitas_stuff[0][0].upper() == 'TRUE'
         if bool_value:
             unitas.run_unitas_stuff(secrets)
-            print("[Unitas] Logged Sheet → Unitas")
+            print("[Unitas] Logged DB → Unitas")
 
 
 def schedule_offset(base_time="00:15:00", offset_minutes=15):

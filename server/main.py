@@ -86,15 +86,12 @@ elif args.LogToUnitas:
 else :
     print(f"Running in Forever Run mode.")
 
-    do_unitas_stuff = False
-    xml_to_sheet_ran = runstate.load_data("XML_TO_DB")
-    sheet_to_unitas_ran = runstate.load_data("DB_TO_PRODUCTION")
     webapp.run(debug=False)
 
 
     # ─── Scheduling ───
     schedule.every().day.at("00:00:00").do(jobs.reset_flags)      # reset daily
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job(args)) # XML → Sheets
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job(args)) # XML → DB 
     schedule.every(10).seconds.do(jobs.check_and_run_unitas(secrets))      # poll spreadsheet
 
     # define a helper to calculate the coolerlog->unitas run time
