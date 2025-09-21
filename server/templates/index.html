@@ -142,20 +142,27 @@
     <h3>Daily User Log</h3>
     {% if user_log %}
     <div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">
-      <table style="font-size:12px; min-width:600px;">
-        <tr>
-    <th style="padding:4px 6px;">Flag</th>
-    {% for key in user_log.keys() %}
-    <th style="padding:4px 6px;">{{ key }}</th>
-    {% endfor %}
-        </tr>
-        <tr>
-    <td style="padding:4px 6px;"><input type="checkbox" id="userlog-flag" onchange="setFlag('USER_LOG_FLAG', this.checked)"></td>
-    {% for value in user_log.values() %}
-    <td style="padding:4px 6px;">{{ value }}</td>
-    {% endfor %}
-        </tr>
-      </table>
+      <form id="userlog-edit-form">
+        <table style="font-size:12px; min-width:600px;">
+          <tr>
+            <th style="padding:4px 6px;">Flag</th>
+            {% for key in user_log.keys() %}
+            <th style="padding:4px 6px;">{{ key }}</th>
+            {% endfor %}
+            <th style="padding:4px 6px;">Save</th>
+          </tr>
+          <tr>
+            <td style="padding:4px 6px;"><input type="checkbox" id="userlog-flag"
+                onchange="setFlag('USER_LOG_FLAG', this.checked)"></td>
+            {% for key, value in user_log.items() %}
+            <td style="padding:4px 6px;">
+              <input style="width:100px; font-size:12px;" name="{{ key }}" value="{{ value }}">
+            </td>
+            {% endfor %}
+            <td><button type="button" onclick="saveUserLog()">Save</button></td>
+          </tr>
+        </table>
+      </form>
     </div>
     {% else %}
     <p>No user log for today.</p>
@@ -164,20 +171,27 @@
     <h3>Daily Bot Log</h3>
     {% if bot_log %}
     <div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">
-      <table style="font-size:12px; min-width:600px;">
-        <tr>
-    <th style="padding:4px 6px;">Flag</th>
-    {% for key in bot_log.keys() %}
-    <th style="padding:4px 6px;">{{ key }}</th>
-    {% endfor %}
-        </tr>
-        <tr>
-    <td style="padding:4px 6px;"><input type="checkbox" id="botlog-flag" onchange="setFlag('BOT_LOG_FLAG', this.checked)"></td>
-    {% for value in bot_log.values() %}
-    <td style="padding:4px 6px;">{{ value }}</td>
-    {% endfor %}
-        </tr>
-      </table>
+      <form id="botlog-edit-form">
+        <table style="font-size:12px; min-width:600px;">
+          <tr>
+            <th style="padding:4px 6px;">Flag</th>
+            {% for key in bot_log.keys() %}
+            <th style="padding:4px 6px;">{{ key }}</th>
+            {% endfor %}
+            <th style="padding:4px 6px;">Save</th>
+          </tr>
+          <tr>
+            <td style="padding:4px 6px;"><input type="checkbox" id="botlog-flag"
+                onchange="setFlag('BOT_LOG_FLAG', this.checked)"></td>
+            {% for key, value in bot_log.items() %}
+            <td style="padding:4px 6px;">
+              <input style="width:100px; font-size:12px;" name="{{ key }}" value="{{ value }}">
+            </td>
+            {% endfor %}
+            <td><button type="button" onclick="saveBotLog()">Save</button></td>
+          </tr>
+        </table>
+      </form>
     </div>
     {% else %}
     <p>No bot log for today.</p>
@@ -194,6 +208,36 @@
         .then(res => res.json())
         .then(data => alert(data.message))
         .catch(() => alert('Error setting flag.'));
+    }
+
+    function saveUserLog() {
+      const form = document.getElementById('userlog-edit-form');
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => { data[key] = value; });
+      fetch('/update_user_log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(data => alert(data.message))
+        .catch(() => alert('Error saving user log.'));
+    }
+
+    function saveBotLog() {
+      const form = document.getElementById('botlog-edit-form');
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => { data[key] = value; });
+      fetch('/update_bot_log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(data => alert(data.message))
+        .catch(() => alert('Error saving bot log.'));
     }
   </script>
 
@@ -755,7 +799,7 @@
       document.getElementById(tabName).style.display = "block";
       evt.currentTarget.className += " active";
       // If Farm Settings tab, fetch and fill values
-      if(tabName === 'settings') {
+      if (tabName === 'settings') {
         fetch('/get_settings')
           .then(res => res.json())
           .then(data => {

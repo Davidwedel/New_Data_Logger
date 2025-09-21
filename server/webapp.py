@@ -141,3 +141,40 @@ def set_flag():
         return jsonify({"status": "ok", "message": f"Flag '{flag}' set for today"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+# Endpoint to update today's user log
+@app.route("/update_user_log", methods=["POST"])
+def update_user_log():
+    data = request.json
+    today_str = date.today().isoformat()
+    # Get the current record to find the rowid or unique key
+    user_log = db.get_daily_user_log(today_str)
+    if not user_log:
+        return jsonify({"status": "error", "message": "No user log for today."}), 404
+    # Use date_entered as unique key for update
+    date_entered = user_log.get("date_entered")
+    if not date_entered:
+        return jsonify({"status": "error", "message": "No date_entered in user log."}), 400
+    try:
+        db.update_daily_user_log(date_entered, data)
+        return jsonify({"status": "ok", "message": "User log updated."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# Endpoint to update today's bot log
+@app.route("/update_bot_log", methods=["POST"])
+def update_bot_log():
+    data = request.json
+    today_str = date.today().isoformat()
+    bot_log = db.get_daily_bot_log(today_str)
+    if not bot_log:
+        return jsonify({"status": "error", "message": "No bot log for today."}), 404
+    # Use date or unique key for update
+    date_key = bot_log.get("date")
+    if not date_key:
+        return jsonify({"status": "error", "message": "No date in bot log."}), 400
+    try:
+        db.update_daily_bot_log(date_key, data)
+        return jsonify({"status": "ok", "message": "Bot log updated."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500

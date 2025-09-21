@@ -1,3 +1,25 @@
+# ------------------- UPDATE FUNCTIONS -------------------
+def update_daily_user_log(date_entered, data):
+    if not data:
+        raise ValueError("No data provided to update.")
+    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
+    sql = f"UPDATE Daily_User_Log SET {set_clause} WHERE date_entered = ?"
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(data.values()) + (date_entered,))
+    conn.commit()
+    conn.close()
+
+def update_daily_bot_log(date, data):
+    if not data:
+        raise ValueError("No data provided to update.")
+    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
+    sql = f"UPDATE Daily_Bot_Log SET {set_clause} WHERE date = ?"
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(data.values()) + (date,))
+    conn.commit()
+    conn.close()
 import sqlite3
 
 # ------------------- GLOBAL DB FILE -------------------
