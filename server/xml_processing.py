@@ -143,6 +143,8 @@ def doProcessingOnAllFiles(yesterdayFiles):
         except Exception as e:
             print(f"Failed to process {filename}: {e}")
             dst = os.path.join(failed_dir, os.path.basename(filename))
+            # Ensure destination directory exists
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
             ## get it out so it doens't cause any more trouble
             shutil.move(filename, dst)
 
