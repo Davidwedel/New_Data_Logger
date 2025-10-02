@@ -453,10 +453,50 @@
 
       const result = await response.json();
       alert(result.message);
+
+      // Reset form fields after successful submission
+      resetDailyForm();
     } catch (error) {
       console.error("Daily submit failed:", error);
       alert("Failed to save daily data. Please try again.");
     }
+  }
+
+  function resetDailyForm() {
+    console.log("Resetting form...");
+
+    // Reset spinners to 0
+    document.getElementById("egg1").value = "0";
+    document.getElementById("egg2").value = "0";
+    document.getElementById("num1").value = "0";
+    document.getElementById("num2").value = "0";
+    document.getElementById("num3").value = "0";
+    document.getElementById("num4").value = "0";
+    document.getElementById("depopnum").value = "0";
+    document.getElementById("amtdelivered").value = "0";
+
+    // Uncheck all checkboxes
+    document.querySelectorAll('input[name="mortalityReason"]').forEach(cb => cb.checked = false);
+    document.querySelectorAll('input[name="cullReason"]').forEach(cb => cb.checked = false);
+    document.getElementById("eggspickedup").checked = false;
+
+    // Clear all textareas
+    document.getElementById("mortalitycomments").value = '';
+    document.getElementById("coolerlogcomments").value = '';
+    document.getElementById("addedsupplements").value = '';
+    document.getElementById("birdsrestrictedreason").value = '';
+    document.getElementById("comments").value = '';
+
+    // Uncheck all radio buttons
+    document.querySelectorAll('input[name="weather"]').forEach(radio => radio.checked = false);
+
+    // Reset dropdown to default
+    document.getElementById("ration").value = '';
+
+    // Update the totals display
+    updateSums();
+
+    console.log("Form reset complete");
   }
 
   // Initialize sums on page load
