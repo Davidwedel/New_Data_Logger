@@ -187,9 +187,18 @@ def all_data():
     user_logs = db.get_all_user_logs()
     bot_logs = db.get_all_bot_logs()
     return render_template("all_data.html", user_logs=user_logs, bot_logs=bot_logs)
+
 # API endpoint to fetch all user and bot logs as JSON for History tab
 @app.route("/api/all_data")
 def api_all_data():
     user_logs = db.get_all_user_logs()
     bot_logs = db.get_all_bot_logs()
     return jsonify({"user_logs": user_logs, "bot_logs": bot_logs})
+
+# API endpoint to fetch today's data
+@app.route("/api/today_data")
+def api_today_data():
+    today_str = date.today().isoformat()
+    user_log = db.get_daily_user_log(today_str)
+    bot_log = db.get_daily_bot_log(today_str)
+    return jsonify({"user_log": user_log, "bot_log": bot_log})

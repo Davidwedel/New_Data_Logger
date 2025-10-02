@@ -1,0 +1,64 @@
+<div id="pallet" class="tabcontent">
+  <h2>Pallet Entry</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Pallet ID</th>
+        <th>Total Pallet Weight (lbs)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><input type="text" id="palletId" placeholder="Enter Pallet ID"></td>
+        <td><input type="number" id="palletWeight" value="0" min="0" step="1"></td>
+      </tr>
+    </tbody>
+  </table>
+  <br>
+
+  <p><strong>Yolk Color:</strong></p>
+  <label><input type="radio" name="yolkColor" value="A"> A</label><br>
+  <label><input type="radio" name="yolkColor" value="B"> B</label><br>
+  <label><input type="radio" name="yolkColor" value="C"> C</label><br>
+  <label><input type="radio" name="yolkColor" value="D"> D</label><br>
+  <label><input type="radio" name="yolkColor" value="E"> E</label>
+  <br>
+  <br>
+  <button onclick="submitPallets()">Submit Pallet Data</button>
+</div>
+
+<script>
+  async function submitPallets() {
+    const palletId = document.getElementById("palletId").value;
+    const weight = document.getElementById("palletWeight").value;
+    const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
+
+    try {
+      const response = await fetch("/add_pallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pallet_id: palletId, weight: weight, yolk_color: yolkColor })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      alert(result.message);
+
+      // Reset inputs
+      const palletInputs = document.querySelectorAll('#pallet table input');
+      palletInputs.forEach(input => {
+        if (input.type === 'number') {
+          input.value = 0;
+        } else {
+          input.value = '';
+        }
+      });
+    } catch (error) {
+      console.error("Submit failed:", error);
+      alert("Failed to save pallet data. Please try again.");
+    }
+  }
+</script>

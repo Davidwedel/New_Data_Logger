@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Farm Data Entry{% endblock %}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    /* Tabs */
+    .tab {
+      overflow: hidden;
+      border-bottom: 2px solid #ccc;
+      margin-bottom: 20px;
+    }
+
+    .tab button {
+      background-color: inherit;
+      border: none;
+      outline: none;
+      padding: 14px 20px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .tab button.active {
+      border-bottom: 3px solid #007BFF;
+      font-weight: bold;
+    }
+
+    /* Tab content */
+    .tabcontent {
+      display: none;
+    }
+
+    .spinner-container {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .spinner-label {
+      width: 160px;
+      font-weight: bold;
+    }
+
+    .spinner {
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .spinner button {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      cursor: pointer;
+      margin: 0 2px;
+    }
+
+    .spinner input {
+      width: 60px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    input[type="number"] {
+      min: 0;
+    }
+
+    textarea {
+      width: 100%;
+      font-size: 16px;
+      padding: 5px;
+      box-sizing: border-box;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #ddd;
+    }
+
+    /* Floating submit button */
+    .floating-btn {
+      position: fixed;
+      top: 165px;
+      right: 15px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    .floating-btn:hover {
+      background-color: #218838;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+  <h1>Farm Data Entry System</h1>
+
+  {% block content %}{% endblock %}
+
+  <script>
+    function openTab(evt, tabName) {
+      var i, tabcontent, tablinks;
+      tabcontent = document.getElementsByClassName("tabcontent");
+      for (i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
+      }
+      tablinks = document.getElementsByClassName("tablinks");
+      for (i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+      }
+      document.getElementById(tabName).style.display = "block";
+      evt.currentTarget.className += " active";
+      // If Farm Settings tab, fetch and fill values
+      if (tabName === 'settings') {
+        fetch('/get_settings')
+          .then(res => res.json())
+          .then(data => {
+            document.getElementById('hatchDate').value = data.hatch_date || '';
+            document.getElementById('birdsArrivedDate').value = data.birds_arrived_date || '';
+          });
+      }
+      // If Today's Data tab, fetch and reload data
+      if (tabName === 'todaydata') {
+        loadTodayData();
+      }
+    }
+
+    // Spinner functions
+    function increment(id) {
+      const input = document.getElementById(id);
+      input.value = parseInt(input.value || 0) + 1;
+      updateSums();
+    }
+
+    function decrement(id) {
+      const input = document.getElementById(id);
+      let value = parseInt(input.value || 0);
+      if (value > 0) input.value = value - 1;
+      updateSums();
+    }
+
+    // Update totals
+    function updateSums() {
+      const e1 = parseInt(document.getElementById('egg1')?.value || 0);
+      const e2 = parseInt(document.getElementById('egg2')?.value || 0);
+      const eggResult = document.getElementById('eggresult');
+      if (eggResult) {
+        eggResult.textContent = "Egg Total: " + (e1 + e2);
+      }
+
+      const n1 = parseInt(document.getElementById('num1')?.value || 0);
+      const n2 = parseInt(document.getElementById('num2')?.value || 0);
+      const n3 = parseInt(document.getElementById('num3')?.value || 0);
+      const n4 = parseInt(document.getElementById('num4')?.value || 0);
+      const result = document.getElementById('result');
+      if (result) {
+        result.textContent = "Total Mortality/Euthanized: " + (n1 + n2 + n3 + n4);
+      }
+    }
+  </script>
+
+  {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

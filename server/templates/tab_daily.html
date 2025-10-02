@@ -1,0 +1,464 @@
+<div id="daily" class="tabcontent" style="display:block;">
+
+  <!-- Floating Submit Button for Daily -->
+  <button id="submitDaily" class="floating-btn" onclick="submitDailyForm()">Submit</button>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Belt Eggs</span>
+    <div class="spinner">
+      <button onclick="decrement('egg1')">-</button>
+      <input type="number" id="egg1" value="0" min="0">
+      <button onclick="increment('egg1')">+</button>
+    </div>
+  </div>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Floor Eggs</span>
+    <div class="spinner">
+      <button onclick="decrement('egg2')">-</button>
+      <input type="number" id="egg2" value="0" min="0">
+      <button onclick="increment('egg2')">+</button>
+    </div>
+  </div>
+
+  <div id="eggresult">Egg Total: 0</div>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Mortality Indoor</span>
+    <div class="spinner">
+      <button onclick="decrement('num1')">-</button>
+      <input type="number" id="num1" value="0" min="0">
+      <button onclick="increment('num1')">+</button>
+    </div>
+  </div>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Mortality Outdoor</span>
+    <div class="spinner">
+      <button onclick="decrement('num2')">-</button>
+      <input type="number" id="num2" value="0" min="0">
+      <button onclick="increment('num2')">+</button>
+    </div>
+  </div>
+
+  <p><strong>Mortality Reasons:</strong></p>
+  <label><input type="checkbox" name="mortalityReason" value="Unknown"> Unknown</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="N Natural"> N Natural</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PR Predator"> PR Predator</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PC Pecking"> PC Pecking</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="S Sick"> S Sick</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PL Prolapse"> PL Prolapse</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="C Cull"> C Cull</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="B Broody"> B Broody</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="O Other"> O Other</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="PI Piling"> PI Piling</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="SO Starveout"> SO Starveout</label><br>
+  <label><input type="checkbox" name="mortalityReason" value="I Injured"> I Injured</label>
+
+  <p><strong>Mortality Comments:</strong></p>
+  <textarea id="mortalitycomments" rows="2" placeholder="Enter any notes here..."></textarea>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Euthanized Indoor</span>
+    <div class="spinner">
+      <button onclick="decrement('num3')">-</button>
+      <input type="number" id="num3" value="0" min="0">
+      <button onclick="increment('num3')">+</button>
+    </div>
+  </div>
+
+  <div class="spinner-container">
+    <span class="spinner-label">Euthanized Outdoor</span>
+    <div class="spinner">
+      <button onclick="decrement('num4')">-</button>
+      <input type="number" id="num4" value="0" min="0">
+      <button onclick="increment('num4')">+</button>
+    </div>
+  </div>
+
+  <p><strong>Cull Reasons:</strong></p>
+  <label><input type="checkbox" name="cullReason" value="Aggressive"> Aggressive</label><br>
+  <label><input type="checkbox" name="cullReason" value="Broody"> Broody</label><br>
+  <label><input type="checkbox" name="cullReason" value="Injured"> Injured</label><br>
+  <label><input type="checkbox" name="cullReason" value="Rooster"> Rooster</label><br>
+  <label><input type="checkbox" name="cullReason" value="Runt"> Runt</label><br>
+  <label><input type="checkbox" name="cullReason" value="Sick"> Sick</label>
+  <br>
+  <br>
+  <div id="result">Total Mortality/Euthanized: 0</div>
+
+  <p><strong>Weather Condition:</strong></p>
+  <label><input type="radio" name="weather" value="Cloudy"> Cloudy</label><br>
+  <label><input type="radio" name="weather" value="Cloudy/Windy"> Cloudy/Windy</label><br>
+  <label><input type="radio" name="weather" value="Freezing Rain"> Freezing Rain</label><br>
+  <label><input type="radio" name="weather" value="Mostly Cloudy"> Mostly Cloudy</label><br>
+  <label><input type="radio" name="weather" value="Partly Cloudy"> Partly Cloudy</label><br>
+  <label><input type="radio" name="weather" value="Partly Sunny"> Partly Sunny</label><br>
+  <label><input type="radio" name="weather" value="Rain"> Rain</label><br>
+  <label><input type="radio" name="weather" value="Severe Storm"> Severe Storm</label><br>
+  <label><input type="radio" name="weather" value="Sleet"> Sleet</label><br>
+  <label><input type="radio" name="weather" value="Snow"> Snow</label><br>
+  <label><input type="radio" name="weather" value="Sunny"> Sunny</label><br>
+  <label><input type="radio" name="weather" value="Winter Storm"> Winter Storm</label>
+  <br>
+  <br>
+  <label for="eggspickedup">Eggs Picked Up</label>
+  <input type="checkbox" id="eggspickedup" name="eggspickedup">
+
+  <p><strong>CoolerLog Comments:</strong></p>
+  <textarea id="coolerlogcomments" rows="2" placeholder="Eggs Picked up/cooler log comments"></textarea>
+
+  <br>
+  <br>
+
+  <p><strong>Added Supplements:</strong></p>
+  <textarea id="addedsupplements" rows="1" placeholder="..."></textarea>
+
+  <br>
+  <br>
+
+
+  <label for="doorOpen">Door Open:</label>
+  <input type="time" id="doorOpen" name="doorOpen" step="60">
+
+  <br>
+  <br>
+
+  <label for="doorClosed">Door Closed:</label>
+  <input type="time" id="doorClosed" name="doorClosed" step="60">
+
+  <br>
+  <br>
+
+  <p><strong>Birds Restricted Reason:</strong></p>
+  <textarea id="birdsrestrictedreason" rows="1" placeholder="..."></textarea>
+
+  <br>
+  <br>
+  <label for="ration">Ration Delivered:</label>
+  <select id="ration" name="ration">
+    <option value="">-- Select Ration --</option>
+    <option value="Cocc">Cocc</option>
+    <option value="E. coli">E. coli</option>
+    <option value="Fowl Cholera">Fowl Cholera</option>
+    <option value="FP-PP-AE">FP-PP-AE</option>
+    <option value="IBD">IBD</option>
+    <option value="IBV">IBV</option>
+    <option value="IBV/NDV/SE">IBV/NDV/SE</option>
+    <option value="LT">LT</option>
+    <option value="Mareks">Mareks</option>
+    <option value="Mareks-LT">Mareks-LT</option>
+    <option value="NDV">NDV</option>
+    <option value="Spotty Liver">Spotty Liver</option>
+    <option value="ST">ST</option>
+
+    <!-- Phase 1 -->
+    <option value="Phase 1-19">Phase 1-19</option>
+    <option value="Phase 1-20">Phase 1-20</option>
+    <option value="Phase 1-21">Phase 1-21</option>
+    <option value="Phase 1-22">Phase 1-22</option>
+    <option value="Phase 1-23">Phase 1-23</option>
+    <option value="Phase 1-24">Phase 1-24</option>
+    <option value="Phase 1-25">Phase 1-25</option>
+    <option value="Phase 1-26">Phase 1-26</option>
+    <option value="Phase 1-27">Phase 1-27</option>
+    <option value="Phase 1-28">Phase 1-28</option>
+
+    <!-- Phase 2 -->
+    <option value="Phase 2-20">Phase 2-20</option>
+    <option value="Phase 2-21">Phase 2-21</option>
+    <option value="Phase 2-22">Phase 2-22</option>
+    <option value="Phase 2-23">Phase 2-23</option>
+    <option value="Phase 2-24">Phase 2-24</option>
+    <option value="Phase 2-25">Phase 2-25</option>
+    <option value="Phase 2-26">Phase 2-26</option>
+    <option value="Phase 2-27">Phase 2-27</option>
+    <option value="Phase 2-28">Phase 2-28</option>
+    <option value="Phase 2-29">Phase 2-29</option>
+    <option value="Phase 2-30">Phase 2-30</option>
+
+    <!-- Phase 3 -->
+    <option value="Phase 3-21">Phase 3-21</option>
+    <option value="Phase 3-22">Phase 3-22</option>
+    <option value="Phase 3-23">Phase 3-23</option>
+    <option value="Phase 3-24">Phase 3-24</option>
+    <option value="Phase 3-25">Phase 3-25</option>
+    <option value="Phase 3-26">Phase 3-26</option>
+    <option value="Phase 3-27">Phase 3-27</option>
+    <option value="Phase 3-28">Phase 3-28</option>
+    <option value="Phase 3-29">Phase 3-29</option>
+    <option value="Phase 3-30">Phase 3-30</option>
+    <option value="Phase 3-31">Phase 3-31</option>
+
+    <!-- Phase 4 -->
+    <option value="Phase 4-21">Phase 4-21</option>
+    <option value="Phase 4-22">Phase 4-22</option>
+    <option value="Phase 4-23">Phase 4-23</option>
+    <option value="Phase 4-24">Phase 4-24</option>
+    <option value="Phase 4-25">Phase 4-25</option>
+    <option value="Phase 4-26">Phase 4-26</option>
+    <option value="Phase 4-27">Phase 4-27</option>
+    <option value="Phase 4-28">Phase 4-28</option>
+    <option value="Phase 4-29">Phase 4-29</option>
+    <option value="Phase 4-30">Phase 4-30</option>
+    <option value="Phase 4-31">Phase 4-31</option>
+
+    <!-- Phase 5 -->
+    <option value="Phase 5-21">Phase 5-21</option>
+    <option value="Phase 5-22">Phase 5-22</option>
+    <option value="Phase 5-23">Phase 5-23</option>
+    <option value="Phase 5-24">Phase 5-24</option>
+    <option value="Phase 5-25">Phase 5-25</option>
+    <option value="Phase 5-26">Phase 5-26</option>
+    <option value="Phase 5-27">Phase 5-27</option>
+    <option value="Phase 5-28">Phase 5-28</option>
+    <option value="Phase 5-29">Phase 5-29</option>
+    <option value="Phase 5-30">Phase 5-30</option>
+    <option value="Phase 5-31">Phase 5-31</option>
+
+    <!-- Phase 6 -->
+    <option value="Phase 6-21">Phase 6-21</option>
+    <option value="Phase 6-22">Phase 6-22</option>
+    <option value="Phase 6-23">Phase 6-23</option>
+    <option value="Phase 6-24">Phase 6-24</option>
+    <option value="Phase 6-25">Phase 6-25</option>
+    <option value="Phase 6-26">Phase 6-26</option>
+    <option value="Phase 6-27">Phase 6-27</option>
+    <option value="Phase 6-28">Phase 6-28</option>
+    <option value="Phase 6-29">Phase 6-29</option>
+    <option value="Phase 6-30">Phase 6-30</option>
+    <option value="Phase 6-31">Phase 6-31</option>
+
+    <!-- Developer & Prelay -->
+    <option value="PreLay">PreLay</option>
+    <option value="Developer">Developer</option>
+
+    <!-- Phase 2 Lay -->
+    <option value="Phase 2 Lay 21">Phase 2 Lay 21</option>
+    <option value="Phase 2 Lay 22">Phase 2 Lay 22</option>
+    <option value="Phase 2 Lay 23">Phase 2 Lay 23</option>
+    <option value="Phase 2 Lay 24">Phase 2 Lay 24</option>
+    <option value="Phase 2 Lay 25">Phase 2 Lay 25</option>
+    <option value="Phase 2 Lay 26">Phase 2 Lay 26</option>
+    <option value="Phase 2 Lay 27">Phase 2 Lay 27</option>
+    <option value="Phase 2 Lay 28">Phase 2 Lay 28</option>
+    <option value="Phase 2 Lay 29">Phase 2 Lay 29</option>
+    <option value="Phase 2 Lay 30">Phase 2 Lay 30</option>
+
+    <!-- Phase 3 Lay -->
+    <option value="Phase 3 Lay 21">Phase 3 Lay 21</option>
+    <option value="Phase 3 Lay 22">Phase 3 Lay 22</option>
+    <option value="Phase 3 Lay 23">Phase 3 Lay 23</option>
+    <option value="Phase 3 Lay 24">Phase 3 Lay 24</option>
+    <option value="Phase 3 Lay 25">Phase 3 Lay 25</option>
+    <option value="Phase 3 Lay 26">Phase 3 Lay 26</option>
+    <option value="Phase 3 Lay 27">Phase 3 Lay 27</option>
+    <option value="Phase 3 Lay 28">Phase 3 Lay 28</option>
+    <option value="Phase 3 Lay 29">Phase 3 Lay 29</option>
+    <option value="Phase 3 Lay 30">Phase 3 Lay 30</option>
+
+    <!-- Phase 4 Lay -->
+    <option value="Phase 4 Lay 21">Phase 4 Lay 21</option>
+    <option value="Phase 4 Lay 22">Phase 4 Lay 22</option>
+    <option value="Phase 4 Lay 23">Phase 4 Lay 23</option>
+    <option value="Phase 4 Lay 24">Phase 4 Lay 24</option>
+    <option value="Phase 4 Lay 25">Phase 4 Lay 25</option>
+    <option value="Phase 4 Lay 26">Phase 4 Lay 26</option>
+    <option value="Phase 4 Lay 27">Phase 4 Lay 27</option>
+    <option value="Phase 4 Lay 28">Phase 4 Lay 28</option>
+    <option value="Phase 4 Lay 29">Phase 4 Lay 29</option>
+    <option value="Phase 4 Lay 30">Phase 4 Lay 30</option>
+
+    <!-- Phase 5 Lay -->
+    <option value="Phase 5 Lay 30">Phase 5 Lay 30</option>
+
+    <!-- Peak -->
+    <option value="Peak 1">Peak 1</option>
+    <option value="Peak 2">Peak 2</option>
+    <option value="Peak 3">Peak 3</option>
+    <option value="Peak Lay 19">Peak Lay 19</option>
+    <option value="Peak Lay 20">Peak Lay 20</option>
+    <option value="Peak Lay 21">Peak Lay 21</option>
+    <option value="Peak Lay 22">Peak Lay 22</option>
+    <option value="Peak Lay 23">Peak Lay 23</option>
+    <option value="Peak Lay 24">Peak Lay 24</option>
+    <option value="Peak Lay 25">Peak Lay 25</option>
+    <option value="Peak Lay 26">Peak Lay 26</option>
+    <option value="Peak Lay 27">Peak Lay 27</option>
+    <option value="Peak Lay 28">Peak Lay 28</option>
+    <option value="Peak Lay 29">Peak Lay 29</option>
+    <option value="Peak Lay 30">Peak Lay 30</option>
+
+    <!-- Other -->
+    <option value="PreLay">PreLay</option>
+    <option value="Pullet Grower">Pullet Grower</option>
+    <option value="Pullet Starter 1">Pullet Starter 1</option>
+    <option value="Pullet Starter 2">Pullet Starter 2</option>
+  </select>
+
+
+  <div class="spinner-container">
+    <span class="spinner-label">Amount Delivered</span>
+    <div class="spinner">
+      <button onclick="decrement('amtdelivered')">-</button>
+      <input type="number" id="amtdelivered" value="0" min="0">
+      <button onclick="increment('amtdelivered')">+</button>
+    </div>
+  </div>
+
+  <p><strong>Air Sensory:</strong></p>
+  <label><input type="radio" name="airSensory" value="1"> 1</label>
+  <label><input type="radio" name="airSensory" value="2"> 2</label>
+  <label><input type="radio" name="airSensory" value="3"> 3</label>
+  <label><input type="radio" name="airSensory" value="4"> 4</label>
+  <label><input type="radio" name="airSensory" value="5"> 5</label>
+  <br>
+
+  <br>
+  <label>Outside Drinkers Clean:</label>
+  <label><input type="radio" name="drinkersClean" value="Yes"> Yes</label>
+  <label><input type="radio" name="drinkersClean" value="No"> No</label>
+  <br>
+  <br>
+
+  <label>Birds Found Under Slats:</label>
+  <label><input type="radio" name="birdsUnderSlats" value="Yes"> Yes</label>
+  <label><input type="radio" name="birdsUnderSlats" value="No"> No</label>
+  <br>
+  <br>
+
+  <label>Safe Environment Indoors:</label>
+  <label><input type="radio" name="safeIndoors" value="Yes"> Yes</label>
+  <label><input type="radio" name="safeIndoors" value="No"> No</label>
+  <br>
+  <br>
+
+  <label>Safe Environment Outdoors:</label>
+  <label><input type="radio" name="safeOutdoors" value="Yes"> Yes</label>
+  <label><input type="radio" name="safeOutdoors" value="No"> No</label>
+  <br>
+  <br>
+
+  <label>Equipment Functioning:</label>
+  <label><input type="radio" name="equipmentFunctioning" value="Yes"> Yes</label>
+  <label><input type="radio" name="equipmentFunctioning" value="No"> No</label>
+  <br>
+  <br>
+
+  <label>Predator Activity:</label>
+  <label><input type="radio" name="predatorActivity" value="Yes"> Yes</label>
+  <label><input type="radio" name="predatorActivity" value="No"> No</label>
+  <br>
+  <br>
+
+
+  <div class="spinner-container">
+    <span class="spinner-label">Depop #</span>
+    <div class="spinner">
+      <button onclick="decrement('depopnum')">-</button>
+      <input type="number" id="depopnum" value="0" min="0">
+      <button onclick="increment('depopnum')">+</button>
+    </div>
+  </div>
+  <p><strong>Comments:</strong></p>
+  <textarea id="comments" rows="2" placeholder="Enter any notes here..."></textarea>
+
+</div>
+
+<script>
+  // Submit Daily Form
+  async function submitDailyForm() {
+    // Gather spinner values
+    const beltEggs = parseInt(document.getElementById("egg1").value || 0);
+    const floorEggs = parseInt(document.getElementById("egg2").value || 0);
+    const mortalityIndoor = parseInt(document.getElementById("num1").value || 0);
+    const mortalityOutdoor = parseInt(document.getElementById("num2").value || 0);
+    const euthIndoor = parseInt(document.getElementById("num3").value || 0);
+    const euthOutdoor = parseInt(document.getElementById("num4").value || 0);
+    const depopNum = parseInt(document.getElementById("depopnum").value || 0);
+    const amtDelivered = parseInt(document.getElementById("amtdelivered").value || 0);
+
+    // Gather checkbox groups
+    const mortalityReasons = Array.from(document.querySelectorAll('input[name="mortalityReason"]:checked'))
+      .map(cb => cb.value);
+    const cullReasons = Array.from(document.querySelectorAll('input[name="cullReason"]:checked'))
+      .map(cb => cb.value);
+
+    // Textareas
+    const mortalityComments = document.getElementById("mortalitycomments").value;
+    const coolerLogComments = document.getElementById("coolerlogcomments").value;
+    const addedSupplements = document.getElementById("addedsupplements").value;
+    const birdsRestrictedReason = document.getElementById("birdsrestrictedreason").value;
+    const comments = document.getElementById("comments").value;
+
+    // Radios / selects
+    const weather = document.querySelector('input[name="weather"]:checked')?.value || "";
+    const airSensory = document.querySelector('input[name="airSensory"]:checked')?.value || "";
+    const ration = document.getElementById("ration").value;
+    const drinkersClean = document.querySelector('input[name="drinkersClean"]:checked')?.value || "";
+    const birdsUnderSlats = document.querySelector('input[name="birdsUnderSlats"]:checked')?.value || "";
+    const safeIndoors = document.querySelector('input[name="safeIndoors"]:checked')?.value || "";
+    const safeOutdoors = document.querySelector('input[name="safeOutdoors"]:checked')?.value || "";
+    const equipmentFunctioning = document.querySelector('input[name="equipmentFunctioning"]:checked')?.value || "";
+    const predatorActivity = document.querySelector('input[name="predatorActivity"]:checked')?.value || "";
+
+    // Booleans
+    const eggsPickedUp = document.getElementById("eggspickedup").checked;
+
+    // Time inputs
+    const doorOpen = document.getElementById("doorOpen").value;
+    const doorClosed = document.getElementById("doorClosed").value;
+
+    // Build payload
+    const dailyData = {
+      belt_eggs: beltEggs,
+      floor_eggs: floorEggs,
+      mortality_indoor: mortalityIndoor,
+      mortality_outdoor: mortalityOutdoor,
+      euthanized_indoor: euthIndoor,
+      euthanized_outdoor: euthOutdoor,
+      depop: depopNum,
+      amount_delivered: amtDelivered,
+      mortality_reasons: mortalityReasons,
+      cull_reasons: cullReasons,
+      mortality_comments: mortalityComments,
+      coolerlog_comments: coolerLogComments,
+      added_supplements: addedSupplements,
+      birds_restricted_reason: birdsRestrictedReason,
+      comments: comments,
+      weather: weather,
+      air_sensory: airSensory,
+      ration: ration,
+      drinkers_clean: drinkersClean,
+      birds_under_slats: birdsUnderSlats,
+      safe_indoors: safeIndoors,
+      safe_outdoors: safeOutdoors,
+      equipment_functioning: equipmentFunctioning,
+      predator_activity: predatorActivity,
+      eggs_picked_up: eggsPickedUp,
+      door_open: doorOpen,
+      door_closed: doorClosed
+    };
+
+    try {
+      const response = await fetch("/add_daily_userlog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dailyData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      alert(result.message);
+    } catch (error) {
+      console.error("Daily submit failed:", error);
+      alert("Failed to save daily data. Please try again.");
+    }
+  }
+
+  // Initialize sums on page load
+  updateSums();
+</script>

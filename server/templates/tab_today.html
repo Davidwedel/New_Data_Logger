@@ -1,0 +1,118 @@
+<div id="todaydata" class="tabcontent" style="display:none;">
+  <h2>Today's Data</h2>
+  <h3>Daily User Log</h3>
+  <div id="userlog-container">
+    <p>Loading...</p>
+  </div>
+
+  <h3>Daily Bot Log</h3>
+  <div id="botlog-container">
+    <p>Loading...</p>
+  </div>
+</div>
+
+<script>
+  function loadTodayData() {
+    fetch('/api/today_data')
+      .then(res => res.json())
+      .then(data => {
+        renderUserLog(data.user_log);
+        renderBotLog(data.bot_log);
+      })
+      .catch(err => {
+        console.error('Error loading today data:', err);
+        document.getElementById('userlog-container').innerHTML = '<p>Error loading user log.</p>';
+        document.getElementById('botlog-container').innerHTML = '<p>Error loading bot log.</p>';
+      });
+  }
+
+  function renderUserLog(user_log) {
+    const container = document.getElementById('userlog-container');
+    if (!user_log) {
+      container.innerHTML = '<p>No user log for today.</p>';
+      return;
+    }
+
+    let html = '<div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
+    html += '<form id="userlog-edit-form"><table style="font-size:12px; min-width:600px;"><tr>';
+    html += '<th style="padding:4px 6px;">Flag</th>';
+    for (const key in user_log) {
+      html += `<th style="padding:4px 6px;">${key}</th>`;
+    }
+    html += '<th style="padding:4px 6px;">Save</th></tr><tr>';
+    html += '<td style="padding:4px 6px;"><input type="checkbox" id="userlog-flag" onchange="setFlag(\'USER_LOG_FLAG\', this.checked)"></td>';
+    for (const key in user_log) {
+      const value = user_log[key] || '';
+      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}"></td>`;
+    }
+    html += '<td><button type="button" onclick="saveUserLog()">Save</button></td>';
+    html += '</tr></table></form></div>';
+    container.innerHTML = html;
+  }
+
+  function renderBotLog(bot_log) {
+    const container = document.getElementById('botlog-container');
+    if (!bot_log) {
+      container.innerHTML = '<p>No bot log for today.</p>';
+      return;
+    }
+
+    let html = '<div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
+    html += '<form id="botlog-edit-form"><table style="font-size:12px; min-width:600px;"><tr>';
+    html += '<th style="padding:4px 6px;">Flag</th>';
+    for (const key in bot_log) {
+      html += `<th style="padding:4px 6px;">${key}</th>`;
+    }
+    html += '<th style="padding:4px 6px;">Save</th></tr><tr>';
+    html += '<td style="padding:4px 6px;"><input type="checkbox" id="botlog-flag" onchange="setFlag(\'BOT_LOG_FLAG\', this.checked)"></td>';
+    for (const key in bot_log) {
+      const value = bot_log[key] || '';
+      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}"></td>`;
+    }
+    html += '<td><button type="button" onclick="saveBotLog()">Save</button></td>';
+    html += '</tr></table></form></div>';
+    container.innerHTML = html;
+  }
+
+  function setFlag(flag, checked) {
+    if (!checked) return; // Only set flag on check
+    fetch('/set_flag', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ flag: flag })
+    })
+      .then(res => res.json())
+      .then(data => alert(data.message))
+      .catch(() => alert('Error setting flag.'));
+  }
+
+  function saveUserLog() {
+    const form = document.getElementById('userlog-edit-form');
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => { data[key] = value; });
+    fetch('/update_user_log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+      .then(res => res.json())
+      .then(data => alert(data.message))
+      .catch(() => alert('Error saving user log.'));
+  }
+
+  function saveBotLog() {
+    const form = document.getElementById('botlog-edit-form');
+    const formData = new FormData(form);
+    const data = {};
+    formData.forEach((value, key) => { data[key] = value; });
+    fetch('/update_bot_log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    })
+      .then(res => res.json())
+      .then(data => alert(data.message))
+      .catch(() => alert('Error saving bot log.'));
+  }
+</script>

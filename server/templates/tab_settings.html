@@ -1,0 +1,35 @@
+<div id="settings" class="tabcontent" style="display:none;">
+  <h2>Farm Settings</h2>
+  <form id="settingsForm" onsubmit="saveSettings(event)">
+    <div class="spinner-container">
+      <span class="spinner-label">Hatch Date</span>
+      <input type="date" id="hatchDate" name="hatchDate">
+    </div>
+    <div class="spinner-container">
+      <span class="spinner-label">Birds Arrived Date</span>
+      <input type="date" id="birdsArrivedDate" name="birdsArrivedDate">
+    </div>
+    <button type="submit" class="floating-btn" style="position:static; margin-top:20px;">Save Settings</button>
+    <div id="settingsMsg" style="margin-top:10px;"></div>
+  </form>
+</div>
+
+<script>
+  function saveSettings(event) {
+    event.preventDefault();
+    const hatchDate = document.getElementById('hatchDate').value;
+    const birdsArrivedDate = document.getElementById('birdsArrivedDate').value;
+    fetch('/save_settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hatch_date: hatchDate, birds_arrived_date: birdsArrivedDate })
+    })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById('settingsMsg').textContent = data.message || 'Settings saved!';
+      })
+      .catch(() => {
+        document.getElementById('settingsMsg').textContent = 'Error saving settings.';
+      });
+  }
+</script>

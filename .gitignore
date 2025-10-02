@@ -6,3 +6,5 @@ __pycache__/
 secrets.json
 .runstate.json
 settings.json
+server/corrupt_files
+.claude

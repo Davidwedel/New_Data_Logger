@@ -1,0 +1,55 @@
+<div id="history" class="tabcontent" style="display:none;">
+  <h2>All Daily User Logs</h2>
+  <div id="user-logs-table"></div>
+  <h2>All Daily Bot Logs</h2>
+  <div id="bot-logs-table"></div>
+</div>
+
+<script>
+  function loadHistoryTab(evt) {
+    openTab(evt, 'history');
+    fetch('/api/all_data')
+      .then(res => res.json())
+      .then(data => {
+        renderTable('user-logs-table', data.user_logs);
+        renderTable('bot-logs-table', data.bot_logs);
+      });
+  }
+
+  function renderTable(containerId, rows) {
+    const container = document.getElementById(containerId);
+    if (!rows || rows.length === 0) {
+      container.innerHTML = '<p>No data.</p>';
+      return;
+    }
+    // Define DB column order for each table
+    const userLogOrder = [
+      'id', 'date_entered', 'belt_eggs', 'floor_eggs', 'mortality_indoor', 'mortality_outdoor', 'euthanized_indoor', 'euthanized_outdoor', 'depop', 'amount_delivered', 'mortality_reasons', 'cull_reasons', 'mortality_comments', 'coolerlog_comments', 'added_supplements', 'birds_restricted_reason', 'comments', 'weather', 'air_sensory', 'ration', 'drinkers_clean', 'birds_under_slats', 'safe_indoors', 'safe_outdoors', 'equipment_functioning', 'predator_activity', 'eggs_picked_up', 'door_open', 'door_closed'
+    ];
+    const botLogOrder = [
+      'id', 'date', 'bird_age', 'feed_consumption', 'lights_on', 'lights_off', 'water_consumption', 'body_weight', 'door_open', 'door_closed', 'birds_restricted', 'inside_low_temp', 'inside_high_temp', 'outside_low_temp', 'outside_high_temp', 'cooler_time_am', 'cooler_temp_am', 'cooler_time_pm', 'cooler_temp_pm'
+    ];
+    // Pick order based on table
+    let colOrder = userLogOrder;
+    if (containerId.includes('bot')) colOrder = botLogOrder;
+    let html = '<div class="history-table-scroll" style="max-width:100vw; max-height:350px; overflow:auto; margin-bottom:40px;"><table style="border-collapse:collapse; width:100%; font-size:13px; background:#fff;"><thead><tr>';
+    for (const key of colOrder) {
+      if (rows[0][key] === undefined) continue;
+      html += `<th style="border:1px solid #ccc; padding:4px 8px; background:#e0e0e0; position:sticky; top:0; z-index:2;">${key}</th>`;
+    }
+    html += '</tr></thead><tbody>';
+    for (const row of rows) {
+      html += '<tr>';
+      for (const key of colOrder) {
+        if (row[key] === undefined) continue;
+        html += `<td style="border:1px solid #ccc; padding:4px 8px;">${row[key]}</td>`;
+      }
+      html += '</tr>';
+    }
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+    // Scroll to bottom after rendering
+    const scrollDiv = container.querySelector('.history-table-scroll');
+    if (scrollDiv) scrollDiv.scrollTop = scrollDiv.scrollHeight;
+  }
+</script>
