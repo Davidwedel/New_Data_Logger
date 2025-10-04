@@ -60,7 +60,15 @@
     for (const key of userLogFields) {
       const value = user_log[key] || '';
       const isReadonly = key === 'id' || key === 'date_entered' ? 'readonly' : '';
-      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()" onfocus="scrollUserLogToInput(this)"></td>`;
+
+      // Special handling for mortality_reasons and cull_reasons - show dropdown on focus
+      if (key === 'mortality_reasons') {
+        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showMortalityReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showMortalityReasonsDropdown(this)"></td>`;
+      } else if (key === 'cull_reasons') {
+        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showCullReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showCullReasonsDropdown(this)"></td>`;
+      } else {
+        html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()" onfocus="scrollUserLogToInput(this)"></td>`;
+      }
     }
 
     html += '</tr></table></form></div>';
@@ -79,6 +87,100 @@
       container.scrollLeft += (inputRect.right - containerRect.right + 120);
     } else if (inputRect.left < containerRect.left + 20) {
       container.scrollLeft -= (containerRect.left - inputRect.left + 120);
+    }
+  }
+
+  let currentDropdownInput = null;
+  let hideTimeout = null;
+
+  function showMortalityReasonsDropdown(input) {
+    hideDropdown(); // Close any existing dropdown
+
+    const mortalityOptions = ['Unknown', 'N Natural', 'PR Predator', 'PC Pecking', 'S Sick', 'PL Prolapse', 'C Cull', 'B Broody', 'O Other', 'PI Piling', 'SO Starveout', 'I Injured'];
+    const currentValues = input.value ? input.value.split(',').map(v => v.trim()) : [];
+
+    let html = '<div style="padding:10px; max-height:200px; overflow-y:auto;">';
+    mortalityOptions.forEach(opt => {
+      const checked = currentValues.includes(opt) ? 'checked' : '';
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="checkbox" value="${opt}" ${checked} onchange="updateMortalityFromDropdown(this)"> ${opt}</label>`;
+    });
+    html += '</div>';
+
+    showDropdown(html, input);
+    currentDropdownInput = input;
+  }
+
+  function showCullReasonsDropdown(input) {
+    hideDropdown(); // Close any existing dropdown
+
+    const cullOptions = ['Aggressive', 'Broody', 'Injured', 'Rooster', 'Runt', 'Sick'];
+    const currentValues = input.value ? input.value.split(',').map(v => v.trim()) : [];
+
+    let html = '<div style="padding:10px;">';
+    cullOptions.forEach(opt => {
+      const checked = currentValues.includes(opt) ? 'checked' : '';
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="checkbox" value="${opt}" ${checked} onchange="updateCullFromDropdown(this)"> ${opt}</label>`;
+    });
+    html += '</div>';
+
+    showDropdown(html, input);
+    currentDropdownInput = input;
+  }
+
+  function showDropdown(content, inputElement) {
+    // Create dropdown positioned relative to the input but outside the scroll container
+    const dropdown = document.createElement('div');
+    dropdown.id = 'field-dropdown';
+    dropdown.innerHTML = content;
+    dropdown.onmousedown = (e) => e.preventDefault(); // Prevent blur when clicking inside
+
+    // Position it fixed relative to the input's position on screen
+    const rect = inputElement.getBoundingClientRect();
+    dropdown.style.cssText = `position:fixed; top:${rect.bottom + 2}px; left:${rect.left}px; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.3); z-index:10000; min-width:200px;`;
+
+    document.body.appendChild(dropdown);
+  }
+
+  function hideDropdown() {
+    const dropdown = document.getElementById('field-dropdown');
+    if (dropdown) {
+      dropdown.remove();
+    }
+    currentDropdownInput = null;
+  }
+
+  function hideDropdownDelayed() {
+    // Delay hiding to allow clicking on checkboxes
+    hideTimeout = setTimeout(hideDropdown, 200);
+  }
+
+  function updateMortalityFromDropdown(checkbox) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+
+    const dropdown = checkbox.closest('div');
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+    const values = Array.from(checkboxes).map(cb => cb.value);
+
+    if (currentDropdownInput) {
+      currentDropdownInput.value = values.join(', ');
+      autoSaveUserLog();
+    }
+  }
+
+  function updateCullFromDropdown(checkbox) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+
+    const dropdown = checkbox.closest('div');
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+    const values = Array.from(checkboxes).map(cb => cb.value);
+
+    if (currentDropdownInput) {
+      currentDropdownInput.value = values.join(', ');
+      autoSaveUserLog();
     }
   }
 
