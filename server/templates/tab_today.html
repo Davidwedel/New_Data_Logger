@@ -47,7 +47,7 @@
       });
     }
 
-    let html = '<div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
+    let html = '<div id="userlog-scroll-container" style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
     html += '<form id="userlog-edit-form"><table style="font-size:12px; min-width:600px;"><tr>';
 
     // Table headers
@@ -60,11 +60,26 @@
     for (const key of userLogFields) {
       const value = user_log[key] || '';
       const isReadonly = key === 'id' || key === 'date_entered' ? 'readonly' : '';
-      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()"></td>`;
+      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()" onfocus="scrollUserLogToInput(this)"></td>`;
     }
 
     html += '</tr></table></form></div>';
     container.innerHTML = html;
+  }
+
+  function scrollUserLogToInput(input) {
+    const container = document.getElementById('userlog-scroll-container');
+    if (!container) return;
+
+    const inputRect = input.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    // Scroll horizontally if input is outside visible area
+    if (inputRect.right > containerRect.right - 20) {
+      container.scrollLeft += (inputRect.right - containerRect.right + 120);
+    } else if (inputRect.left < containerRect.left + 20) {
+      container.scrollLeft -= (containerRect.left - inputRect.left + 120);
+    }
   }
 
   let saveTimeout = null;
