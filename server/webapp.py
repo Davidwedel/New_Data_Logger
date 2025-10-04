@@ -1,11 +1,25 @@
+#!/usr/bin/env python3
+"""
+Farm Data Web Application
+Provides web interface for viewing and editing farm data
+"""
 import os
+import sys
 import json
+import pathlib
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date, datetime
+
+# Add server directory to path for imports
+sys.path.insert(0, os.path.dirname(__file__))
 import database_helper as db
 
 app = Flask(__name__)
+
+# Initialize database on startup
+DB_FILE = pathlib.Path(__file__).parent.parent / "database.db"
+db.setup_db(DB_FILE)
 
 @app.route("/")   # homepage route
 def index():
@@ -207,3 +221,14 @@ def api_today_data():
     user_log = db.get_daily_user_log(today_str)
     bot_log = db.get_daily_bot_log(today_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Farm Data Web Application")
+    parser.add_argument("--port", type=int, default=5000, help="Port to run the web server on")
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind the web server to")
+    parser.add_argument("--debug", action="store_true", help="Run in debug mode")
+    args = parser.parse_args()
+
+    print(f"Starting web server on {args.host}:{args.port}")
+    app.run(host=args.host, port=args.port, debug=args.debug)

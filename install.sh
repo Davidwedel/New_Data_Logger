@@ -5,10 +5,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Stuff for Systemd
-APP_NAME="datalogger"
-PYTHON_SCRIPT="$SCRIPT_DIR/main.py"
+AUTOMATION_NAME="datalogger"
+AUTOMATION_SCRIPT="$SCRIPT_DIR/automation.py"
+WEBAPP_NAME="farm-webapp"
+WEBAPP_SCRIPT="$SCRIPT_DIR/server/webapp.py"
 VENV="$SCRIPT_DIR/.venv/bin/python"
-SERVICE_FILE="/etc/systemd/system/${APP_NAME}.service"
+AUTOMATION_SERVICE="/etc/systemd/system/${AUTOMATION_NAME}.service"
+WEBAPP_SERVICE="/etc/systemd/system/${WEBAPP_NAME}.service"
 
 # End of
 
@@ -119,21 +122,20 @@ echo "📂 Anonymous uploads are allowed at: ftp://<your-ip-address>/upload/"
 echo "   (Replace <your-ip-address> with the IP of this machine.)"
 
 
-echo "Creating systemd service file..."
+echo ""
+echo "Creating automation service (XML processing & Unitas uploads)..."
 
-sudo tee $SERVICE_FILE > /dev/null <<EOF
+sudo tee $AUTOMATION_SERVICE > /dev/null <<EOF
 [Unit]
-Description=VF Data Logger GUI
+Description=Farm Data Logger Automation
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=$VENV $PYTHON_SCRIPT
-WorkingDirectory=$(dirname "$PYTHON_SCRIPT")
+ExecStart=$VENV $AUTOMATION_SCRIPT
+WorkingDirectory=$SCRIPT_DIR
 Restart=on-failure
 User=$USER
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/$USER/.Xauthority
 
 # These ensure logs go to journal
 StandardOutput=journal
@@ -143,17 +145,50 @@ StandardError=journal
 Environment=PYTHONUNBUFFERED=1
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
+EOF
+
+echo "Creating web application service..."
+
+sudo tee $WEBAPP_SERVICE > /dev/null <<EOF
+[Unit]
+Description=Farm Data Web Application
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$VENV $WEBAPP_SCRIPT
+WorkingDirectory=$SCRIPT_DIR
+Restart=on-failure
+User=$USER
+
+# These ensure logs go to journal
+StandardOutput=journal
+StandardError=journal
+
+# Optional: prevent output buffering
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
 EOF
 
 echo "Reloading systemd..."
 sudo systemctl daemon-reload
 
-echo "Enabling service to start on boot..."
-sudo systemctl enable $APP_NAME.service
+echo "Enabling services to start on boot..."
+sudo systemctl enable $AUTOMATION_NAME.service
+sudo systemctl enable $WEBAPP_NAME.service
 
-echo "You can start it now with:"
-echo "  sudo systemctl start $APP_NAME.service"
+echo ""
+echo "✅ Services created!"
+echo "You can start them now with:"
+echo "  sudo systemctl start $AUTOMATION_NAME.service"
+echo "  sudo systemctl start $WEBAPP_NAME.service"
+echo ""
+echo "View logs with:"
+echo "  sudo journalctl -u $AUTOMATION_NAME.service -f"
+echo "  sudo journalctl -u $WEBAPP_NAME.service -f"
 
 # Create XML watcher service
 WATCHER_NAME="xml-watcher"
