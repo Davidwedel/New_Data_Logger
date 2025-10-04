@@ -89,12 +89,20 @@ if ! command -v getenforce &> /dev/null; then
     echo "SELinux is not installed."
 else
     echo "SELinux is installed. Configuring..."
-sudo setsebool -P allow_ftpd_anon_write=1
-sudo semanage fcontext -a -t public_content_rw_t "($UPLOAD_DIR)(/.*)?"
-sudo restorecon -Rv $UPLOAD_DIR
+    sudo setsebool -P allow_ftpd_anon_write=1
+    sudo semanage fcontext -a -t public_content_rw_t "($UPLOAD_DIR)(/.*)?"
+    sudo restorecon -Rv $UPLOAD_DIR
 
-# Systemd permissions
-sudo semodule -i my-python.pp
+    # Systemd permissions - try to load policy, but don't fail if it doesn't work
+    echo "[*] Attempting to load SELinux policy module..."
+    if sudo semodule -i my-python.pp 2>/dev/null; then
+        echo "✅ SELinux policy module loaded successfully"
+    else
+        echo "⚠️  Warning: Could not load SELinux policy module (version mismatch)"
+        echo "    The datalogger service may need manual SELinux permissions"
+        echo "    If you encounter permission issues, run:"
+        echo "    sudo setsebool -P systemd_read_user_home_files 1"
+    fi
 fi
 
 
@@ -146,3 +154,48 @@ sudo systemctl enable $APP_NAME.service
 
 echo "You can start it now with:"
 echo "  sudo systemctl start $APP_NAME.service"
+
+# Create XML watcher service
+WATCHER_NAME="xml-watcher"
+WATCHER_SCRIPT="$SCRIPT_DIR/watch_xml_dir.py"
+WATCHER_SERVICE_FILE="/etc/systemd/system/${WATCHER_NAME}.service"
+
+echo ""
+echo "Creating XML directory watcher service..."
+
+sudo tee $WATCHER_SERVICE_FILE > /dev/null <<EOF
+[Unit]
+Description=XML Directory Watcher
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$VENV $WATCHER_SCRIPT
+WorkingDirectory=$SCRIPT_DIR
+Restart=on-failure
+User=$USER
+
+# These ensure logs go to journal
+StandardOutput=journal
+StandardError=journal
+
+# Optional: prevent output buffering
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "Reloading systemd..."
+sudo systemctl daemon-reload
+
+echo "Enabling XML watcher service to start on boot..."
+sudo systemctl enable $WATCHER_NAME.service
+
+echo ""
+echo "✅ XML watcher service created!"
+echo "You can start it now with:"
+echo "  sudo systemctl start $WATCHER_NAME.service"
+echo ""
+echo "View watcher logs with:"
+echo "  sudo journalctl -u $WATCHER_NAME.service -f"
