@@ -151,15 +151,20 @@ def update_user_log():
     today_str = date.today().isoformat()
     # Get the current record to find the rowid or unique key
     user_log = db.get_daily_user_log(today_str)
-    if not user_log:
-        return jsonify({"status": "error", "message": "No user log for today."}), 404
-    # Use date_entered as unique key for update
-    date_entered = user_log.get("date_entered")
-    if not date_entered:
-        return jsonify({"status": "error", "message": "No date_entered in user log."}), 400
+
     try:
-        db.update_daily_user_log(date_entered, data)
-        return jsonify({"status": "ok", "message": "User log updated."})
+        if not user_log:
+            # No log exists, create a new one
+            data['date_entered'] = datetime.now().isoformat()
+            db.insert_daily_user_log(**data)
+            return jsonify({"status": "ok", "message": "User log created."})
+        else:
+            # Update existing log
+            date_entered = user_log.get("date_entered")
+            if not date_entered:
+                return jsonify({"status": "error", "message": "No date_entered in user log."}), 400
+            db.update_daily_user_log(date_entered, data)
+            return jsonify({"status": "ok", "message": "User log updated."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

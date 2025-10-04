@@ -28,26 +28,76 @@
 
   function renderUserLog(user_log) {
     const container = document.getElementById('userlog-container');
+
+    // Define the expected fields for user log
+    const userLogFields = [
+      'id', 'date_entered', 'belt_eggs', 'floor_eggs', 'mortality_indoor', 'mortality_outdoor',
+      'euthanized_indoor', 'euthanized_outdoor', 'depop', 'amount_delivered', 'mortality_reasons',
+      'cull_reasons', 'mortality_comments', 'coolerlog_comments', 'added_supplements',
+      'birds_restricted_reason', 'comments', 'weather', 'air_sensory', 'ration',
+      'drinkers_clean', 'birds_under_slats', 'safe_indoors', 'safe_outdoors',
+      'equipment_functioning', 'predator_activity', 'eggs_picked_up', 'door_open', 'door_closed'
+    ];
+
+    // If no user_log, create empty object with all fields
     if (!user_log) {
-      container.innerHTML = '<p>No user log for today.</p>';
-      return;
+      user_log = {};
+      userLogFields.forEach(field => {
+        user_log[field] = '';
+      });
     }
 
     let html = '<div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
     html += '<form id="userlog-edit-form"><table style="font-size:12px; min-width:600px;"><tr>';
-    html += '<th style="padding:4px 6px;">Flag</th>';
-    for (const key in user_log) {
+
+    // Table headers
+    for (const key of userLogFields) {
       html += `<th style="padding:4px 6px;">${key}</th>`;
     }
-    html += '<th style="padding:4px 6px;">Save</th></tr><tr>';
-    html += '<td style="padding:4px 6px;"><input type="checkbox" id="userlog-flag" onchange="setFlag(\'USER_LOG_FLAG\', this.checked)"></td>';
-    for (const key in user_log) {
+    html += '</tr><tr>';
+
+    // Table data cells with inputs
+    for (const key of userLogFields) {
       const value = user_log[key] || '';
-      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}"></td>`;
+      const isReadonly = key === 'id' || key === 'date_entered' ? 'readonly' : '';
+      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()"></td>`;
     }
-    html += '<td><button type="button" onclick="saveUserLog()">Save</button></td>';
+
     html += '</tr></table></form></div>';
     container.innerHTML = html;
+  }
+
+  let saveTimeout = null;
+  function autoSaveUserLog() {
+    // Clear any existing timeout
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+
+    // Set a new timeout to save after a brief delay (debounce)
+    saveTimeout = setTimeout(() => {
+      const form = document.getElementById('userlog-edit-form');
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => {
+        if (key !== 'id' && key !== 'date_entered') {
+          data[key] = value;
+        }
+      });
+
+      fetch('/update_user_log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(result => {
+          console.log('Auto-saved:', result.message);
+        })
+        .catch(err => {
+          console.error('Auto-save failed:', err);
+        });
+    }, 500); // Wait 500ms after user stops typing
   }
 
   function renderBotLog(bot_log) {
