@@ -61,11 +61,18 @@
       const value = user_log[key] || '';
       const isReadonly = key === 'id' || key === 'date_entered' ? 'readonly' : '';
 
-      // Special handling for mortality_reasons and cull_reasons - show dropdown on focus
+      // Special handling for fields with dropdowns
       if (key === 'mortality_reasons') {
         html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showMortalityReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showMortalityReasonsDropdown(this)"></td>`;
       } else if (key === 'cull_reasons') {
         html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showCullReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showCullReasonsDropdown(this)"></td>`;
+      } else if (key === 'air_sensory') {
+        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showAirSensoryDropdown(this)" onblur="hideDropdownDelayed()" onclick="showAirSensoryDropdown(this)"></td>`;
+      } else if (key === 'weather') {
+        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showWeatherDropdown(this)" onblur="hideDropdownDelayed()" onclick="showWeatherDropdown(this)"></td>`;
+      } else if (key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
+        const isChecked = (value === 'Yes' || value === 'true' || value === true) ? 'checked' : '';
+        html += `<td style="padding:4px 6px; text-align:center;"><input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)"></td>`;
       } else {
         html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()" onfocus="scrollUserLogToInput(this)"></td>`;
       }
@@ -120,6 +127,40 @@
     cullOptions.forEach(opt => {
       const checked = currentValues.includes(opt) ? 'checked' : '';
       html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="checkbox" value="${opt}" ${checked} onchange="updateCullFromDropdown(this)"> ${opt}</label>`;
+    });
+    html += '</div>';
+
+    showDropdown(html, input);
+    currentDropdownInput = input;
+  }
+
+  function showAirSensoryDropdown(input) {
+    hideDropdown(); // Close any existing dropdown
+
+    const airSensoryOptions = ['1', '2', '3', '4', '5'];
+    const currentValue = input.value;
+
+    let html = '<div style="padding:10px;">';
+    airSensoryOptions.forEach(opt => {
+      const checked = currentValue === opt ? 'checked' : '';
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="radio" name="air_sensory_dropdown" value="${opt}" ${checked} onchange="updateAirSensoryFromDropdown(this)"> ${opt}</label>`;
+    });
+    html += '</div>';
+
+    showDropdown(html, input);
+    currentDropdownInput = input;
+  }
+
+  function showWeatherDropdown(input) {
+    hideDropdown(); // Close any existing dropdown
+
+    const weatherOptions = ['Cloudy', 'Cloudy/Windy', 'Freezing Rain', 'Mostly Cloudy', 'Partly Cloudy', 'Partly Sunny', 'Rain', 'Severe Storm', 'Sleet', 'Snow', 'Sunny', 'Winter Storm'];
+    const currentValue = input.value;
+
+    let html = '<div style="padding:10px; max-height:300px; overflow-y:auto;">';
+    weatherOptions.forEach(opt => {
+      const checked = currentValue === opt ? 'checked' : '';
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="radio" name="weather_dropdown" value="${opt}" ${checked} onchange="updateWeatherFromDropdown(this)"> ${opt}</label>`;
     });
     html += '</div>';
 
@@ -184,6 +225,41 @@
     }
   }
 
+  function updateAirSensoryFromDropdown(radio) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+
+    if (currentDropdownInput) {
+      currentDropdownInput.value = radio.value;
+      autoSaveUserLog();
+      // Close dropdown after selection since it's radio (single choice)
+      setTimeout(hideDropdown, 100);
+    }
+  }
+
+  function updateWeatherFromDropdown(radio) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+
+    if (currentDropdownInput) {
+      currentDropdownInput.value = radio.value;
+      autoSaveUserLog();
+      // Close dropdown after selection since it's radio (single choice)
+      setTimeout(hideDropdown, 100);
+    }
+  }
+
+  function updateCheckboxField(checkbox) {
+    // Update the value based on checkbox state
+    const value = checkbox.checked ? 'Yes' : 'No';
+    // We need to trigger auto-save with the updated value
+    // The checkbox doesn't have a "value" attribute in the traditional sense for form data
+    // So we'll need to handle it in the autoSaveUserLog function
+    autoSaveUserLog();
+  }
+
   let saveTimeout = null;
   function autoSaveUserLog() {
     // Clear any existing timeout
@@ -194,11 +270,21 @@
     // Set a new timeout to save after a brief delay (debounce)
     saveTimeout = setTimeout(() => {
       const form = document.getElementById('userlog-edit-form');
-      const formData = new FormData(form);
       const data = {};
-      formData.forEach((value, key) => {
-        if (key !== 'id' && key !== 'date_entered') {
-          data[key] = value;
+
+      // Handle regular inputs
+      const inputs = form.querySelectorAll('input[type="text"], input[type="number"], input[type="time"], input[type="hidden"], textarea');
+      inputs.forEach(input => {
+        if (input.name && input.name !== 'id' && input.name !== 'date_entered') {
+          data[input.name] = input.value;
+        }
+      });
+
+      // Handle checkboxes - convert to Yes/No
+      const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(checkbox => {
+        if (checkbox.name && checkbox.name !== 'id' && checkbox.name !== 'date_entered') {
+          data[checkbox.name] = checkbox.checked ? 'Yes' : 'No';
         }
       });
 
