@@ -190,6 +190,13 @@
         result.textContent = "Total Mortality/Euthanized: " + (n1 + n2 + n3 + n4);
       }
     }
+
+    // Load today's data when page first loads
+    window.addEventListener('DOMContentLoaded', function() {
+      if (typeof loadTodayData === 'function') {
+        loadTodayData();
+      }
+    });
   </script>
 
   {% block extra_scripts %}{% endblock %}

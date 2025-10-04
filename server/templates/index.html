@@ -5,17 +5,15 @@
 {% block content %}
 <!-- Tab buttons -->
 <div class="tab">
-  <button class="tablinks active" onclick="openTab(event, 'daily')">Daily Farm Data Entry</button>
+  <button class="tablinks active" onclick="openTab(event, 'todaydata')">Daily Farm Data Entry</button>
   <button class="tablinks" onclick="openTab(event, 'pallet')">Pallet Entry</button>
   <button class="tablinks" onclick="openTab(event, 'settings')">Farm Settings</button>
-  <button class="tablinks" onclick="openTab(event, 'todaydata')">Today's Data</button>
   <button class="tablinks" onclick="loadHistoryTab(event)">History</button>
 </div>
 
 <!-- Include tab content partials -->
-{% include 'tab_daily.html' %}
+{% include 'tab_today.html' %}
 {% include 'tab_pallet.html' %}
 {% include 'tab_settings.html' %}
-{% include 'tab_today.html' %}
 {% include 'tab_history.html' %}
 {% endblock %}
