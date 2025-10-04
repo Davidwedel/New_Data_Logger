@@ -39,6 +39,39 @@
       'equipment_functioning', 'predator_activity', 'eggs_picked_up', 'door_open', 'door_closed'
     ];
 
+    // Define display names for fields
+    const fieldDisplayNames = {
+      'id': 'ID',
+      'date_entered': 'Date Entered',
+      'belt_eggs': 'Belt Eggs',
+      'floor_eggs': 'Floor Eggs',
+      'mortality_indoor': 'Mortality Indoor',
+      'mortality_outdoor': 'Mortality Outdoor',
+      'euthanized_indoor': 'Euthanized Indoor',
+      'euthanized_outdoor': 'Euthanized Outdoor',
+      'depop': 'Depop #',
+      'amount_delivered': 'Amount Delivered',
+      'mortality_reasons': 'Mortality Reasons',
+      'cull_reasons': 'Cull Reasons',
+      'mortality_comments': 'Mortality Comments',
+      'coolerlog_comments': 'Cooler Log Comments',
+      'added_supplements': 'Added Supplements',
+      'birds_restricted_reason': 'Birds Restricted Reason',
+      'comments': 'Comments',
+      'weather': 'Weather',
+      'air_sensory': 'Air Sensory',
+      'ration': 'Ration Delivered',
+      'drinkers_clean': 'Drinkers Clean',
+      'birds_under_slats': 'Birds Under Slats',
+      'safe_indoors': 'Safe Indoors',
+      'safe_outdoors': 'Safe Outdoors',
+      'equipment_functioning': 'Equipment Functioning',
+      'predator_activity': 'Predator Activity',
+      'eggs_picked_up': 'Eggs Picked Up',
+      'door_open': 'Door Open',
+      'door_closed': 'Door Closed'
+    };
+
     // If no user_log, create empty object with all fields
     if (!user_log) {
       user_log = {};
@@ -52,7 +85,7 @@
 
     // Table headers
     for (const key of userLogFields) {
-      html += `<th style="padding:4px 6px;">${key}</th>`;
+      html += `<th style="padding:4px 6px;">${fieldDisplayNames[key] || key}</th>`;
     }
     html += '</tr><tr>';
 
