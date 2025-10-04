@@ -12,13 +12,14 @@ import sqlite3
 from datetime import date, datetime
 
 # Add server directory to path for imports
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 import database_helper as db
+import runstate
 
 app = Flask(__name__)
 
 # Initialize database on startup
-DB_FILE = pathlib.Path(__file__).parent.parent / "database.db"
+DB_FILE = pathlib.Path(__file__).parent / "database.db"
 db.setup_db(DB_FILE)
 
 @app.route("/")   # homepage route
