@@ -7,6 +7,7 @@ import os
 import sys
 import json
 import pathlib
+import requests
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date, datetime
@@ -21,6 +22,67 @@ app = Flask(__name__)
 # Initialize database on startup
 DB_FILE = pathlib.Path(__file__).parent / "database.db"
 db.setup_db(DB_FILE)
+
+def fetch_nws_weather(station_id):
+    """Fetch current weather from National Weather Service station"""
+    try:
+        # Get latest observation from station
+        obs_url = f"https://api.weather.gov/stations/{station_id}/observations/latest"
+        headers = {'User-Agent': 'FarmDataLogger/1.0'}
+
+        print(f"DEBUG: Fetching weather from: {obs_url}")
+        obs_response = requests.get(obs_url, headers=headers, timeout=10)
+        print(f"DEBUG: Response status: {obs_response.status_code}")
+
+        if obs_response.status_code != 200:
+            print(f"DEBUG: Bad response code: {obs_response.status_code}")
+            return None
+
+        obs_data = obs_response.json()
+        text_description = obs_data['properties'].get('textDescription')
+        print(f"DEBUG: NWS text description: {text_description}")
+
+        if not text_description:
+            print("DEBUG: No text description in response")
+            return None
+
+        # Map NWS observation to our weather options
+        text_lower = text_description.lower()
+
+        weather_mapping = {
+            'sunny': 'Sunny',
+            'clear': 'Sunny',
+            'fair': 'Sunny',
+            'partly cloudy': 'Partly Cloudy',
+            'partly sunny': 'Partly Sunny',
+            'mostly cloudy': 'Mostly Cloudy',
+            'cloudy': 'Cloudy',
+            'overcast': 'Cloudy',
+            'rain': 'Rain',
+            'showers': 'Rain',
+            'drizzle': 'Rain',
+            'thunderstorm': 'Severe Storm',
+            'storm': 'Severe Storm',
+            'snow': 'Snow',
+            'sleet': 'Sleet',
+            'freezing': 'Freezing Rain',
+            'wind': 'Cloudy/Windy',
+        }
+
+        # Find best match
+        for key, value in weather_mapping.items():
+            if key in text_lower:
+                print(f"DEBUG: Matched '{key}' -> '{value}'")
+                return value
+
+        print(f"DEBUG: No match found for '{text_description}'")
+        return None  # Return None if no match
+
+    except Exception as e:
+        print(f"DEBUG: Error fetching weather: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 @app.route("/")   # homepage route
 def index():
@@ -122,7 +184,8 @@ def save_settings():
     data = request.json
     settings = {
         "hatch_date": data.get("hatch_date"),
-        "birds_arrived_date": data.get("birds_arrived_date")
+        "birds_arrived_date": data.get("birds_arrived_date"),
+        "nws_station_id": data.get("nws_station_id")
     }
     settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
     try:
@@ -138,10 +201,28 @@ def get_settings():
     import json, os
     settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
     if not os.path.exists(settings_path):
-        return jsonify({"hatch_date": "", "birds_arrived_date": ""})
+        return jsonify({"hatch_date": "", "birds_arrived_date": "", "nws_station_id": ""})
     with open(settings_path, "r") as f:
         settings = json.load(f)
     return jsonify(settings)
+
+# Endpoint to fetch current weather from NWS
+@app.route("/get_weather", methods=["GET"])
+def get_weather():
+    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
+    if not os.path.exists(settings_path):
+        return jsonify({"weather": None, "error": "No weather station configured"})
+
+    with open(settings_path, "r") as f:
+        settings = json.load(f)
+
+    station_id = settings.get("nws_station_id")
+
+    if not station_id:
+        return jsonify({"weather": None, "error": "No weather station configured"})
+
+    weather = fetch_nws_weather(station_id)
+    return jsonify({"weather": weather})
 
 # Endpoint to save default values
 @app.route("/save_defaults", methods=["POST"])
@@ -242,22 +323,69 @@ def api_all_data():
 def api_today_data():
     today_str = date.today().isoformat()
     user_log = db.get_daily_user_log(today_str)
+    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
     # If no user log exists for today, create one with defaults
     if not user_log:
+        print("DEBUG: No user log found for today, creating new one")
         defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
         defaults = {}
+
+        # Load defaults
         if os.path.exists(defaults_path):
             with open(defaults_path, "r") as f:
                 defaults = json.load(f)
+            print(f"DEBUG: Loaded defaults: {defaults}")
+
+        # Auto-fetch weather if station is configured
+        if os.path.exists(settings_path):
+            with open(settings_path, "r") as f:
+                settings = json.load(f)
+            print(f"DEBUG: Loaded settings: {settings}")
+            station_id = settings.get("nws_station_id")
+            if station_id:
+                print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
+                weather = fetch_nws_weather(station_id)
+                if weather:
+                    print(f"DEBUG: Got weather: {weather}")
+                    defaults['weather'] = weather
+                else:
+                    print("DEBUG: Weather fetch returned None")
+            else:
+                print("DEBUG: No station ID configured")
+        else:
+            print("DEBUG: No settings.json file found")
 
         # Create new entry with defaults
         defaults['date_entered'] = datetime.now().isoformat()
+        print(f"DEBUG: Creating user log with data: {defaults}")
         try:
             db.insert_daily_user_log(**defaults)
             user_log = db.get_daily_user_log(today_str)
+            print(f"DEBUG: Created user log: {user_log}")
         except Exception as e:
-            print(f"Error creating daily user log: {e}")
+            print(f"DEBUG: Error creating daily user log: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print(f"DEBUG: Found existing user log: {user_log}")
+        # If weather is blank, try to auto-fetch it
+        if not user_log.get('weather') or user_log.get('weather').strip() == '':
+            print("DEBUG: Weather is blank, attempting to fetch")
+            if os.path.exists(settings_path):
+                with open(settings_path, "r") as f:
+                    settings = json.load(f)
+                station_id = settings.get("nws_station_id")
+                if station_id:
+                    print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
+                    weather = fetch_nws_weather(station_id)
+                    if weather:
+                        print(f"DEBUG: Got weather: {weather}, updating user log")
+                        # Update the weather field
+                        db.update_daily_user_log(user_log['date_entered'], {'weather': weather})
+                        user_log['weather'] = weather
+                    else:
+                        print("DEBUG: Weather fetch returned None")
 
     bot_log = db.get_daily_bot_log(today_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})

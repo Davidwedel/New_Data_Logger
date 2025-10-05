@@ -150,6 +150,7 @@
           .then(data => {
             document.getElementById('hatchDate').value = data.hatch_date || '';
             document.getElementById('birdsArrivedDate').value = data.birds_arrived_date || '';
+            document.getElementById('nws_station_id').value = data.nws_station_id || '';
           });
       }
       // If Today's Data tab, fetch and reload data
