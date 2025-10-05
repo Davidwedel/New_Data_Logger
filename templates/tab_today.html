@@ -109,38 +109,39 @@
       });
     }
 
-    let html = '<div id="userlog-scroll-container" style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
-    html += '<form id="userlog-edit-form"><table style="font-size:12px; min-width:600px; margin-bottom:20px;"><tr>';
+    let html = '<div id="userlog-scroll-container" style="max-width:100%; max-height:600px; overflow:auto; border:1px solid #ccc; border-radius:6px; padding:10px;">';
+    html += '<form id="userlog-edit-form">';
+    html += '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 200px)); gap:10px;">';
 
-    // Table headers
-    for (const key of userLogFields) {
-      html += `<th style="padding:4px 6px;">${fieldDisplayNames[key] || key}</th>`;
-    }
-    html += '</tr><tr>';
-
-    // Table data cells with inputs
+    // Render each field as a labeled input in a grid
     for (const key of userLogFields) {
       const value = user_log[key] || '';
       const isReadonly = key === 'id' || key === 'date_entered' ? 'readonly' : '';
+      const displayName = fieldDisplayNames[key] || key;
+
+      html += `<div style="display:flex; flex-direction:column;">`;
+      html += `<label style="font-weight:bold; margin-bottom:2px; font-size:11px;">${displayName}</label>`;
 
       // Special handling for fields with dropdowns
       if (key === 'mortality_reasons') {
-        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showMortalityReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showMortalityReasonsDropdown(this)"></td>`;
+        html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showMortalityReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showMortalityReasonsDropdown(this)">`;
       } else if (key === 'cull_reasons') {
-        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showCullReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showCullReasonsDropdown(this)"></td>`;
+        html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showCullReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showCullReasonsDropdown(this)">`;
       } else if (key === 'air_sensory') {
-        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showAirSensoryDropdown(this)" onblur="hideDropdownDelayed()" onclick="showAirSensoryDropdown(this)"></td>`;
+        html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showAirSensoryDropdown(this)" onblur="hideDropdownDelayed()" onclick="showAirSensoryDropdown(this)">`;
       } else if (key === 'weather') {
-        html += `<td style="padding:4px 6px; position:relative;"><input style="width:100px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showWeatherDropdown(this)" onblur="hideDropdownDelayed()" onclick="showWeatherDropdown(this)"></td>`;
+        html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showWeatherDropdown(this)" onblur="hideDropdownDelayed()" onclick="showWeatherDropdown(this)">`;
       } else if (key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
         const isChecked = (value === 'Yes' || value === 'true' || value === true) ? 'checked' : '';
-        html += `<td style="padding:4px 6px; text-align:center;"><input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)"></td>`;
+        html += `<input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)" style="width:18px; height:18px;">`;
       } else {
-        html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()" onfocus="scrollUserLogToInput(this)"></td>`;
+        html += `<input style="padding:4px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()">`;
       }
+
+      html += `</div>`;
     }
 
-    html += '</tr></table></form></div>';
+    html += '</div></form></div>';
     container.innerHTML = html;
   }
 
