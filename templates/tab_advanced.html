@@ -1,0 +1,100 @@
+<div id="advanced" class="tabcontent" style="display:none;">
+  <h2>Advanced Settings</h2>
+  <p>Set default values for Daily Farm Data Entry fields. These values will auto-fill when creating new entries.</p>
+
+  <form id="defaults-form" style="max-width:600px;">
+    <div style="margin-bottom:15px;">
+      <label for="default_air_sensory" style="display:block; font-weight:bold;">Default Air Sensory:</label>
+      <select id="default_air_sensory" name="air_sensory" style="width:100%; padding:5px;">
+        <option value="">-- No Default --</option>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </div>
+
+    <div style="margin-bottom:15px;">
+      <label for="default_added_supplements" style="display:block; font-weight:bold;">Default Added Supplements:</label>
+      <input type="text" id="default_added_supplements" name="added_supplements" style="width:100%; padding:5px;">
+    </div>
+
+    <div style="margin-bottom:15px;">
+      <label for="default_door_open" style="display:block; font-weight:bold;">Default Door Open Time:</label>
+      <input type="time" id="default_door_open" name="door_open" style="width:100%; padding:5px;">
+    </div>
+
+    <div style="margin-bottom:15px;">
+      <label for="default_door_closed" style="display:block; font-weight:bold;">Default Door Closed Time:</label>
+      <input type="time" id="default_door_closed" name="door_closed" style="width:100%; padding:5px;">
+    </div>
+
+    <div style="margin-bottom:15px;">
+      <label for="default_birds_restricted_reason" style="display:block; font-weight:bold;">Default Birds Restricted Reason:</label>
+      <input type="text" id="default_birds_restricted_reason" name="birds_restricted_reason" style="width:100%; padding:5px;">
+    </div>
+
+    <div style="margin-bottom:15px;">
+      <label style="display:block; font-weight:bold;">Default Checkboxes:</label>
+      <div style="margin-left:20px;">
+        <label><input type="checkbox" id="default_drinkers_clean" name="drinkers_clean"> Drinkers Clean</label><br>
+        <label><input type="checkbox" id="default_safe_indoors" name="safe_indoors"> Safe Indoors</label><br>
+        <label><input type="checkbox" id="default_safe_outdoors" name="safe_outdoors"> Safe Outdoors</label><br>
+        <label><input type="checkbox" id="default_equipment_functioning" name="equipment_functioning"> Equipment Functioning</label><br>
+      </div>
+    </div>
+
+    <button type="button" onclick="saveDefaults()" style="padding:10px 20px; background-color:#007BFF; color:white; border:none; border-radius:4px; cursor:pointer;">Save Defaults</button>
+  </form>
+</div>
+
+<script>
+  function loadDefaults() {
+    fetch('/get_defaults')
+      .then(res => res.json())
+      .then(data => {
+        // Fill in the form with saved defaults
+        if (data.air_sensory) document.getElementById('default_air_sensory').value = data.air_sensory;
+        if (data.added_supplements) document.getElementById('default_added_supplements').value = data.added_supplements;
+        if (data.door_open) document.getElementById('default_door_open').value = data.door_open;
+        if (data.door_closed) document.getElementById('default_door_closed').value = data.door_closed;
+        if (data.birds_restricted_reason) document.getElementById('default_birds_restricted_reason').value = data.birds_restricted_reason;
+
+        // Checkboxes
+        document.getElementById('default_drinkers_clean').checked = data.drinkers_clean === 'Yes';
+        document.getElementById('default_safe_indoors').checked = data.safe_indoors === 'Yes';
+        document.getElementById('default_safe_outdoors').checked = data.safe_outdoors === 'Yes';
+        document.getElementById('default_equipment_functioning').checked = data.equipment_functioning === 'Yes';
+      })
+      .catch(err => console.error('Error loading defaults:', err));
+  }
+
+  function saveDefaults() {
+    const defaults = {
+      air_sensory: document.getElementById('default_air_sensory').value,
+      added_supplements: document.getElementById('default_added_supplements').value,
+      door_open: document.getElementById('default_door_open').value,
+      door_closed: document.getElementById('default_door_closed').value,
+      birds_restricted_reason: document.getElementById('default_birds_restricted_reason').value,
+      drinkers_clean: document.getElementById('default_drinkers_clean').checked ? 'Yes' : 'No',
+      safe_indoors: document.getElementById('default_safe_indoors').checked ? 'Yes' : 'No',
+      safe_outdoors: document.getElementById('default_safe_outdoors').checked ? 'Yes' : 'No',
+      equipment_functioning: document.getElementById('default_equipment_functioning').checked ? 'Yes' : 'No'
+    };
+
+    fetch('/save_defaults', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(defaults)
+    })
+      .then(res => res.json())
+      .then(result => {
+        alert(result.message);
+      })
+      .catch(err => {
+        console.error('Error saving defaults:', err);
+        alert('Failed to save defaults');
+      });
+  }
+</script>

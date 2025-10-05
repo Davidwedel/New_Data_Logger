@@ -156,6 +156,12 @@
       if (tabName === 'todaydata') {
         loadTodayData();
       }
+      // If Advanced tab, load defaults
+      if (tabName === 'advanced') {
+        if (typeof loadDefaults === 'function') {
+          loadDefaults();
+        }
+      }
     }
 
     // Spinner functions

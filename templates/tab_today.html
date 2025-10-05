@@ -13,11 +13,18 @@
 
 <script>
   function loadTodayData() {
-    fetch('/api/today_data')
-      .then(res => res.json())
-      .then(data => {
-        renderUserLog(data.user_log);
-        renderBotLog(data.bot_log);
+    // Load both today's data and defaults
+    Promise.all([
+      fetch('/api/today_data').then(res => res.json()),
+      fetch('/get_defaults').then(res => res.json())
+    ])
+      .then(([todayData, defaults]) => {
+        // If no user_log exists, apply defaults
+        if (!todayData.user_log) {
+          todayData.user_log = defaults;
+        }
+        renderUserLog(todayData.user_log);
+        renderBotLog(todayData.bot_log);
       })
       .catch(err => {
         console.error('Error loading today data:', err);

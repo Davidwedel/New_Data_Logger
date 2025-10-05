@@ -124,7 +124,7 @@ def save_settings():
         "hatch_date": data.get("hatch_date"),
         "birds_arrived_date": data.get("birds_arrived_date")
     }
-    settings_path = os.path.join(os.path.dirname(__file__), "..", "settings.json")
+    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
     try:
         with open(settings_path, "w") as f:
             json.dump(settings, f, indent=2)
@@ -136,12 +136,34 @@ def save_settings():
 @app.route("/get_settings", methods=["GET"])
 def get_settings():
     import json, os
-    settings_path = os.path.join(os.path.dirname(__file__), "..", "settings.json")
+    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
     if not os.path.exists(settings_path):
         return jsonify({"hatch_date": "", "birds_arrived_date": ""})
     with open(settings_path, "r") as f:
         settings = json.load(f)
     return jsonify(settings)
+
+# Endpoint to save default values
+@app.route("/save_defaults", methods=["POST"])
+def save_defaults():
+    data = request.json
+    defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
+    try:
+        with open(defaults_path, "w") as f:
+            json.dump(data, f, indent=2)
+        return jsonify({"status": "ok", "message": "Defaults saved!"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to save defaults: {e}"}), 500
+
+# Endpoint to get default values
+@app.route("/get_defaults", methods=["GET"])
+def get_defaults():
+    defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
+    if not os.path.exists(defaults_path):
+        return jsonify({})
+    with open(defaults_path, "r") as f:
+        defaults = json.load(f)
+    return jsonify(defaults)
 
 
 
