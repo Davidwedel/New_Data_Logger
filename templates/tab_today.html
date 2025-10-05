@@ -65,13 +65,15 @@
       'predator_activity',
       'depop',
       'door_open',
-      'door_closed'
+      'door_closed',
+      'send_to_bot'
     ];
 
     // Define display names for fields
     const fieldDisplayNames = {
       'id': 'ID',
       'date_entered': 'Date Entered',
+      'send_to_bot': 'Send to Unitas',
       'belt_eggs': 'Belt Eggs',
       'floor_eggs': 'Floor Eggs',
       'mortality_indoor': 'Mortality Indoor',
@@ -131,8 +133,8 @@
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showAirSensoryDropdown(this)" onblur="hideDropdownDelayed()" onclick="showAirSensoryDropdown(this)">`;
       } else if (key === 'weather') {
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showWeatherDropdown(this)" onblur="hideDropdownDelayed()" onclick="showWeatherDropdown(this)">`;
-      } else if (key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
-        const isChecked = (value === 'Yes' || value === 'true' || value === true) ? 'checked' : '';
+      } else if (key === 'send_to_bot' || key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
+        const isChecked = (value === 'Yes' || value === 'true' || value === true || value === 1 || value === '1') ? 'checked' : '';
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)" style="width:18px; height:18px;">`;
       } else {
         html += `<input style="padding:4px; font-size:12px;" name="${key}" value="${value}" ${isReadonly} oninput="autoSaveUserLog()">`;
@@ -143,6 +145,9 @@
 
     html += '</div></form></div>';
     container.innerHTML = html;
+
+    // Run validation after rendering
+    setTimeout(() => validateAndHighlight(), 100);
   }
 
   function scrollUserLogToInput(input) {
@@ -269,6 +274,7 @@
 
     if (currentDropdownInput) {
       currentDropdownInput.value = values.join(', ');
+      validateAndHighlight();
       autoSaveUserLog();
     }
   }
@@ -284,6 +290,7 @@
 
     if (currentDropdownInput) {
       currentDropdownInput.value = values.join(', ');
+      validateAndHighlight();
       autoSaveUserLog();
     }
   }
@@ -295,6 +302,7 @@
 
     if (currentDropdownInput) {
       currentDropdownInput.value = radio.value;
+      validateAndHighlight();
       autoSaveUserLog();
       // Close dropdown after selection since it's radio (single choice)
       setTimeout(hideDropdown, 100);
@@ -308,6 +316,7 @@
 
     if (currentDropdownInput) {
       currentDropdownInput.value = radio.value;
+      validateAndHighlight();
       autoSaveUserLog();
       // Close dropdown after selection since it's radio (single choice)
       setTimeout(hideDropdown, 100);
@@ -343,11 +352,16 @@
         }
       });
 
-      // Handle checkboxes - convert to Yes/No
+      // Handle checkboxes - convert to Yes/No or 0/1 depending on field
       const checkboxes = form.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
         if (checkbox.name && checkbox.name !== 'id' && checkbox.name !== 'date_entered') {
-          data[checkbox.name] = checkbox.checked ? 'Yes' : 'No';
+          // send_to_bot uses 0/1, others use Yes/No
+          if (checkbox.name === 'send_to_bot') {
+            data[checkbox.name] = checkbox.checked ? 1 : 0;
+          } else {
+            data[checkbox.name] = checkbox.checked ? 'Yes' : 'No';
+          }
         }
       });
 
@@ -359,11 +373,58 @@
         .then(res => res.json())
         .then(result => {
           console.log('Auto-saved:', result.message);
+          // Run validation after save
+          validateAndHighlight();
         })
         .catch(err => {
           console.error('Auto-save failed:', err);
         });
     }, 500); // Wait 500ms after user stops typing
+  }
+
+  function validateAndHighlight() {
+    const form = document.getElementById('userlog-edit-form');
+    if (!form) return;
+
+    // Get all form data
+    const getValue = (name) => {
+      const el = form.querySelector(`[name="${name}"]`);
+      if (!el) return '';
+      if (el.type === 'checkbox') return el.checked ? (name === 'send_to_bot' ? 1 : 'Yes') : (name === 'send_to_bot' ? 0 : 'No');
+      return el.value || '';
+    };
+
+    // Check each field and apply red border if invalid
+    const checkField = (fieldName, isInvalid) => {
+      const el = form.querySelector(`[name="${fieldName}"]`);
+      if (el && el.name !== 'id' && el.name !== 'date_entered') {
+        el.style.border = isInvalid ? '2px solid red' : '';
+      }
+    };
+
+    // 1. Birds restricted reason - red if door open/close are empty
+    const doorOpen = getValue('door_open').trim();
+    const doorClosed = getValue('door_closed').trim();
+    const birdsRestricted = getValue('birds_restricted_reason').trim();
+    checkField('birds_restricted_reason', (doorOpen === '' || doorClosed === '') && birdsRestricted === '');
+
+    // 2. Mortality reasons - red if mortality indoor/outdoor have values
+    const mortalityIndoor = parseInt(getValue('mortality_indoor')) || 0;
+    const mortalityOutdoor = parseInt(getValue('mortality_outdoor')) || 0;
+    const mortalityReasons = getValue('mortality_reasons').trim();
+    checkField('mortality_reasons', (mortalityIndoor > 0 || mortalityOutdoor > 0) && mortalityReasons === '');
+
+    // 3. Cull reasons - red if euthanized indoor/outdoor have values
+    const euthanizedIndoor = parseInt(getValue('euthanized_indoor')) || 0;
+    const euthanizedOutdoor = parseInt(getValue('euthanized_outdoor')) || 0;
+    const cullReasons = getValue('cull_reasons').trim();
+    checkField('cull_reasons', (euthanizedIndoor > 0 || euthanizedOutdoor > 0) && cullReasons === '');
+
+    // 4. Always required fields - red if empty
+    checkField('belt_eggs', getValue('belt_eggs').trim() === '');
+    checkField('floor_eggs', getValue('floor_eggs').trim() === '');
+    checkField('weather', getValue('weather').trim() === '');
+    checkField('air_sensory', getValue('air_sensory').trim() === '');
   }
 
   function renderBotLog(bot_log) {

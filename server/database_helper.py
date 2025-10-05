@@ -120,7 +120,35 @@ def setup_db(db_file):
     )''')
 
     conn.commit()
+
+    # Run migrations to add any missing columns
+    migrate_schema(conn)
+
     conn.close()
+
+def migrate_schema(conn):
+    """Add missing columns to existing tables"""
+    cur = conn.cursor()
+
+    # Get current columns in Daily_User_Log
+    cur.execute("PRAGMA table_info(Daily_User_Log)")
+    existing_columns = {row[1] for row in cur.fetchall()}
+
+    # Define expected columns with their types and defaults
+    expected_columns = {
+        'send_to_bot': 'INTEGER DEFAULT 0',
+    }
+
+    # Add missing columns
+    for col_name, col_def in expected_columns.items():
+        if col_name not in existing_columns:
+            try:
+                cur.execute(f"ALTER TABLE Daily_User_Log ADD COLUMN {col_name} {col_def}")
+                print(f"Added column '{col_name}' to Daily_User_Log")
+            except Exception as e:
+                print(f"Error adding column '{col_name}': {e}")
+
+    conn.commit()
 
 
 # ------------------- GENERIC INSERT HELPER -------------------
