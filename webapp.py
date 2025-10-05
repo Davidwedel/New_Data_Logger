@@ -242,6 +242,23 @@ def api_all_data():
 def api_today_data():
     today_str = date.today().isoformat()
     user_log = db.get_daily_user_log(today_str)
+
+    # If no user log exists for today, create one with defaults
+    if not user_log:
+        defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
+        defaults = {}
+        if os.path.exists(defaults_path):
+            with open(defaults_path, "r") as f:
+                defaults = json.load(f)
+
+        # Create new entry with defaults
+        defaults['date_entered'] = datetime.now().isoformat()
+        try:
+            db.insert_daily_user_log(**defaults)
+            user_log = db.get_daily_user_log(today_str)
+        except Exception as e:
+            print(f"Error creating daily user log: {e}")
+
     bot_log = db.get_daily_bot_log(today_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})
 

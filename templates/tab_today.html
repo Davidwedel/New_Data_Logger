@@ -344,8 +344,8 @@
       const form = document.getElementById('userlog-edit-form');
       const data = {};
 
-      // Handle regular inputs
-      const inputs = form.querySelectorAll('input[type="text"], input[type="number"], input[type="time"], input[type="hidden"], textarea');
+      // Handle regular inputs (all non-checkbox inputs)
+      const inputs = form.querySelectorAll('input:not([type="checkbox"]), textarea');
       inputs.forEach(input => {
         if (input.name && input.name !== 'id' && input.name !== 'date_entered') {
           data[input.name] = input.value;
