@@ -9,7 +9,12 @@
     <span id="current-date-display" style="font-weight: bold; margin-left: 10px; font-size: 16px;"></span>
   </div>
 
-  <h3>Daily User Log</h3>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <h3>Daily User Log</h3>
+    <span id="sent-to-unitas-indicator" style="display: none; color: green; font-weight: bold; font-size: 14px;">
+      ✓ Sent to Unitas <span id="sent-timestamp"></span>
+    </span>
+  </div>
   <div id="userlog-container">
     <p>Loading...</p>
   </div>
@@ -56,6 +61,7 @@
         }
         renderUserLog(dateData.user_log);
         renderBotLog(dateData.bot_log);
+        updateSentToUnitasIndicator(dateData.user_log);
       })
       .catch(err => {
         console.error('Error loading date data:', err);
@@ -104,6 +110,28 @@
       nextBtn.disabled = false;
       nextBtn.style.opacity = '1';
       nextBtn.style.cursor = 'pointer';
+    }
+  }
+
+  function updateSentToUnitasIndicator(user_log) {
+    const indicator = document.getElementById('sent-to-unitas-indicator');
+    const timestampSpan = document.getElementById('sent-timestamp');
+
+    if (user_log && user_log.sent_to_unitas_at) {
+      // Parse and format the timestamp
+      const sentDate = new Date(user_log.sent_to_unitas_at);
+      const formattedTime = sentDate.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      timestampSpan.textContent = `(${formattedTime})`;
+      indicator.style.display = 'inline';
+    } else {
+      indicator.style.display = 'none';
     }
   }
 

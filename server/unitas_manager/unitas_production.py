@@ -250,14 +250,16 @@ def fill_production_form(
     helper.fill_input_by_id(driver, "V88-H1", predator_activity)
     helper.fill_input_by_id(driver, "Comment-H1", comment)
 
-def run_unitas_stuff(secrets, db_file):
+def run_unitas_stuff(secrets, db_file, target_date=None):
+    if target_date is None:
+        target_date = (date.today() - timedelta(days=1)).isoformat()
 
     driver = make_driver(HEADLESS)
     try:
         login(driver, secrets)
         open_production_page(driver, FARM_ID, HOUSE_ID)
         get_yesterdays_form(driver, TIMEOUT)
-        trigger_fill_production_form(driver, db_file)
+        trigger_fill_production_form(driver, db_file, target_date)
 
         #scroll back to top
         element = driver.find_element(By.ID, "V33-H1")
@@ -265,6 +267,16 @@ def run_unitas_stuff(secrets, db_file):
 
         print("Worked!")
         runstate.save_data("SHEET_TO_PRODUCTION")
+
+        # Mark as sent to Unitas with timestamp
+        from datetime import datetime
+        user_log = db.get_daily_user_log(db_file, target_date)
+        if user_log:
+            db.update_daily_user_log(db_file, user_log['date_entered'], {
+                'sent_to_unitas_at': datetime.now().isoformat()
+            })
+            print(f"Marked {target_date} as sent to Unitas")
+
         time.sleep(1)
 
     finally:

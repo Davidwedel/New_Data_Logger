@@ -93,6 +93,7 @@ def migrate_schema(conn):
         'send_to_bot': 'INTEGER DEFAULT 0',
         'nutritionist': 'TEXT',
         'ration_used': 'TEXT',
+        'sent_to_unitas_at': 'TIMESTAMP',
     }
 
     # Add missing columns
