@@ -211,6 +211,8 @@
       'birds_restricted_reason',
       'comments',
       'weather',
+      'nutritionist',
+      'ration_used',
       'air_sensory',
       'drinkers_clean',
       'birds_under_slats',
@@ -245,6 +247,8 @@
       'birds_restricted_reason': 'Birds Restricted Reason',
       'comments': 'Comments',
       'weather': 'Weather',
+      'nutritionist': 'Nutritionist',
+      'ration_used': 'Ration Used',
       'air_sensory': 'Air Sensory',
       'ration': 'Ration Delivered',
       'drinkers_clean': 'Drinkers Clean',
@@ -288,6 +292,10 @@
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showAirSensoryDropdown(this)" onblur="hideDropdownDelayed()" onclick="showAirSensoryDropdown(this)">`;
       } else if (key === 'weather') {
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showWeatherDropdown(this)" onblur="hideDropdownDelayed()" onclick="showWeatherDropdown(this)">`;
+      } else if (key === 'nutritionist') {
+        html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showNutritionistDropdown(this)" onblur="hideDropdownDelayed()" onclick="showNutritionistDropdown(this)">`;
+      } else if (key === 'ration_used') {
+        html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showRationUsedDropdown(this)" onblur="hideDropdownDelayed()" onclick="showRationUsedDropdown(this)">`;
       } else if (key === 'send_to_bot' || key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
         const isChecked = (value === 'Yes' || value === 'true' || value === true || value === 1 || value === '1') ? 'checked' : '';
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)" style="width:18px; height:18px;">`;
@@ -391,6 +399,40 @@
     currentDropdownInput = input;
   }
 
+  function showNutritionistDropdown(input) {
+    hideDropdown(); // Close any existing dropdown
+
+    const nutritionistOptions = ['Dr. Bowen', 'Kristjan Bregendahl', 'Ridley', 'Doesnt consult nutritionist'];
+    const currentValue = input.value;
+
+    let html = '<div style="padding:10px;">';
+    nutritionistOptions.forEach(opt => {
+      const checked = currentValue === opt ? 'checked' : '';
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="radio" name="nutritionist_dropdown" value="${opt}" ${checked} onchange="updateNutritionistFromDropdown(this)"> ${opt}</label>`;
+    });
+    html += '</div>';
+
+    showDropdown(html, input);
+    currentDropdownInput = input;
+  }
+
+  function showRationUsedDropdown(input) {
+    hideDropdown(); // Close any existing dropdown
+
+    const rationUsedOptions = ['Cocc', 'E. coli', 'Fowl Cholera', 'FP-PP-AE', 'IBD', 'IBV', 'IBV/NDV/SE', 'LT', 'Mareks', 'Mareks-LT', 'NDV', 'Spotty Liver', 'ST', 'Phase 1-19', 'Phase 1-20', 'Phase 1-21', 'Phase 1-22', 'Phase 1-23', 'Phase 1-24', 'Phase 1-25', 'Phase 1-26', 'Phase 1-27', 'Phase 1-28', 'Phase 2-20', 'Phase 2-21', 'Phase 2-22', 'Phase 2-23', 'Phase 2-24', 'Phase 2-25', 'Phase 2-26', 'Phase 2-27', 'Phase 2-28', 'Phase 2-29', 'Phase 2-30', 'Phase 3-21', 'Phase 3-22', 'Phase 3-23', 'Phase 3-24', 'Phase 3-25', 'Phase 3-26', 'Phase 3-27', 'Phase 3-28', 'Phase 3-29', 'Phase 3-30', 'Phase 3-31', 'Phase 4-21', 'Phase 4-22', 'Phase 4-23', 'Phase 4-24', 'Phase 4-25', 'Phase 4-26', 'Phase 4-27', 'Phase 4-28', 'Phase 4-29', 'Phase 4-30', 'Phase 4-31', 'Phase 5-21', 'Phase 5-22', 'Phase 5-23', 'Phase 5-24', 'Phase 5-25', 'Phase 5-26', 'Phase 5-27', 'Phase 5-28', 'Phase 5-29', 'Phase 5-30', 'Phase 5-31', 'Phase 6-21', 'Phase 6-22', 'Phase 6-23', 'Phase 6-24', 'Phase 6-25', 'Phase 6-26', 'Phase 6-27', 'Phase 6-28', 'Phase 6-29', 'Phase 6-30', 'Phase 6-31', 'Developer', 'PreLay', 'Phase 2 Lay 21', 'Phase 2 Lay 22', 'Phase 2 Lay 23', 'Phase 2 Lay 24', 'Phase 2 Lay 25', 'Phase 2 Lay 26', 'Phase 2 Lay 27', 'Phase 2 Lay 28', 'Phase 2 Lay 29', 'Phase 2 Lay 30', 'Phase 3 Lay 21', 'Phase 3 Lay 22', 'Phase 3 Lay 23', 'Phase 3 Lay 24', 'Phase 3 Lay 25', 'Phase 3 Lay 26', 'Phase 3 Lay 27', 'Phase 3 Lay 28', 'Phase 3 Lay 29', 'Phase 3 Lay 30', 'Phase 4 Lay 21', 'Phase 4 Lay 22', 'Phase 4 Lay 23', 'Phase 4 Lay 24', 'Phase 4 Lay 25', 'Phase 4 Lay 26', 'Phase 4 Lay 27', 'Phase 4 Lay 28', 'Phase 4 Lay 29', 'Phase 4 Lay 30', 'Phase 5 Lay 30', 'Peak 1', 'Peak 2', 'Peak 3', 'Peak Lay 19', 'Peak Lay 20', 'Peak Lay 21', 'Peak Lay 22', 'Peak Lay 23', 'Peak Lay 24', 'Peak Lay 25', 'Peak Lay 26', 'Peak Lay 27', 'Peak Lay 28', 'Peak Lay 29', 'Peak Lay 30', 'PreLay', 'Pullet Grower', 'Pullet Starter 1', 'Pullet Starter 2'];
+    const currentValue = input.value;
+
+    let html = '<div style="padding:10px; max-height:400px; overflow-y:auto;">';
+    rationUsedOptions.forEach(opt => {
+      const checked = currentValue === opt ? 'checked' : '';
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="radio" name="ration_used_dropdown" value="${opt}" ${checked} onchange="updateRationUsedFromDropdown(this)"> ${opt}</label>`;
+    });
+    html += '</div>';
+
+    showDropdown(html, input);
+    currentDropdownInput = input;
+  }
+
   function showDropdown(content, inputElement) {
     // Create dropdown positioned relative to the input but outside the scroll container
     const dropdown = document.createElement('div');
@@ -465,6 +507,34 @@
   }
 
   function updateWeatherFromDropdown(radio) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+
+    if (currentDropdownInput) {
+      currentDropdownInput.value = radio.value;
+      validateAndHighlight();
+      autoSaveUserLog();
+      // Close dropdown after selection since it's radio (single choice)
+      setTimeout(hideDropdown, 100);
+    }
+  }
+
+  function updateNutritionistFromDropdown(radio) {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+    }
+
+    if (currentDropdownInput) {
+      currentDropdownInput.value = radio.value;
+      validateAndHighlight();
+      autoSaveUserLog();
+      // Close dropdown after selection since it's radio (single choice)
+      setTimeout(hideDropdown, 100);
+    }
+  }
+
+  function updateRationUsedFromDropdown(radio) {
     if (hideTimeout) {
       clearTimeout(hideTimeout);
     }
@@ -589,6 +659,8 @@
     checkField('floor_eggs', getValue('floor_eggs').trim() === '');
     checkField('weather', getValue('weather').trim() === '');
     checkField('air_sensory', getValue('air_sensory').trim() === '');
+    checkField('nutritionist', getValue('nutritionist').trim() === '');
+    checkField('ration_used', getValue('ration_used').trim() === '');
   }
 
   function renderBotLog(bot_log) {

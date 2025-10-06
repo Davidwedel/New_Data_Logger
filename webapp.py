@@ -317,7 +317,7 @@ def check_send_to_bot():
         return jsonify({"error": "No date provided"}), 400
 
     user_log = db.get_daily_user_log(DB_FILE, date_str)
-    send_to_bot = user_log and (user_log.get('send_to_bot') == 1 or user_log.get('send_to_bot') == '1' or user_log.get('send_to_bot') == true)
+    send_to_bot = user_log and (user_log.get('send_to_bot') == 1 or user_log.get('send_to_bot') == '1' or user_log.get('send_to_bot') == True)
 
     return jsonify({
         "date": date_str,
@@ -356,7 +356,7 @@ def find_editable_date():
         user_log = db.get_daily_user_log(DB_FILE, check_date_str)
 
         # If no log exists or send_to_bot is not checked, this date is editable
-        if not user_log or not (user_log.get('send_to_bot') == 1 or user_log.get('send_to_bot') == '1' or user_log.get('send_to_bot') == true):
+        if not user_log or not (user_log.get('send_to_bot') == 1 or user_log.get('send_to_bot') == '1' or user_log.get('send_to_bot') == True):
             return jsonify({
                 "found": True,
                 "date": check_date_str
@@ -421,6 +421,18 @@ def api_date_data():
                     print("DEBUG: No station ID configured")
             else:
                 print("DEBUG: No settings.json file found")
+
+            # Auto-fill nutritionist and ration_used from yesterday
+            from datetime import timedelta
+            yesterday = (date.today() - timedelta(days=1)).isoformat()
+            yesterday_log = db.get_daily_user_log(DB_FILE, yesterday)
+            if yesterday_log:
+                if yesterday_log.get('nutritionist'):
+                    defaults['nutritionist'] = yesterday_log.get('nutritionist')
+                    print(f"DEBUG: Auto-filled nutritionist from yesterday: {defaults['nutritionist']}")
+                if yesterday_log.get('ration_used'):
+                    defaults['ration_used'] = yesterday_log.get('ration_used')
+                    print(f"DEBUG: Auto-filled ration_used from yesterday: {defaults['ration_used']}")
 
         # Create new entry with defaults
         defaults['date_entered'] = datetime.now().isoformat()
@@ -493,6 +505,18 @@ def api_today_data():
                 print("DEBUG: No station ID configured")
         else:
             print("DEBUG: No settings.json file found")
+
+        # Auto-fill nutritionist and ration_used from yesterday
+        from datetime import timedelta
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        yesterday_log = db.get_daily_user_log(DB_FILE, yesterday)
+        if yesterday_log:
+            if yesterday_log.get('nutritionist'):
+                defaults['nutritionist'] = yesterday_log.get('nutritionist')
+                print(f"DEBUG: Auto-filled nutritionist from yesterday: {defaults['nutritionist']}")
+            if yesterday_log.get('ration_used'):
+                defaults['ration_used'] = yesterday_log.get('ration_used')
+                print(f"DEBUG: Auto-filled ration_used from yesterday: {defaults['ration_used']}")
 
         # Create new entry with defaults
         defaults['date_entered'] = datetime.now().isoformat()

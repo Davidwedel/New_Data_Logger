@@ -91,6 +91,8 @@ def migrate_schema(conn):
     # Define expected columns with their types and defaults
     expected_columns = {
         'send_to_bot': 'INTEGER DEFAULT 0',
+        'nutritionist': 'TEXT',
+        'ration_used': 'TEXT',
     }
 
     # Add missing columns
