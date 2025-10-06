@@ -87,10 +87,10 @@ def fetch_nws_weather(station_id):
 @app.route("/")   # homepage route
 def index():
     today_str = date.today().isoformat()
-    user_log = db.get_daily_user_log(today_str)
-    bot_log = db.get_daily_bot_log(today_str)
-    user_logs = db.get_all_user_logs()
-    bot_logs = db.get_all_bot_logs()
+    user_log = db.get_daily_user_log(DB_FILE, today_str)
+    bot_log = db.get_daily_bot_log(DB_FILE, today_str)
+    user_logs = db.get_all_user_logs(DB_FILE)
+    bot_logs = db.get_all_bot_logs(DB_FILE)
     return render_template("index.html", user_log=user_log, bot_log=bot_log, user_logs=user_logs, bot_logs=bot_logs)
 
 @app.route("/add_pallet", methods=["POST"])
@@ -104,7 +104,7 @@ def add_pallet():
     flock_age = 22.5
     yolk_color = data.get("yolk_color")
 
-    db.insert_pallet_log(thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
+    db.insert_pallet_log(DB_FILE, thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
 
     return jsonify({"status": "ok", "message": "Pallet saved!"})
 
@@ -146,6 +146,7 @@ def add_daily_userlog():
     door_closed = data.get("door_closed")
 
     db.insert_daily_user_log(
+        DB_FILE,
         date_entered=date_entered,
         belt_eggs=belt_eggs,
         floor_eggs=floor_eggs,
@@ -268,20 +269,20 @@ def update_user_log():
     data = request.json
     today_str = date.today().isoformat()
     # Get the current record to find the rowid or unique key
-    user_log = db.get_daily_user_log(today_str)
+    user_log = db.get_daily_user_log(DB_FILE, today_str)
 
     try:
         if not user_log:
             # No log exists, create a new one
             data['date_entered'] = datetime.now().isoformat()
-            db.insert_daily_user_log(**data)
+            db.insert_daily_user_log(DB_FILE, **data)
             return jsonify({"status": "ok", "message": "User log created."})
         else:
             # Update existing log
             date_entered = user_log.get("date_entered")
             if not date_entered:
                 return jsonify({"status": "error", "message": "No date_entered in user log."}), 400
-            db.update_daily_user_log(date_entered, data)
+            db.update_daily_user_log(DB_FILE, date_entered, data)
             return jsonify({"status": "ok", "message": "User log updated."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -291,7 +292,7 @@ def update_user_log():
 def update_bot_log():
     data = request.json
     today_str = date.today().isoformat()
-    bot_log = db.get_daily_bot_log(today_str)
+    bot_log = db.get_daily_bot_log(DB_FILE, today_str)
     if not bot_log:
         return jsonify({"status": "error", "message": "No bot log for today."}), 404
     # Use date or unique key for update
@@ -299,7 +300,7 @@ def update_bot_log():
     if not date_key:
         return jsonify({"status": "error", "message": "No date in bot log."}), 400
     try:
-        db.update_daily_bot_log(date_key, data)
+        db.update_daily_bot_log(DB_FILE, date_key, data)
         return jsonify({"status": "ok", "message": "Bot log updated."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -307,22 +308,22 @@ def update_bot_log():
 @app.route("/all_data")
 def all_data():
     # Fetch all user and bot logs
-    user_logs = db.get_all_user_logs()
-    bot_logs = db.get_all_bot_logs()
+    user_logs = db.get_all_user_logs(DB_FILE)
+    bot_logs = db.get_all_bot_logs(DB_FILE)
     return render_template("all_data.html", user_logs=user_logs, bot_logs=bot_logs)
 
 # API endpoint to fetch all user and bot logs as JSON for History tab
 @app.route("/api/all_data")
 def api_all_data():
-    user_logs = db.get_all_user_logs()
-    bot_logs = db.get_all_bot_logs()
+    user_logs = db.get_all_user_logs(DB_FILE)
+    bot_logs = db.get_all_bot_logs(DB_FILE)
     return jsonify({"user_logs": user_logs, "bot_logs": bot_logs})
 
 # API endpoint to fetch today's data
 @app.route("/api/today_data")
 def api_today_data():
     today_str = date.today().isoformat()
-    user_log = db.get_daily_user_log(today_str)
+    user_log = db.get_daily_user_log(DB_FILE, today_str)
     settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
     # If no user log exists for today, create one with defaults
@@ -360,8 +361,8 @@ def api_today_data():
         defaults['date_entered'] = datetime.now().isoformat()
         print(f"DEBUG: Creating user log with data: {defaults}")
         try:
-            db.insert_daily_user_log(**defaults)
-            user_log = db.get_daily_user_log(today_str)
+            db.insert_daily_user_log(DB_FILE, **defaults)
+            user_log = db.get_daily_user_log(DB_FILE, today_str)
             print(f"DEBUG: Created user log: {user_log}")
         except Exception as e:
             print(f"DEBUG: Error creating daily user log: {e}")
@@ -382,12 +383,12 @@ def api_today_data():
                     if weather:
                         print(f"DEBUG: Got weather: {weather}, updating user log")
                         # Update the weather field
-                        db.update_daily_user_log(user_log['date_entered'], {'weather': weather})
+                        db.update_daily_user_log(DB_FILE, user_log['date_entered'], {'weather': weather})
                         user_log['weather'] = weather
                     else:
                         print("DEBUG: Weather fetch returned None")
 
-    bot_log = db.get_daily_bot_log(today_str)
+    bot_log = db.get_daily_bot_log(DB_FILE, today_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})
 
 if __name__ == "__main__":

@@ -34,15 +34,15 @@ def do_unitas_setup(secrets):
 
     helper.set_timeout(TIMEOUT)
 
-def trigger_fill_production_form(driver, target_date=None):
+def trigger_fill_production_form(driver, db_file, target_date=None):
     """
     Fetches data from Daily_User_Log and Daily_Bot_Log for the given date (default: yesterday),
     merges them, and calls fill_production_form with named arguments.
     """
     if target_date is None:
         target_date = (date.today() - timedelta(days=1)).isoformat()
-    user_data = db.get_daily_user_log(target_date) or {}
-    bot_data = db.get_daily_bot_log(target_date) or {}
+    user_data = db.get_daily_user_log(db_file, target_date) or {}
+    bot_data = db.get_daily_bot_log(db_file, target_date) or {}
 
     # Merge, user_data takes precedence if overlap
     merged = {**bot_data, **user_data}
@@ -250,14 +250,14 @@ def fill_production_form(
     helper.fill_input_by_id(driver, "V88-H1", predator_activity)
     helper.fill_input_by_id(driver, "Comment-H1", comment)
 
-def run_unitas_stuff(secrets):
+def run_unitas_stuff(secrets, db_file):
 
     driver = make_driver(HEADLESS)
     try:
         login(driver, secrets)
         open_production_page(driver, FARM_ID, HOUSE_ID)
         get_yesterdays_form(driver, TIMEOUT)
-        trigger_fill_production_form(driver)
+        trigger_fill_production_form(driver, db_file)
 
         #scroll back to top
         element = driver.find_element(By.ID, "V33-H1")

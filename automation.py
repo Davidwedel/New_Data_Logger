@@ -71,7 +71,7 @@ coolerlog.do_coolerlog_setup(secrets)
 # ─── Main Execution ───
 if args.LogToDatabase:
     logger.info("Running one-shot: XML → Database")
-    valuesFromXML = log_from_xml()
+    valuesFromXML = log_from_xml(DB_FILE)
     print(valuesFromXML)
     runstate.save_data("XML_TO_DB")
 
@@ -85,15 +85,15 @@ elif args.CoolerLogToUnitas:
 
 elif args.LogToUnitas:
     logger.info("Running one-shot: Database → Unitas")
-    unitas.run_unitas_stuff(secrets)
+    unitas.run_unitas_stuff(secrets, DB_FILE)
 
 else:
     logger.info("Running in Forever Mode (continuous automation)")
 
     # ─── Scheduling ───
     schedule.every().day.at("00:00:00").do(jobs.reset_flags)  # Reset daily
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args)  # XML → DB
-    schedule.every(10).seconds.do(jobs.check_and_run_unitas, secrets)  # Poll for Unitas upload
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
+    schedule.every(10).seconds.do(jobs.check_and_run_unitas, secrets, DB_FILE)  # Poll for Unitas upload
 
     # Schedule coolerlog if enabled
     if LOG_COOLER_TO_UNITAS:

@@ -5,7 +5,7 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
-from database_helper import insert_daily_bot_log as log_to_db
+import database_helper
 from helpers import get_bird_age
 
 # Shared variables for all functions
@@ -279,7 +279,7 @@ def do_xml_setup(secrets):
     getCoolerTempPM = secrets["get_cooler_temp_PM"]
     coolerTempTimeTolerance = secrets["cooler_temp_time_tolerance"]
     time_zone = secrets["time_zone"]
-def run_xml_stuff():
+def run_xml_stuff(db_file=None):
     databack = []
     #start figuring various things we need to know
 
@@ -336,7 +336,8 @@ def run_xml_stuff():
 
     # null values may be added at a later date.
 
-    log_to_db(
+    database_helper.insert_daily_bot_log(
+        db_file,
         date=(date.today() - timedelta(days=1)).isoformat(),
         bird_age=get_bird_age(),  # set if available
         feed_consumption=feedConsumption,

@@ -1,54 +1,8 @@
-# Fetch all user logs
-def get_all_user_logs():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM Daily_User_Log ORDER BY date_entered DESC")
-    rows = cur.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-
-# Fetch all bot logs
-def get_all_bot_logs():
-    conn = sqlite3.connect(DB_FILE)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM Daily_Bot_Log ORDER BY date DESC")
-    rows = cur.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
-# ------------------- UPDATE FUNCTIONS -------------------
-def update_daily_user_log(date_entered, data):
-    if not data:
-        raise ValueError("No data provided to update.")
-    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
-    sql = f"UPDATE Daily_User_Log SET {set_clause} WHERE date_entered = ?"
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-    cur.execute(sql, tuple(data.values()) + (date_entered,))
-    conn.commit()
-    conn.close()
-
-def update_daily_bot_log(date, data):
-    if not data:
-        raise ValueError("No data provided to update.")
-    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
-    sql = f"UPDATE Daily_Bot_Log SET {set_clause} WHERE date = ?"
-    conn = sqlite3.connect(DB_FILE)
-    cur = conn.cursor()
-    cur.execute(sql, tuple(data.values()) + (date,))
-    conn.commit()
-    conn.close()
 import sqlite3
-
-# ------------------- GLOBAL DB FILE -------------------
-DB_FILE = None
 
 # ------------------- DATABASE SETUP -------------------
 def setup_db(db_file):
-    global DB_FILE
-    DB_FILE = db_file
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(db_file)
     curr = conn.cursor()
 
     # Data_Log table
@@ -152,13 +106,13 @@ def migrate_schema(conn):
 
 
 # ------------------- GENERIC INSERT HELPER -------------------
-def _insert_into_table(table, data_dict):
+def _insert_into_table(db_file, table, data_dict):
     if not data_dict:
         raise ValueError("No data provided to insert.")
     cols = ", ".join(data_dict.keys())
     placeholders = ", ".join("?" for _ in data_dict)
     sql = f"INSERT INTO {table} ({cols}) VALUES ({placeholders})"
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(db_file)
     cur = conn.cursor()
     cur.execute(sql, tuple(data_dict.values()))
     conn.commit()
@@ -170,6 +124,7 @@ def _insert_into_table(table, data_dict):
 # ------------------- INSERT FUNCTIONS -------------------
 
 def insert_daily_bot_log(
+    db_file,
     date=None,
     bird_age=None,
     feed_consumption=None,
@@ -189,11 +144,12 @@ def insert_daily_bot_log(
     cooler_time_pm=None,
     cooler_temp_pm=None,
 ):
-    payload = {k: v for k, v in locals().items() if v is not None}
-    return _insert_into_table("Daily_Bot_Log", payload)
+    payload = {k: v for k, v in locals().items() if v is not None and k != 'db_file'}
+    return _insert_into_table(db_file, "Daily_Bot_Log", payload)
 
 
 def insert_pallet_log(
+    db_file,
     thedate=None,
     pallet_id=None,
     house_id=None,
@@ -202,11 +158,12 @@ def insert_pallet_log(
     flock_age=None,
     yolk_color=None,
 ):
-    payload = {k: v for k, v in locals().items() if v is not None}
-    return _insert_into_table("Pallet_Log", payload)
+    payload = {k: v for k, v in locals().items() if v is not None and k != 'db_file'}
+    return _insert_into_table(db_file, "Pallet_Log", payload)
 
 
 def insert_daily_user_log(
+    db_file,
     date_entered=None,
     belt_eggs=None,
     floor_eggs=None,
@@ -236,14 +193,14 @@ def insert_daily_user_log(
     door_open=None,
     door_closed=None,
 ):
-    payload = {k: v for k, v in locals().items() if v is not None}
-    return _insert_into_table("Daily_User_Log", payload)
+    payload = {k: v for k, v in locals().items() if v is not None and k != 'db_file'}
+    return _insert_into_table(db_file, "Daily_User_Log", payload)
 
 
-# Fetch latest record from Daily_User_Log
+# ------------------- FETCH FUNCTIONS -------------------
 
-def get_daily_user_log(date_str=None):
-    conn = sqlite3.connect(DB_FILE)
+def get_daily_user_log(db_file, date_str=None):
+    conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     if date_str:
@@ -254,10 +211,8 @@ def get_daily_user_log(date_str=None):
     conn.close()
     return dict(row) if row else None
 
-# Fetch latest record from Daily_Bot_Log
-
-def get_daily_bot_log(date_str=None):
-    conn = sqlite3.connect(DB_FILE)
+def get_daily_bot_log(db_file, date_str=None):
+    conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     if date_str:
@@ -267,3 +222,44 @@ def get_daily_bot_log(date_str=None):
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
+
+def get_all_user_logs(db_file):
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Daily_User_Log ORDER BY date_entered DESC")
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+def get_all_bot_logs(db_file):
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Daily_Bot_Log ORDER BY date DESC")
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+# ------------------- UPDATE FUNCTIONS -------------------
+def update_daily_user_log(db_file, date_entered, data):
+    if not data:
+        raise ValueError("No data provided to update.")
+    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
+    sql = f"UPDATE Daily_User_Log SET {set_clause} WHERE date_entered = ?"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(data.values()) + (date_entered,))
+    conn.commit()
+    conn.close()
+
+def update_daily_bot_log(db_file, date, data):
+    if not data:
+        raise ValueError("No data provided to update.")
+    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
+    sql = f"UPDATE Daily_Bot_Log SET {set_clause} WHERE date = ?"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(data.values()) + (date,))
+    conn.commit()
+    conn.close()

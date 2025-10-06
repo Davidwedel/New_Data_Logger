@@ -10,26 +10,26 @@ def reset_flags():
     sheet_to_unitas_ran = False
     print("[Reset] Flags reset at midnight")
 
-def xml_to_sheet_job(args):
+def xml_to_sheet_job(args, db_file):
     """Run XML → Sheets logging once per day."""
     have_we_ran = runstate.load_data("XML_TO_DB")
     if not have_we_ran:
         if not args.LogToUnitas:
-            valuesFromXML = log_from_xml()
+            valuesFromXML = log_from_xml(db_file)
             print(valuesFromXML)
             runstate.save_data("XML_TO_DB")
             if not args.NoDelete:
                 deleteOldFiles()
             print("[XML] Logged XML → DB")
 
-def check_and_run_unitas(secrets):
+def check_and_run_unitas(secrets, db_file):
     """Poll spreadsheet and run Unitas if checkbox is TRUE."""
     global xml_to_sheet_ran, sheet_to_unitas_ran
     if xml_to_sheet_ran and not sheet_to_unitas_ran and not args.LogToSheet:
         do_unitas_stuff = read_from_sheet(checkbox_cell)
         bool_value = do_unitas_stuff[0][0].upper() == 'TRUE'
         if bool_value:
-            unitas.run_unitas_stuff(secrets)
+            unitas.run_unitas_stuff(secrets, db_file)
             print("[Unitas] Logged DB → Unitas")
 
 
