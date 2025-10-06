@@ -4,7 +4,7 @@
   <!-- Date Navigation -->
   <div id="date-navigation" style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
     <button id="prev-day-btn" onclick="navigateDay(-1)" style="padding: 8px 15px; font-size: 14px; cursor: pointer;">← Previous Day</button>
-    <input type="date" id="date-picker" onchange="loadDateData(this.value, true)" style="padding: 8px; font-size: 14px; cursor: pointer;">
+    <input type="date" id="date-picker" onchange="loadDateData(this.value)" style="padding: 8px; font-size: 14px; cursor: pointer;">
     <button id="next-day-btn" onclick="navigateDay(1)" style="padding: 8px 15px; font-size: 14px; cursor: pointer;">Next Day →</button>
     <span id="current-date-display" style="font-weight: bold; margin-left: 10px; font-size: 16px;"></span>
   </div>
@@ -37,51 +37,7 @@
     loadDateData(today);
   }
 
-  function loadDateData(dateStr, skipIfLocked = false) {
-    // If skipIfLocked is true, check if this date is locked first
-    if (skipIfLocked) {
-      fetch(`/api/check_send_to_bot?date=${dateStr}`)
-        .then(res => res.json())
-        .then(result => {
-          if (result.send_to_bot) {
-            // This date is locked, find the nearest editable date
-            fetch(`/api/find_editable_date?start_date=${dateStr}&direction=prev`)
-              .then(res => res.json())
-              .then(prevResult => {
-                if (prevResult.found) {
-                  // Load the previous editable date instead
-                  document.getElementById('date-picker').value = prevResult.date;
-                  loadDateData(prevResult.date, false);
-                } else {
-                  // Try next direction
-                  fetch(`/api/find_editable_date?start_date=${dateStr}&direction=next`)
-                    .then(res => res.json())
-                    .then(nextResult => {
-                      if (nextResult.found) {
-                        document.getElementById('date-picker').value = nextResult.date;
-                        loadDateData(nextResult.date, false);
-                      } else {
-                        alert('No editable dates available.');
-                      }
-                    });
-                }
-              });
-            return;
-          } else {
-            // Not locked, continue with normal load
-            loadDateDataInternal(dateStr);
-          }
-        })
-        .catch(err => {
-          console.error('Error checking send_to_bot:', err);
-          loadDateDataInternal(dateStr);
-        });
-    } else {
-      loadDateDataInternal(dateStr);
-    }
-  }
-
-  function loadDateDataInternal(dateStr) {
+  function loadDateData(dateStr) {
     currentSelectedDate = dateStr;
 
     // Update display
@@ -109,22 +65,16 @@
   }
 
   function navigateDay(offset) {
-    const direction = offset < 0 ? 'prev' : 'next';
+    const currentDate = new Date(currentSelectedDate);
+    currentDate.setDate(currentDate.getDate() + offset);
+    const newDateStr = currentDate.toISOString().split('T')[0];
 
-    // Find the next editable date in the given direction
-    fetch(`/api/find_editable_date?start_date=${currentSelectedDate}&direction=${direction}`)
-      .then(res => res.json())
-      .then(result => {
-        if (result.found) {
-          document.getElementById('date-picker').value = result.date;
-          loadDateData(result.date);
-        } else {
-          console.log(`No editable date found in ${direction} direction`);
-        }
-      })
-      .catch(err => {
-        console.error('Error finding editable date:', err);
-      });
+    // Don't go beyond today
+    const today = new Date().toISOString().split('T')[0];
+    if (newDateStr > today) return;
+
+    document.getElementById('date-picker').value = newDateStr;
+    loadDateData(newDateStr);
   }
 
   function updateDateDisplay(dateStr) {
@@ -142,50 +92,19 @@
   }
 
   function updateNavigationButtons() {
-    const prevBtn = document.getElementById('prev-day-btn');
+    const today = new Date().toISOString().split('T')[0];
     const nextBtn = document.getElementById('next-day-btn');
-    const datePicker = document.getElementById('date-picker');
 
-    // Check if there are editable dates in each direction
-    Promise.all([
-      fetch(`/api/find_editable_date?start_date=${currentSelectedDate}&direction=prev`).then(res => res.json()),
-      fetch(`/api/find_editable_date?start_date=${currentSelectedDate}&direction=next`).then(res => res.json())
-    ]).then(([prevResult, nextResult]) => {
-      // Update prev button
-      if (prevResult.found) {
-        prevBtn.disabled = false;
-        prevBtn.style.opacity = '1';
-        prevBtn.style.cursor = 'pointer';
-      } else {
-        prevBtn.disabled = true;
-        prevBtn.style.opacity = '0.5';
-        prevBtn.style.cursor = 'not-allowed';
-      }
-
-      // Update next button
-      if (nextResult.found) {
-        nextBtn.disabled = false;
-        nextBtn.style.opacity = '1';
-        nextBtn.style.cursor = 'pointer';
-      } else {
-        nextBtn.disabled = true;
-        nextBtn.style.opacity = '0.5';
-        nextBtn.style.cursor = 'not-allowed';
-      }
-
-      // Disable date picker if no dates available in either direction
-      if (!prevResult.found && !nextResult.found) {
-        datePicker.disabled = true;
-        datePicker.style.opacity = '0.5';
-        datePicker.style.cursor = 'not-allowed';
-      } else {
-        datePicker.disabled = false;
-        datePicker.style.opacity = '1';
-        datePicker.style.cursor = 'pointer';
-      }
-    }).catch(err => {
-      console.error('Error updating navigation buttons:', err);
-    });
+    // Disable next button if we're on today
+    if (currentSelectedDate === today) {
+      nextBtn.disabled = true;
+      nextBtn.style.opacity = '0.5';
+      nextBtn.style.cursor = 'not-allowed';
+    } else {
+      nextBtn.disabled = false;
+      nextBtn.style.opacity = '1';
+      nextBtn.style.cursor = 'pointer';
+    }
   }
 
   function renderUserLog(user_log) {
@@ -555,14 +474,6 @@
     // The checkbox doesn't have a "value" attribute in the traditional sense for form data
     // So we'll need to handle it in the autoSaveUserLog function
     autoSaveUserLog();
-
-    // If this is the send_to_bot checkbox, update navigation buttons
-    if (checkbox.name === 'send_to_bot') {
-      // Wait a bit for the save to complete, then update buttons
-      setTimeout(() => {
-        updateNavigationButtons();
-      }, 600);
-    }
   }
 
   let saveTimeout = null;
