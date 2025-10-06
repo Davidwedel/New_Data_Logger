@@ -263,27 +263,28 @@ def set_flag():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# Endpoint to update today's user log
+# Endpoint to update user log for a specific date
 @app.route("/update_user_log", methods=["POST"])
 def update_user_log():
     data = request.json
-    today_str = date.today().isoformat()
+    # Get date from query parameter, default to today
+    date_str = request.args.get('date', date.today().isoformat())
     # Get the current record to find the rowid or unique key
-    user_log = db.get_daily_user_log(DB_FILE, today_str)
+    user_log = db.get_daily_user_log(DB_FILE, date_str)
 
     try:
         if not user_log:
             # No log exists, create a new one
             data['date_entered'] = datetime.now().isoformat()
             db.insert_daily_user_log(DB_FILE, **data)
-            return jsonify({"status": "ok", "message": "User log created."})
+            return jsonify({"status": "ok", "message": f"User log created for {date_str}."})
         else:
             # Update existing log
             date_entered = user_log.get("date_entered")
             if not date_entered:
                 return jsonify({"status": "error", "message": "No date_entered in user log."}), 400
             db.update_daily_user_log(DB_FILE, date_entered, data)
-            return jsonify({"status": "ok", "message": "User log updated."})
+            return jsonify({"status": "ok", "message": f"User log updated for {date_str}."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -305,6 +306,68 @@ def update_bot_log():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+# API endpoint to check send_to_bot status for a date range
+@app.route("/api/check_send_to_bot")
+def check_send_to_bot():
+    """Check if dates have send_to_bot flag set"""
+    date_str = request.args.get('date')
+    direction = request.args.get('direction', 'current')  # 'current', 'prev', 'next'
+
+    if not date_str:
+        return jsonify({"error": "No date provided"}), 400
+
+    user_log = db.get_daily_user_log(DB_FILE, date_str)
+    send_to_bot = user_log and (user_log.get('send_to_bot') == 1 or user_log.get('send_to_bot') == '1' or user_log.get('send_to_bot') == true)
+
+    return jsonify({
+        "date": date_str,
+        "send_to_bot": send_to_bot
+    })
+
+# API endpoint to find next available editable date
+@app.route("/api/find_editable_date")
+def find_editable_date():
+    """Find the next date in the given direction that doesn't have send_to_bot checked"""
+    start_date_str = request.args.get('start_date')
+    direction = request.args.get('direction', 'prev')  # 'prev' or 'next'
+    max_days = int(request.args.get('max_days', 365))  # Maximum days to search
+
+    if not start_date_str:
+        return jsonify({"error": "No start_date provided"}), 400
+
+    from datetime import datetime, timedelta
+    start_date = datetime.fromisoformat(start_date_str).date()
+    today = date.today()
+    offset = -1 if direction == 'prev' else 1
+
+    # Search for an editable date
+    for i in range(1, max_days + 1):
+        check_date = start_date + timedelta(days=offset * i)
+
+        # Don't go beyond today
+        if check_date > today:
+            break
+
+        # Don't go too far back
+        if check_date.year < 2020:
+            break
+
+        check_date_str = check_date.isoformat()
+        user_log = db.get_daily_user_log(DB_FILE, check_date_str)
+
+        # If no log exists or send_to_bot is not checked, this date is editable
+        if not user_log or not (user_log.get('send_to_bot') == 1 or user_log.get('send_to_bot') == '1' or user_log.get('send_to_bot') == true):
+            return jsonify({
+                "found": True,
+                "date": check_date_str
+            })
+
+    # No editable date found
+    return jsonify({
+        "found": False,
+        "date": None
+    })
+
 @app.route("/all_data")
 def all_data():
     # Fetch all user and bot logs
@@ -319,7 +382,81 @@ def api_all_data():
     bot_logs = db.get_all_bot_logs(DB_FILE)
     return jsonify({"user_logs": user_logs, "bot_logs": bot_logs})
 
-# API endpoint to fetch today's data
+# API endpoint to fetch data for a specific date
+@app.route("/api/date_data")
+def api_date_data():
+    # Get date from query parameter, default to today
+    date_str = request.args.get('date', date.today().isoformat())
+    user_log = db.get_daily_user_log(DB_FILE, date_str)
+    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
+
+    # If no user log exists for this date, create one with defaults
+    if not user_log:
+        print(f"DEBUG: No user log found for {date_str}, creating new one")
+        defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
+        defaults = {}
+
+        # Load defaults
+        if os.path.exists(defaults_path):
+            with open(defaults_path, "r") as f:
+                defaults = json.load(f)
+            print(f"DEBUG: Loaded defaults: {defaults}")
+
+        # Auto-fetch weather if station is configured (only for today)
+        if date_str == date.today().isoformat():
+            if os.path.exists(settings_path):
+                with open(settings_path, "r") as f:
+                    settings = json.load(f)
+                print(f"DEBUG: Loaded settings: {settings}")
+                station_id = settings.get("nws_station_id")
+                if station_id:
+                    print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
+                    weather = fetch_nws_weather(station_id)
+                    if weather:
+                        print(f"DEBUG: Got weather: {weather}")
+                        defaults['weather'] = weather
+                    else:
+                        print("DEBUG: Weather fetch returned None")
+                else:
+                    print("DEBUG: No station ID configured")
+            else:
+                print("DEBUG: No settings.json file found")
+
+        # Create new entry with defaults
+        defaults['date_entered'] = datetime.now().isoformat()
+        print(f"DEBUG: Creating user log with data: {defaults}")
+        try:
+            db.insert_daily_user_log(DB_FILE, **defaults)
+            user_log = db.get_daily_user_log(DB_FILE, date_str)
+            print(f"DEBUG: Created user log: {user_log}")
+        except Exception as e:
+            print(f"DEBUG: Error creating daily user log: {e}")
+            import traceback
+            traceback.print_exc()
+    else:
+        print(f"DEBUG: Found existing user log for {date_str}: {user_log}")
+        # If weather is blank and this is today, try to auto-fetch it
+        if date_str == date.today().isoformat() and (not user_log.get('weather') or user_log.get('weather').strip() == ''):
+            print("DEBUG: Weather is blank, attempting to fetch")
+            if os.path.exists(settings_path):
+                with open(settings_path, "r") as f:
+                    settings = json.load(f)
+                station_id = settings.get("nws_station_id")
+                if station_id:
+                    print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
+                    weather = fetch_nws_weather(station_id)
+                    if weather:
+                        print(f"DEBUG: Got weather: {weather}, updating user log")
+                        # Update the weather field
+                        db.update_daily_user_log(DB_FILE, user_log['date_entered'], {'weather': weather})
+                        user_log['weather'] = weather
+                    else:
+                        print("DEBUG: Weather fetch returned None")
+
+    bot_log = db.get_daily_bot_log(DB_FILE, date_str)
+    return jsonify({"user_log": user_log, "bot_log": bot_log})
+
+# API endpoint to fetch today's data (kept for backward compatibility)
 @app.route("/api/today_data")
 def api_today_data():
     today_str = date.today().isoformat()
