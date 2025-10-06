@@ -145,7 +145,10 @@ def get_form_by_date(driver, timeout, target_date_str):
     # Try both with and without leading zeros, and various separators
     date_formats = []
 
-    # Try formats with leading zeros
+    # Unitas format: "Thu, 02 Oct 2025"
+    date_formats.append(target_date.strftime("%a, %d %b %Y"))    # "Thu, 02 Oct 2025"
+
+    # Try other common formats
     date_formats.append(target_date.strftime("%b %d, %Y"))    # "Oct 04, 2025"
     date_formats.append(target_date.strftime("%m/%d/%Y"))     # "10/04/2025"
     date_formats.append(target_date.strftime("%Y-%m-%d"))     # "2025-10-04"
@@ -153,6 +156,7 @@ def get_form_by_date(driver, timeout, target_date_str):
 
     # Try formats without leading zeros (GNU systems)
     try:
+        date_formats.append(target_date.strftime("%a, %-d %b %Y"))   # "Thu, 2 Oct 2025"
         date_formats.append(target_date.strftime("%b %-d, %Y"))   # "Oct 4, 2025"
         date_formats.append(target_date.strftime("%m/%-d/%Y"))     # "10/4/2025"
         date_formats.append(target_date.strftime("%B %-d, %Y"))    # "October 4, 2025"
@@ -165,10 +169,11 @@ def get_form_by_date(driver, timeout, target_date_str):
 
     print(f"Looking for form with date: {target_date_str}")
 
-    # Strategy 1: Try to find by date in aria-label or text content
+    # Strategy 1: Try to find by date in the title div, then click the daily li
     for date_fmt in date_formats:
         try:
-            xpath = f"//li[@data-cy='list-item' and @aria-label='daily' and contains(., '{date_fmt}')]"
+            # Look for the date in the title div, then find the daily list item after it
+            xpath = f"//div[@data-cy='title' and contains(., '{date_fmt}')]/following-sibling::ul//li[@data-cy='list-item' and @aria-label='daily']"
             wait = WebDriverWait(driver, 3)  # Short timeout for each attempt
             target = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
             target.click()
