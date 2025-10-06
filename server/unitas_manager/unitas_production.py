@@ -125,23 +125,76 @@ def open_production_page(driver, farm_id: int, house_id: int):
 
     print("Production page opened")
 
+def get_form_by_date(driver, timeout, target_date_str):
+    """
+    Select a specific production form by date.
+    target_date_str: ISO format date string (YYYY-MM-DD)
+
+    This tries multiple strategies to find the correct form:
+    1. Look for date in aria-label
+    2. Look for date in visible text
+    3. Fall back to position-based selection if date matching fails
+    """
+    from selenium.common.exceptions import TimeoutException
+
+    # Parse target date for formatting
+    from datetime import datetime
+    target_date = datetime.fromisoformat(target_date_str)
+
+    # Try different date formats that Unitas might use
+    # Try both with and without leading zeros, and various separators
+    date_formats = []
+
+    # Try formats with leading zeros
+    date_formats.append(target_date.strftime("%b %d, %Y"))    # "Oct 04, 2025"
+    date_formats.append(target_date.strftime("%m/%d/%Y"))     # "10/04/2025"
+    date_formats.append(target_date.strftime("%Y-%m-%d"))     # "2025-10-04"
+    date_formats.append(target_date.strftime("%B %d, %Y"))    # "October 04, 2025"
+
+    # Try formats without leading zeros (GNU systems)
+    try:
+        date_formats.append(target_date.strftime("%b %-d, %Y"))   # "Oct 4, 2025"
+        date_formats.append(target_date.strftime("%m/%-d/%Y"))     # "10/4/2025"
+        date_formats.append(target_date.strftime("%B %-d, %Y"))    # "October 4, 2025"
+    except:
+        pass  # %-d not supported on this platform
+
+    # Try other common variants
+    date_formats.append(target_date.strftime("%d/%m/%Y"))     # "04/10/2025" (European)
+    date_formats.append(target_date.strftime("%d %b %Y"))     # "04 Oct 2025"
+
+    print(f"Looking for form with date: {target_date_str}")
+
+    # Strategy 1: Try to find by date in aria-label or text content
+    for date_fmt in date_formats:
+        try:
+            xpath = f"//li[@data-cy='list-item' and @aria-label='daily' and contains(., '{date_fmt}')]"
+            wait = WebDriverWait(driver, 3)  # Short timeout for each attempt
+            target = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+            target.click()
+            print(f"Found and clicked form for date: {date_fmt}")
+
+            # Wait for the form to open
+            WebDriverWait(driver, timeout).until(
+                EC.visibility_of_element_located((By.XPATH, "//h3[normalize-space()='House']"))
+            )
+            print(f"Form for {target_date_str} opened successfully.")
+            time.sleep(.5)
+            return
+        except TimeoutException:
+            continue
+        except Exception as e:
+            print(f"Error trying format {date_fmt}: {e}")
+            continue
+
+    # If we couldn't find it by any date format, raise an error
+    print(f"ERROR: Could not find form for date {target_date_str}")
+    raise Exception(f"Unable to locate form for date: {target_date_str}")
+
 def get_yesterdays_form(driver, timeout):
-    wait = WebDriverWait(driver, timeout)
-
-    target = wait.until(EC.element_to_be_clickable((
-        By.XPATH,
-        "(//li[@data-cy='list-item' and @aria-label='daily'])[2]"
-    )))
-    target.click()
-    print("Opening Yesterday's form.")
-
-    # Wait for the next page/section to be ready
-    WebDriverWait(driver, timeout).until(
-        EC.visibility_of_element_located((By.XPATH, "//h3[normalize-space()='House']"))
-    )
-    print("Yesterday's form opened.")
-    # Just sit and wait for 3 seconds
-    time.sleep(.5)
+    """Backwards compatibility wrapper - selects yesterday's form by position"""
+    target_date = (date.today() - timedelta(days=1)).isoformat()
+    get_form_by_date(driver, timeout, target_date)
 
 def fill_production_form(
     driver,
@@ -251,36 +304,103 @@ def fill_production_form(
     helper.fill_input_by_id(driver, "Comment-H1", comment)
 
 def run_unitas_stuff(secrets, db_file, target_date=None):
-    if target_date is None:
-        target_date = (date.today() - timedelta(days=1)).isoformat()
+    """
+    Upload data to Unitas for dates that are flagged.
 
+    If target_date is provided, uploads only that date.
+    If target_date is None, finds and uploads ALL dates that:
+      - Have send_to_bot flag set
+      - Have not been sent yet (sent_to_unitas_at is NULL)
+      - Have bot_log data available
+    """
+    from datetime import datetime
+
+    # Determine which dates to upload BEFORE logging in
+    if target_date is not None:
+        # Single date mode (backwards compatibility)
+        dates_to_upload = [target_date]
+        print(f"Single date mode: uploading {target_date}")
+    else:
+        # Multi-date mode: find all pending dates
+        dates_to_upload = db.get_dates_pending_unitas_upload(db_file)
+        if not dates_to_upload:
+            print("="*60)
+            print("No dates pending upload. All caught up!")
+            print("All data has been sent to Unitas.")
+            print("="*60)
+            return
+        print(f"Found {len(dates_to_upload)} date(s) pending upload: {dates_to_upload}")
+
+    # Now that we know we have work to do, start the browser and login
     driver = make_driver(HEADLESS)
+
     try:
         login(driver, secrets)
         open_production_page(driver, FARM_ID, HOUSE_ID)
-        get_yesterdays_form(driver, TIMEOUT)
-        trigger_fill_production_form(driver, db_file, target_date)
 
-        #scroll back to top
-        element = driver.find_element(By.ID, "V33-H1")
-        driver.execute_script("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", element)
+        # Upload each date
+        successful_uploads = []
+        failed_uploads = []
 
-        print("Worked!")
+        for upload_date in dates_to_upload:
+            print(f"\n{'='*60}")
+            print(f"Processing date: {upload_date}")
+            print(f"{'='*60}")
+
+            try:
+                # Select the form for this date
+                get_form_by_date(driver, TIMEOUT, upload_date)
+
+                # Fill the form
+                trigger_fill_production_form(driver, db_file, upload_date)
+
+                # Scroll back to top
+                element = driver.find_element(By.ID, "V33-H1")
+                driver.execute_script("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", element)
+
+                print(f"Form filled for {upload_date}!")
+
+                # Mark as sent to Unitas with timestamp
+                user_log = db.get_daily_user_log(db_file, upload_date)
+                if user_log:
+                    db.update_daily_user_log(db_file, user_log['date_entered'], {
+                        'sent_to_unitas_at': datetime.now().isoformat()
+                    })
+                    print(f"✓ Marked {upload_date} as sent to Unitas")
+
+                successful_uploads.append(upload_date)
+
+                # Small delay between forms
+                if len(dates_to_upload) > 1:
+                    print("Waiting 2 seconds before next form...")
+                    time.sleep(2)
+
+            except Exception as e:
+                print(f"✗ ERROR processing {upload_date}: {e}")
+                print(f"Skipping {upload_date} and continuing with next date...")
+                failed_uploads.append(upload_date)
+                # Go back to production page to reset for next date
+                try:
+                    open_production_page(driver, FARM_ID, HOUSE_ID)
+                except:
+                    print("Warning: Could not return to production page")
+
         runstate.save_data("SHEET_TO_PRODUCTION")
-
-        # Mark as sent to Unitas with timestamp
-        from datetime import datetime
-        user_log = db.get_daily_user_log(db_file, target_date)
-        if user_log:
-            db.update_daily_user_log(db_file, user_log['date_entered'], {
-                'sent_to_unitas_at': datetime.now().isoformat()
-            })
-            print(f"Marked {target_date} as sent to Unitas")
-
+        print(f"\n{'='*60}")
+        print(f"UPLOAD SUMMARY")
+        print(f"{'='*60}")
+        print(f"Total dates attempted: {len(dates_to_upload)}")
+        print(f"Successful: {len(successful_uploads)}")
+        if successful_uploads:
+            print(f"  ✓ {', '.join(successful_uploads)}")
+        print(f"Failed: {len(failed_uploads)}")
+        if failed_uploads:
+            print(f"  ✗ {', '.join(failed_uploads)}")
+        print(f"{'='*60}")
         time.sleep(1)
 
     finally:
-        print("Quitting. Look over the data and Save.")
+        print("\nQuitting. Look over the data and Save.")
         print("Don't forget to close the browser window when you are done.")
         print("Goodbye!")
 

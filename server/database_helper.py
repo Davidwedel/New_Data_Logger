@@ -266,3 +266,32 @@ def update_daily_bot_log(db_file, date, data):
     cur.execute(sql, tuple(data.values()) + (date,))
     conn.commit()
     conn.close()
+
+# ------------------- QUERY FUNCTIONS -------------------
+def get_dates_pending_unitas_upload(db_file):
+    """
+    Get all dates that have:
+    1. send_to_bot flag set to 1
+    2. NOT yet sent to Unitas (sent_to_unitas_at IS NULL)
+    3. Have corresponding bot_log data
+    Returns list of date strings in ISO format
+    """
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+
+    # Join user_log with bot_log to ensure both exist
+    # Extract just the date part from date_entered for matching
+    sql = """
+        SELECT DISTINCT date(u.date_entered) as date_only
+        FROM Daily_User_Log u
+        INNER JOIN Daily_Bot_Log b ON date(u.date_entered) = b.date
+        WHERE u.send_to_bot = 1
+        AND u.sent_to_unitas_at IS NULL
+        ORDER BY date(u.date_entered) ASC
+    """
+
+    cur.execute(sql)
+    results = cur.fetchall()
+    conn.close()
+
+    return [row[0] for row in results]
