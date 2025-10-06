@@ -243,7 +243,10 @@
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showNutritionistDropdown(this)" onblur="hideDropdownDelayed()" onclick="showNutritionistDropdown(this)">`;
       } else if (key === 'ration_used') {
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showRationUsedDropdown(this)" onblur="hideDropdownDelayed()" onclick="showRationUsedDropdown(this)">`;
-      } else if (key === 'send_to_bot' || key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
+      } else if (key === 'send_to_bot') {
+        const isChecked = (value === 1 || value === '1' || value === true) ? 'checked' : '';
+        html += `<input type="checkbox" name="${key}" ${isChecked} onchange="handleSendToUnitasClick(this)" onclick="checkRequiredFieldsBeforeToggle(event, this)" style="width:18px; height:18px;">`;
+      } else if (key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
         const isChecked = (value === 'Yes' || value === 'true' || value === true || value === 1 || value === '1') ? 'checked' : '';
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)" style="width:18px; height:18px;">`;
       } else {
@@ -553,6 +556,65 @@
           console.error('Auto-save failed:', err);
         });
     }, 500); // Wait 500ms after user stops typing
+  }
+
+  function checkRequiredFieldsBeforeToggle(event, checkbox) {
+    // Only prevent checking ON (not unchecking)
+    if (!checkbox.checked) return;
+
+    const form = document.getElementById('userlog-edit-form');
+    if (!form) return;
+
+    const getValue = (name) => {
+      const el = form.querySelector(`[name="${name}"]`);
+      if (!el) return '';
+      if (el.type === 'checkbox') return el.checked ? (name === 'send_to_bot' ? 1 : 'Yes') : (name === 'send_to_bot' ? 0 : 'No');
+      return el.value || '';
+    };
+
+    // Check all required fields
+    const requiredFields = ['belt_eggs', 'floor_eggs', 'weather', 'air_sensory', 'nutritionist', 'ration_used'];
+    const missingFields = [];
+
+    for (const field of requiredFields) {
+      const value = getValue(field).trim();
+      if (value === '') {
+        missingFields.push(field);
+      }
+    }
+
+    // Check conditional fields
+    const doorOpen = getValue('door_open').trim();
+    const doorClosed = getValue('door_closed').trim();
+    const birdsRestricted = getValue('birds_restricted_reason').trim();
+    if ((doorOpen === '' || doorClosed === '') && birdsRestricted === '') {
+      missingFields.push('birds_restricted_reason');
+    }
+
+    const mortalityIndoor = parseInt(getValue('mortality_indoor')) || 0;
+    const mortalityOutdoor = parseInt(getValue('mortality_outdoor')) || 0;
+    const mortalityReasons = getValue('mortality_reasons').trim();
+    if ((mortalityIndoor > 0 || mortalityOutdoor > 0) && mortalityReasons === '') {
+      missingFields.push('mortality_reasons');
+    }
+
+    const euthanizedIndoor = parseInt(getValue('euthanized_indoor')) || 0;
+    const euthanizedOutdoor = parseInt(getValue('euthanized_outdoor')) || 0;
+    const cullReasons = getValue('cull_reasons').trim();
+    if ((euthanizedIndoor > 0 || euthanizedOutdoor > 0) && cullReasons === '') {
+      missingFields.push('cull_reasons');
+    }
+
+    if (missingFields.length > 0) {
+      event.preventDefault();
+      checkbox.checked = false;
+      alert(`Cannot mark for Unitas upload. Please fill in required fields: ${missingFields.join(', ')}`);
+      return false;
+    }
+  }
+
+  function handleSendToUnitasClick(checkbox) {
+    updateCheckboxField(checkbox);
   }
 
   function validateAndHighlight() {
