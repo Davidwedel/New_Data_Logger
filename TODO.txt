@@ -5,7 +5,6 @@ add box for emtpy pallet weight, startup week,
 check all settings there
 check that xmls are right, as in all there
 selinux stuff still isn't all ok. i don't know the best way to deal with selinux
-URGENT!! Deal with the nutritionist stuff
-urgent fill out birds restricted value
 clean up daily bot log
 freeze timestamp cell and show only date on data entry page
+somethign with pallet stuff and weight

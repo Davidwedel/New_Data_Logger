@@ -58,6 +58,11 @@ def trigger_fill_production_form(driver, db_file, target_date=None):
     door_open_hh, door_open_mm = split_hh_mm(merged.get('door_open', ''))
     door_close_hh, door_close_mm = split_hh_mm(merged.get('door_closed', ''))
 
+    # Birds are restricted if door open/close times are empty or null
+    door_open_val = merged.get('door_open', '')
+    door_close_val = merged.get('door_closed', '')
+    birds_restricted = 'Yes' if (not door_open_val or not door_close_val) else 'No'
+
     fill_production_form(
         driver,
         mortality_indoor=merged.get('mortality_indoor', '0'),
@@ -88,7 +93,7 @@ def trigger_fill_production_form(driver, db_file, target_date=None):
         door_open_mm=door_open_mm,
         door_close_hh=door_close_hh,
         door_close_mm=door_close_mm,
-        birds_restricted=merged.get('birds_restricted', ''),
+        birds_restricted=birds_restricted,
         birds_restricted_reason=merged.get('birds_restricted_reason', ''),
         inside_high=bot_data.get('inside_high_temp', ''),
         inside_low=bot_data.get('inside_low_temp', ''),
