@@ -438,13 +438,20 @@ def api_date_data():
         defaults['date_entered'] = datetime.now().isoformat()
         print(f"DEBUG: Creating user log with data: {defaults}")
         try:
-            db.insert_daily_user_log(DB_FILE, **defaults)
+            # Check again right before inserting to avoid race condition
             user_log = db.get_daily_user_log(DB_FILE, date_str)
-            print(f"DEBUG: Created user log: {user_log}")
+            if not user_log:
+                db.insert_daily_user_log(DB_FILE, **defaults)
+                user_log = db.get_daily_user_log(DB_FILE, date_str)
+                print(f"DEBUG: Created user log: {user_log}")
+            else:
+                print(f"DEBUG: User log was created by another request, using existing one")
         except Exception as e:
             print(f"DEBUG: Error creating daily user log: {e}")
             import traceback
             traceback.print_exc()
+            # Try to get it anyway in case another request created it
+            user_log = db.get_daily_user_log(DB_FILE, date_str)
     else:
         print(f"DEBUG: Found existing user log for {date_str}: {user_log}")
         # If weather is blank and this is today, try to auto-fetch it
@@ -522,13 +529,20 @@ def api_today_data():
         defaults['date_entered'] = datetime.now().isoformat()
         print(f"DEBUG: Creating user log with data: {defaults}")
         try:
-            db.insert_daily_user_log(DB_FILE, **defaults)
+            # Check again right before inserting to avoid race condition
             user_log = db.get_daily_user_log(DB_FILE, today_str)
-            print(f"DEBUG: Created user log: {user_log}")
+            if not user_log:
+                db.insert_daily_user_log(DB_FILE, **defaults)
+                user_log = db.get_daily_user_log(DB_FILE, today_str)
+                print(f"DEBUG: Created user log: {user_log}")
+            else:
+                print(f"DEBUG: User log was created by another request, using existing one")
         except Exception as e:
             print(f"DEBUG: Error creating daily user log: {e}")
             import traceback
             traceback.print_exc()
+            # Try to get it anyway in case another request created it
+            user_log = db.get_daily_user_log(DB_FILE, today_str)
     else:
         print(f"DEBUG: Found existing user log: {user_log}")
         # If weather is blank, try to auto-fetch it

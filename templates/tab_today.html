@@ -30,8 +30,9 @@
   let currentSelectedDate = null;
 
   function loadTodayData() {
-    // Initialize with today's date
-    const today = new Date().toISOString().split('T')[0];
+    // Initialize with today's date (in local timezone, not UTC)
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
     currentSelectedDate = today;
 
     // Set date picker to today
@@ -75,8 +76,9 @@
     currentDate.setDate(currentDate.getDate() + offset);
     const newDateStr = currentDate.toISOString().split('T')[0];
 
-    // Don't go beyond today
-    const today = new Date().toISOString().split('T')[0];
+    // Don't go beyond today (local timezone)
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
     if (newDateStr > today) return;
 
     document.getElementById('date-picker').value = newDateStr;
@@ -85,7 +87,9 @@
 
   function updateDateDisplay(dateStr) {
     const date = new Date(dateStr + 'T00:00:00');
-    const today = new Date().toISOString().split('T')[0];
+    // Get today in local timezone
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = date.toLocaleDateString('en-US', options);
 
@@ -98,7 +102,9 @@
   }
 
   function updateNavigationButtons() {
-    const today = new Date().toISOString().split('T')[0];
+    // Get today in local timezone
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().split('T')[0];
     const nextBtn = document.getElementById('next-day-btn');
 
     // Disable next button if we're on today
