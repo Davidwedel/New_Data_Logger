@@ -207,6 +207,43 @@ def get_settings():
         settings = json.load(f)
     return jsonify(settings)
 
+# Endpoint to get secrets configuration
+@app.route("/get_secrets", methods=["GET"])
+def get_secrets():
+    secrets_path = os.path.join(os.path.dirname(__file__), "secrets.json")
+    if not os.path.exists(secrets_path):
+        return jsonify({})
+    try:
+        with open(secrets_path, "r") as f:
+            secrets = json.load(f)
+        return jsonify(secrets)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Endpoint to save secrets configuration
+@app.route("/save_secrets", methods=["POST"])
+def save_secrets():
+    data = request.json
+    secrets_path = os.path.join(os.path.dirname(__file__), "secrets.json")
+
+    try:
+        # Load existing secrets to preserve any fields not in the form
+        existing_secrets = {}
+        if os.path.exists(secrets_path):
+            with open(secrets_path, "r") as f:
+                existing_secrets = json.load(f)
+
+        # Update with new values
+        existing_secrets.update(data)
+
+        # Write back to file
+        with open(secrets_path, "w") as f:
+            json.dump(existing_secrets, f, indent=2)
+
+        return jsonify({"status": "ok", "message": "Configuration saved successfully!"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to save configuration: {e}"}), 500
+
 # Endpoint to fetch current weather from NWS
 @app.route("/get_weather", methods=["GET"])
 def get_weather():

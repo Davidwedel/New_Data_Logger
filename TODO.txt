@@ -9,3 +9,4 @@ clean up daily bot log
 freeze timestamp cell and show only date on data entry page
 somethign with pallet stuff and weight
 add floor eggs wo having to manualy add
+remove stuff about starting services manually and just start the webapp and give appropiate message, and even open if we can

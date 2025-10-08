@@ -38,9 +38,9 @@ python server/main.py
 
 ### Configuration
 
-- `secrets.json` - Contains credentials, spreadsheet IDs, Unitas login, timing settings, and XML paths
-- `settings.json` - Contains farm-specific settings (hatch_date, birds_arrived_date)
-- Both can be edited via the Tkinter UI: `python app/ui.py`
+- `secrets.json` - Contains credentials, Unitas login, timing settings, and XML paths
+- `settings.json` - Contains farm-specific settings (hatch_date, birds_arrived_date, nws_station_id)
+- Both can be edited via the webapp Settings tab
 
 ## Architecture
 

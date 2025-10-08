@@ -1,6 +1,9 @@
 <div id="settings" class="tabcontent" style="display:none;">
   <h2>Farm Settings</h2>
-  <form id="settingsForm" onsubmit="saveSettings(event)">
+
+  <!-- Basic Farm Settings -->
+  <form id="settingsForm" onsubmit="saveSettings(event)" style="margin-bottom:30px;">
+    <h3>Basic Information</h3>
     <div class="spinner-container">
       <span class="spinner-label">Hatch Date</span>
       <input type="date" id="hatchDate" name="hatchDate">
@@ -17,9 +20,144 @@
     <button type="submit" class="floating-btn" style="position:static; margin-top:20px;">Save Settings</button>
     <div id="settingsMsg" style="margin-top:10px;"></div>
   </form>
+
+  <!-- Secrets Configuration -->
+  <form id="secretsForm" onsubmit="saveSecrets(event)">
+    <h3>System Configuration</h3>
+
+    <div class="spinner-container">
+      <span class="spinner-label">XML Directory Path</span>
+      <input type="text" id="path_to_xmls" name="path_to_xmls" style="width:300px;">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Days to Keep Old Files</span>
+      <input type="number" id="how_long_to_save_old_files" name="how_long_to_save_old_files" min="0" style="width:100px;">
+      <span style="font-size:12px; color:#666; margin-left:10px;">(0 to disable, 2 recommended)</span>
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Time Zone</span>
+      <input type="text" id="time_zone" name="time_zone" placeholder="America/Chicago" style="width:200px;">
+    </div>
+
+    <h3 style="margin-top:30px;">Scheduling</h3>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Retrieve XML Time</span>
+      <input type="time" id="retrieve_from_xml_time" name="retrieve_from_xml_time" step="1">
+      <span style="font-size:12px; color:#666; margin-left:10px;">(00:15:00 recommended)</span>
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Cooler Temp AM</span>
+      <input type="time" id="get_cooler_temp_AM" name="get_cooler_temp_AM" step="1">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Cooler Temp PM</span>
+      <input type="time" id="get_cooler_temp_PM" name="get_cooler_temp_PM" step="1">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Cooler Temp Tolerance</span>
+      <input type="time" id="cooler_temp_time_tolerance" name="cooler_temp_time_tolerance" step="1">
+    </div>
+
+    <h3 style="margin-top:30px;">Unitas Integration</h3>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Unitas Username</span>
+      <input type="text" id="Unitas_Username" name="Unitas_Username" autocomplete="off">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Unitas Password</span>
+      <input type="password" id="Unitas_Password" name="Unitas_Password" autocomplete="off">
+      <button type="button" onclick="togglePasswordVisibility('Unitas_Password')" style="margin-left:10px;">Show</button>
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Farm ID</span>
+      <input type="text" id="Farm_ID" name="Farm_ID">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">House ID</span>
+      <input type="text" id="House_ID" name="House_ID">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Cooler Log Initials</span>
+      <input type="text" id="Cooler_Log_Initials" name="Cooler_Log_Initials" maxlength="10">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Enable Cooler Log</span>
+      <input type="checkbox" id="Cooler_Log_To_Unitas" name="Cooler_Log_To_Unitas">
+    </div>
+
+    <button type="submit" class="floating-btn" style="position:static; margin-top:20px;">Save Configuration</button>
+    <div id="secretsMsg" style="margin-top:10px;"></div>
+  </form>
 </div>
 
 <script>
+  // Load settings and secrets when Settings tab is opened
+  document.addEventListener('DOMContentLoaded', function() {
+    const settingsTab = document.querySelector('[onclick*="settings"]');
+    if (settingsTab) {
+      settingsTab.addEventListener('click', function() {
+        loadBasicSettings();
+        loadSecrets();
+      });
+    }
+  });
+
+  function loadBasicSettings() {
+    fetch('/get_settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.hatch_date) document.getElementById('hatchDate').value = data.hatch_date;
+        if (data.birds_arrived_date) document.getElementById('birdsArrivedDate').value = data.birds_arrived_date;
+        if (data.nws_station_id) document.getElementById('nws_station_id').value = data.nws_station_id;
+      })
+      .catch(err => console.error('Error loading settings:', err));
+  }
+
+  function loadSecrets() {
+    fetch('/get_secrets')
+      .then(res => res.json())
+      .then(data => {
+        if (data.path_to_xmls) document.getElementById('path_to_xmls').value = data.path_to_xmls;
+        if (data.how_long_to_save_old_files !== undefined) document.getElementById('how_long_to_save_old_files').value = data.how_long_to_save_old_files;
+        if (data.time_zone) document.getElementById('time_zone').value = data.time_zone;
+        if (data.retrieve_from_xml_time) document.getElementById('retrieve_from_xml_time').value = data.retrieve_from_xml_time;
+        if (data.get_cooler_temp_AM) document.getElementById('get_cooler_temp_AM').value = data.get_cooler_temp_AM;
+        if (data.get_cooler_temp_PM) document.getElementById('get_cooler_temp_PM').value = data.get_cooler_temp_PM;
+        if (data.cooler_temp_time_tolerance) document.getElementById('cooler_temp_time_tolerance').value = data.cooler_temp_time_tolerance;
+        if (data.Unitas_Username) document.getElementById('Unitas_Username').value = data.Unitas_Username;
+        if (data.Unitas_Password) document.getElementById('Unitas_Password').value = data.Unitas_Password;
+        if (data.Farm_ID) document.getElementById('Farm_ID').value = data.Farm_ID;
+        if (data.House_ID) document.getElementById('House_ID').value = data.House_ID;
+        if (data.Cooler_Log_Initials) document.getElementById('Cooler_Log_Initials').value = data.Cooler_Log_Initials;
+        document.getElementById('Cooler_Log_To_Unitas').checked = data.Cooler_Log_To_Unitas === true;
+      })
+      .catch(err => console.error('Error loading secrets:', err));
+  }
+
+  function togglePasswordVisibility(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = event.target;
+    if (field.type === 'password') {
+      field.type = 'text';
+      button.textContent = 'Hide';
+    } else {
+      field.type = 'password';
+      button.textContent = 'Show';
+    }
+  }
+
   function saveSettings(event) {
     event.preventDefault();
     const hatchDate = document.getElementById('hatchDate').value;
@@ -40,6 +178,46 @@
       })
       .catch(() => {
         document.getElementById('settingsMsg').textContent = 'Error saving settings.';
+      });
+  }
+
+  function saveSecrets(event) {
+    event.preventDefault();
+
+    const secrets = {
+      path_to_xmls: document.getElementById('path_to_xmls').value,
+      how_long_to_save_old_files: parseInt(document.getElementById('how_long_to_save_old_files').value),
+      time_zone: document.getElementById('time_zone').value,
+      retrieve_from_xml_time: document.getElementById('retrieve_from_xml_time').value,
+      get_cooler_temp_AM: document.getElementById('get_cooler_temp_AM').value,
+      get_cooler_temp_PM: document.getElementById('get_cooler_temp_PM').value,
+      cooler_temp_time_tolerance: document.getElementById('cooler_temp_time_tolerance').value,
+      Unitas_Username: document.getElementById('Unitas_Username').value,
+      Unitas_Password: document.getElementById('Unitas_Password').value,
+      Farm_ID: document.getElementById('Farm_ID').value,
+      House_ID: document.getElementById('House_ID').value,
+      Cooler_Log_Initials: document.getElementById('Cooler_Log_Initials').value,
+      Cooler_Log_To_Unitas: document.getElementById('Cooler_Log_To_Unitas').checked
+    };
+
+    fetch('/save_secrets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(secrets)
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === 'ok') {
+          document.getElementById('secretsMsg').textContent = data.message || 'Configuration saved!';
+          document.getElementById('secretsMsg').style.color = 'green';
+        } else {
+          document.getElementById('secretsMsg').textContent = 'Error: ' + data.message;
+          document.getElementById('secretsMsg').style.color = 'red';
+        }
+      })
+      .catch(() => {
+        document.getElementById('secretsMsg').textContent = 'Error saving configuration.';
+        document.getElementById('secretsMsg').style.color = 'red';
       });
   }
 </script>
