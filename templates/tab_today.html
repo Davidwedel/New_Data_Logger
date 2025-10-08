@@ -679,12 +679,10 @@
 
     let html = '<div style="max-width:100%; max-height:220px; overflow:auto; border:1px solid #ccc; border-radius:6px;">';
     html += '<form id="botlog-edit-form"><table style="font-size:12px; min-width:600px;"><tr>';
-    html += '<th style="padding:4px 6px;">Flag</th>';
     for (const key in bot_log) {
       html += `<th style="padding:4px 6px;">${key}</th>`;
     }
     html += '<th style="padding:4px 6px;">Save</th></tr><tr>';
-    html += '<td style="padding:4px 6px;"><input type="checkbox" id="botlog-flag" onchange="setFlag(\'BOT_LOG_FLAG\', this.checked)"></td>';
     for (const key in bot_log) {
       const value = bot_log[key] || '';
       html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}"></td>`;
@@ -692,18 +690,6 @@
     html += '<td><button type="button" onclick="saveBotLog()">Save</button></td>';
     html += '</tr></table></form></div>';
     container.innerHTML = html;
-  }
-
-  function setFlag(flag, checked) {
-    if (!checked) return; // Only set flag on check
-    fetch('/set_flag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ flag: flag })
-    })
-      .then(res => res.json())
-      .then(data => alert(data.message))
-      .catch(() => alert('Error setting flag.'));
   }
 
   function saveUserLog() {

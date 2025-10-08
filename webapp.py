@@ -15,7 +15,6 @@ from datetime import date, datetime
 # Add server directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 import database_helper as db
-import runstate
 
 app = Flask(__name__)
 
@@ -249,19 +248,6 @@ def get_defaults():
 
 
 
-# API endpoint to set a flag in .runstate.json
-@app.route("/set_flag", methods=["POST"])
-def set_flag():
-    data = request.json
-    flag = data.get("flag")
-    if not flag:
-        return jsonify({"status": "error", "message": "No flag specified"}), 400
-    try:
-        import runstate
-        runstate.save_data(flag)
-        return jsonify({"status": "ok", "message": f"Flag '{flag}' set for today"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
 
 # Endpoint to update user log for a specific date
 @app.route("/update_user_log", methods=["POST"])
