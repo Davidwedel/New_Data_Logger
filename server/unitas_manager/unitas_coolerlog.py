@@ -5,25 +5,28 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 import unitas_helper as helper
 import time
-import runstate as runstate
+import database_helper as db
 
 FARM_ID = None
 HOUSE_ID = None
 COOLERLOG_URL = None
 TIMEOUT = None
 INITIALS = None
+DB_FILE = None
 
-def do_coolerlog_setup(secrets):
-    global FARM_ID, HOUSE_ID, COOLERLOG_URL, TIMEOUT, INITIALS
-    
+def do_coolerlog_setup(secrets, db_file=None):
+    global FARM_ID, HOUSE_ID, COOLERLOG_URL, TIMEOUT, INITIALS, DB_FILE
+
     FARM_ID = secrets["Farm_ID"]
     HOUSE_ID = secrets["House_ID"]
     TIMEOUT = secrets["Timeout"]
     INITIALS = secrets["Cooler_Log_Initials"]
     COOLERLOG_URL = f"https://vitalfarms.poultrycloud.com/farm/cooler-log/coolerlog/new?farmId={FARM_ID}&houseId={HOUSE_ID}"
+    if db_file:
+        DB_FILE = db_file
 
 def make_driver(headless: bool = False):
     options = webdriver.FirefoxOptions()
@@ -133,16 +136,65 @@ def fill_coolerlog_values(driver, data):
     save_btn.click()
 
 
-def run_coolerlog_to_unitas():
+def run_coolerlog_to_unitas(db_file=None):
+    """Send cooler log data to Unitas from database"""
+    if db_file is None:
+        db_file = DB_FILE
+
+    # Get yesterday's date
+    yesterday = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Check if already logged
+    if db.has_cooler_been_logged_today(db_file, yesterday):
+        print(f"Cooler log already sent for {yesterday}")
+        return
+
+    # Get bot log data for yesterday
+    bot_log = db.get_daily_bot_log(db_file, yesterday)
+    if not bot_log:
+        print(f"No bot log data found for {yesterday}")
+        return
+
+    # Get user log for eggs_picked_up and comments
+    user_log = db.get_daily_user_log(db_file, yesterday)
+
+    # Format data for coolerlog form
+    # Expected format: [[am_hour, am_minute, am_temp, pm_hour, pm_minute, pm_temp, eggs_picked_up, comments]]
+    cooler_time_am = bot_log.get('cooler_time_am', '')
+    cooler_temp_am = bot_log.get('cooler_temp_am', '')
+    cooler_time_pm = bot_log.get('cooler_time_pm', '')
+    cooler_temp_pm = bot_log.get('cooler_temp_pm', '')
+
+    # Parse time strings (format: "HH:MM:SS" or "HH:MM")
+    am_hour, am_minute = '', ''
+    if cooler_time_am:
+        parts = str(cooler_time_am).split(':')
+        am_hour = parts[0] if len(parts) > 0 else ''
+        am_minute = parts[1] if len(parts) > 1 else ''
+
+    pm_hour, pm_minute = '', ''
+    if cooler_time_pm:
+        parts = str(cooler_time_pm).split(':')
+        pm_hour = parts[0] if len(parts) > 0 else ''
+        pm_minute = parts[1] if len(parts) > 1 else ''
+
+    eggs_picked_up = user_log.get('eggs_picked_up', '') if user_log else ''
+    comments = user_log.get('coolerlog_comments', '') if user_log else ''
+
+    valuesToSend = [[am_hour, am_minute, str(cooler_temp_am), pm_hour, pm_minute, str(cooler_temp_pm), str(eggs_picked_up), comments]]
+
     driver = make_driver(False)
     try:
         login(driver)
         open_coolerlog_page(driver)
-        valuesToSend = read_from_sheet(RANGE_NAME)
+        print(f"Sending cooler log for {yesterday}:")
         print(valuesToSend)
         fill_coolerlog_values(driver, valuesToSend)
-        runstate.save_data("SHEET_TO_COOLER")
-        
+
+        # Update database with timestamp
+        db.update_daily_bot_log(db_file, yesterday, {'cooler_logged_at': datetime.now().isoformat()})
+        print(f"Cooler log successfully sent for {yesterday}")
+
     finally:
         print("Quitting.")
         print("Goodbye!")
