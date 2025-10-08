@@ -279,14 +279,28 @@ def do_xml_setup(secrets):
     getCoolerTempPM = secrets["get_cooler_temp_PM"]
     coolerTempTimeTolerance = secrets["cooler_temp_time_tolerance"]
     time_zone = secrets["time_zone"]
-def run_xml_stuff(db_file=None):
+def run_xml_stuff(db_file=None, target_date=None):
+    """
+    Process XML files and insert into database.
+    If target_date is provided (YYYY-MM-DD format), process that date.
+    Otherwise, process yesterday's date.
+    """
     databack = []
-    #start figuring various things we need to know
 
-    #get yesterday's date, as formatted in the xml filename I.E. YYYYMMDD(20250722)
-    yesterday = (date.today() - timedelta(days=1)).strftime("%Y%m%d")
+    # Determine which date to process
+    if target_date:
+        # Convert YYYY-MM-DD to YYYYMMDD
+        process_date = datetime.strptime(target_date, "%Y-%m-%d")
+        yesterday = process_date.strftime("%Y%m%d")
+        yesterday_readable = target_date
+    else:
+        # Default to yesterday
+        yesterday = (date.today() - timedelta(days=1)).strftime("%Y%m%d")
+        yesterday_readable = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
 
-    #file pattern to yesterday's files
+    print(f"Processing XML files for date: {yesterday_readable}")
+
+    #file pattern to files for this date
     yesterdayFiles = os.path.join(xmlFolder, (yesterday+"*.xml"))
 
     xmlNameOnly = glob.glob(yesterdayFiles)
@@ -338,7 +352,7 @@ def run_xml_stuff(db_file=None):
 
     database_helper.insert_daily_bot_log(
         db_file,
-        date=(date.today() - timedelta(days=1)).isoformat(),
+        date=yesterday_readable,
         bird_age=get_bird_age(),  # set if available
         feed_consumption=feedConsumption,
         lights_on=lightOnTime,
@@ -357,4 +371,6 @@ def run_xml_stuff(db_file=None):
         cooler_time_pm=coolerTempTimePM,
         cooler_temp_pm=coolerTempPM
     )
+
+    return f"Successfully logged data for {yesterday_readable}"
 
