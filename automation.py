@@ -72,7 +72,7 @@ db.backup_database(DB_FILE)
 # ─── Main Execution ───
 if args.LogToDatabase:
     logger.info("Running one-shot: XML → Database")
-    jobs.xml_to_sheet_job(args, DB_FILE, process_all=True)
+    jobs.xml_to_sheet_job(args, DB_FILE)
 
 elif args.CoolerLogToUnitas:
     logger.info("Running one-shot: Cooler Log → Unitas")
@@ -86,7 +86,7 @@ else:
     logger.info("Running in Forever Mode (continuous automation)")
 
     # ─── Scheduling ───
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE, True)  # XML → DB
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
     schedule.every().day.at("00:05").do(db.backup_database, DB_FILE)  # Daily backup at 12:05 AM
 
     # Schedule coolerlog if enabled

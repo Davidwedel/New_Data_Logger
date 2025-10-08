@@ -56,46 +56,30 @@ def find_oldest_complete_day_missing_from_db(db_file):
 
     return None
 
-def xml_to_sheet_job(args, db_file, process_all=False):
+def xml_to_sheet_job(args, db_file):
     """
-    Run XML → DB logging for oldest unprocessed complete day.
-    If process_all is True, processes all missing days until caught up.
+    Run XML → DB logging for all unprocessed complete days.
+    Processes all missing days until caught up.
     """
-    if process_all:
-        # Process all missing days
-        processed_count = 0
-        while True:
-            oldest_missing = find_oldest_complete_day_missing_from_db(db_file)
-            if not oldest_missing:
-                if processed_count == 0:
-                    print("[XML] All complete days already processed")
-                else:
-                    print(f"[XML] Finished processing {processed_count} day(s)")
-                break
-
-            print(f"[XML] Processing data for {oldest_missing}")
-            if not args.LogToUnitas:
-                valuesFromXML = log_from_xml(db_file, target_date=oldest_missing)
-                print(valuesFromXML)
-                processed_count += 1
-
-        # Delete old files after processing all days
-        if processed_count > 0 and not args.NoDelete:
-            deleteOldFiles()
-    else:
-        # Process only the oldest missing day
+    processed_count = 0
+    while True:
         oldest_missing = find_oldest_complete_day_missing_from_db(db_file)
+        if not oldest_missing:
+            if processed_count == 0:
+                print("[XML] All complete days already processed")
+            else:
+                print(f"[XML] Finished processing {processed_count} day(s)")
+            break
 
-        if oldest_missing:
-            print(f"[XML] Processing data for {oldest_missing}")
-            if not args.LogToUnitas:
-                valuesFromXML = log_from_xml(db_file, target_date=oldest_missing)
-                print(valuesFromXML)
-                if not args.NoDelete:
-                    deleteOldFiles()
-                print(f"[XML] Logged XML → DB for {oldest_missing}")
-        else:
-            print("[XML] All complete days already processed")
+        print(f"[XML] Processing data for {oldest_missing}")
+        if not args.LogToUnitas:
+            valuesFromXML = log_from_xml(db_file, target_date=oldest_missing)
+            print(valuesFromXML)
+            processed_count += 1
+
+    # Delete old files after processing all days
+    if processed_count > 0 and not args.NoDelete:
+        deleteOldFiles()
 
 
 def schedule_offset(base_time="00:15:00", offset_minutes=15):
