@@ -86,22 +86,40 @@ def migrate_schema(conn):
 
     # Get current columns in Daily_User_Log
     cur.execute("PRAGMA table_info(Daily_User_Log)")
-    existing_columns = {row[1] for row in cur.fetchall()}
+    existing_user_columns = {row[1] for row in cur.fetchall()}
 
-    # Define expected columns with their types and defaults
-    expected_columns = {
+    # Define expected columns for Daily_User_Log
+    expected_user_columns = {
         'send_to_bot': 'INTEGER DEFAULT 0',
         'nutritionist': 'TEXT',
         'ration_used': 'TEXT',
         'sent_to_unitas_at': 'TIMESTAMP',
     }
 
-    # Add missing columns
-    for col_name, col_def in expected_columns.items():
-        if col_name not in existing_columns:
+    # Add missing columns to Daily_User_Log
+    for col_name, col_def in expected_user_columns.items():
+        if col_name not in existing_user_columns:
             try:
                 cur.execute(f"ALTER TABLE Daily_User_Log ADD COLUMN {col_name} {col_def}")
                 print(f"Added column '{col_name}' to Daily_User_Log")
+            except Exception as e:
+                print(f"Error adding column '{col_name}': {e}")
+
+    # Get current columns in Daily_Bot_Log
+    cur.execute("PRAGMA table_info(Daily_Bot_Log)")
+    existing_bot_columns = {row[1] for row in cur.fetchall()}
+
+    # Define expected columns for Daily_Bot_Log
+    expected_bot_columns = {
+        'cooler_logged_at': 'TIMESTAMP',
+    }
+
+    # Add missing columns to Daily_Bot_Log
+    for col_name, col_def in expected_bot_columns.items():
+        if col_name not in existing_bot_columns:
+            try:
+                cur.execute(f"ALTER TABLE Daily_Bot_Log ADD COLUMN {col_name} {col_def}")
+                print(f"Added column '{col_name}' to Daily_Bot_Log")
             except Exception as e:
                 print(f"Error adding column '{col_name}': {e}")
 
