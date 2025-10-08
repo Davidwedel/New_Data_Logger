@@ -313,3 +313,40 @@ def get_dates_pending_unitas_upload(db_file):
     conn.close()
 
     return [row[0] for row in results]
+
+# ------------------- JOB STATUS FUNCTIONS -------------------
+def has_xml_been_processed_today(db_file, date_str):
+    """
+    Check if XML has been processed for a given date.
+    Returns True if bot_log entry exists for the date.
+    """
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM Daily_Bot_Log WHERE date = ? LIMIT 1", (date_str,))
+    result = cur.fetchone()
+    conn.close()
+    return result is not None
+
+def has_production_been_sent_today(db_file, date_str):
+    """
+    Check if production data has been sent to Unitas for a given date.
+    Returns True if sent_to_unitas_at is not NULL for the date.
+    """
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM Daily_User_Log WHERE date(date_entered) = ? AND sent_to_unitas_at IS NOT NULL LIMIT 1", (date_str,))
+    result = cur.fetchone()
+    conn.close()
+    return result is not None
+
+def has_cooler_been_logged_today(db_file, date_str):
+    """
+    Check if cooler log has been sent to Unitas for a given date.
+    Returns True if cooler_logged_at is not NULL for the date.
+    """
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM Daily_Bot_Log WHERE date = ? AND cooler_logged_at IS NOT NULL LIMIT 1", (date_str,))
+    result = cur.fetchone()
+    conn.close()
+    return result is not None
