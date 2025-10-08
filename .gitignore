@@ -9,3 +9,5 @@ defaults.json
 settings.json
 server/corrupt_files
 .claude
+*.pp
+*.mod

@@ -67,7 +67,6 @@ use_localtime=YES
 xferlog_enable=YES
 connect_from_port_20=NO
 xferlog_file=/var/log/vsftpd.log
-secure_chroot_dir=/var/run/vsftpd/empty
 pam_service_name=vsftpd
 anon_other_write_enable=YES
 log_ftp_protocol=YES
@@ -96,15 +95,24 @@ else
     sudo semanage fcontext -a -t public_content_rw_t "($UPLOAD_DIR)(/.*)?"
     sudo restorecon -Rv $UPLOAD_DIR
 
-    # Systemd permissions - try to load policy, but don't fail if it doesn't work
-    echo "[*] Attempting to load SELinux policy module..."
-    if sudo semodule -i my-python.pp 2>/dev/null; then
-        echo "✅ SELinux policy module loaded successfully"
+    # Systemd permissions - compile and load policy on target system
+    echo "[*] Compiling and loading SELinux policy module..."
+    if [[ -f "$SCRIPT_DIR/datalogger.te" ]]; then
+        cd "$SCRIPT_DIR"
+        if sudo checkmodule -M -m -o datalogger.mod datalogger.te 2>/dev/null && \
+           sudo semodule_package -o datalogger.pp -m datalogger.mod 2>/dev/null && \
+           sudo semodule -i datalogger.pp 2>/dev/null; then
+            echo "✅ SELinux policy module compiled and loaded successfully"
+            # Clean up build artifacts
+            sudo rm -f datalogger.mod datalogger.pp
+        else
+            echo "⚠️  Warning: Could not compile/load SELinux policy module"
+            echo "    The datalogger service may need manual SELinux permissions"
+            echo "    If you encounter permission issues, run:"
+            echo "    sudo setsebool -P systemd_read_user_home_files 1"
+        fi
     else
-        echo "⚠️  Warning: Could not load SELinux policy module (version mismatch)"
-        echo "    The datalogger service may need manual SELinux permissions"
-        echo "    If you encounter permission issues, run:"
-        echo "    sudo setsebool -P systemd_read_user_home_files 1"
+        echo "⚠️  Warning: datalogger.te not found, skipping SELinux policy"
     fi
 fi
 
