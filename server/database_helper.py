@@ -1,4 +1,7 @@
 import sqlite3
+import shutil
+import pathlib
+from datetime import datetime
 
 # ------------------- DATABASE SETUP -------------------
 def setup_db(db_file):
@@ -350,3 +353,43 @@ def has_cooler_been_logged_today(db_file, date_str):
     result = cur.fetchone()
     conn.close()
     return result is not None
+
+# ------------------- DATABASE BACKUP -------------------
+def backup_database(db_file, backup_dir=None):
+    """
+    Create a database backup if it's been more than 24 hours since last backup.
+
+    Args:
+        db_file: Path to the database file to backup
+        backup_dir: Directory to store backups (default: ~/.datalogger/backups)
+
+    Returns:
+        Path to backup file if created, None if skipped
+    """
+    if backup_dir is None:
+        backup_dir = pathlib.Path.home() / ".datalogger" / "backups"
+    else:
+        backup_dir = pathlib.Path(backup_dir)
+
+    backup_dir.mkdir(parents=True, exist_ok=True)
+
+    # Find most recent backup
+    existing_backups = sorted(backup_dir.glob("database_*.db"))
+
+    if existing_backups:
+        # Get the modification time of the most recent backup
+        last_backup = existing_backups[-1]
+        last_backup_time = datetime.fromtimestamp(last_backup.stat().st_mtime)
+        hours_since_backup = (datetime.now() - last_backup_time).total_seconds() / 3600
+
+        if hours_since_backup < 24:
+            print(f"Skipping backup - last backup was {hours_since_backup:.1f} hours ago")
+            return None
+
+    # Create new backup
+    backup_file = backup_dir / f"database_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+    print(f"Creating database backup at {backup_file}")
+    shutil.copy2(db_file, backup_file)
+    print("Database backup completed")
+
+    return backup_file

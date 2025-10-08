@@ -65,6 +65,9 @@ do_xml_setup(secrets)
 helper_set_timeout(TIMEOUT)
 coolerlog.do_coolerlog_setup(secrets, DB_FILE)
 
+# Backup database on startup
+db.backup_database(DB_FILE)
+
 
 # ─── Main Execution ───
 if args.LogToDatabase:
@@ -84,12 +87,15 @@ else:
 
     # ─── Scheduling ───
     schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE, True)  # XML → DB
+    schedule.every().day.at("00:05").do(db.backup_database, DB_FILE)  # Daily backup at 12:05 AM
 
     # Schedule coolerlog if enabled
     if LOG_COOLER_TO_UNITAS:
         run_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 1)  # One minute after XML processing
         schedule.every().day.at(run_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
         logger.info(f"Cooler log job scheduled at {run_time}")
+
+    logger.info("Daily database backup scheduled at 00:05")
 
     try:
         # Forever loop
