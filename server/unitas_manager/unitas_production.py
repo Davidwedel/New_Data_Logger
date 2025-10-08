@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from datetime import date, timedelta
-import runstate as runstate
 import database_helper as db
 
 HEADLESS = None
@@ -395,7 +394,6 @@ def run_unitas_stuff(secrets, db_file, target_date=None):
                 except:
                     print("Warning: Could not return to production page")
 
-        runstate.save_data("SHEET_TO_PRODUCTION")
         print(f"\n{'='*60}")
         print(f"UPLOAD SUMMARY")
         print(f"{'='*60}")

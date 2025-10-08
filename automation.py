@@ -19,7 +19,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "server/unitas_manager")
 # Local imports
 from server.helpers import check_all_settings_there as check_settings
 import server.jobs as jobs
-import server.runstate as runstate
 import server.database_helper as db
 from server.xml_processing import run_xml_stuff as log_from_xml
 from server.xml_processing import deleteOldFiles, do_xml_setup
@@ -61,27 +60,20 @@ TIMEOUT = secrets["Timeout"]
 # ─── Init ───
 db.setup_db(DB_FILE)
 check_settings(secrets)
-runstate.make_sure_exists()
 unitas.do_unitas_setup(secrets)
 do_xml_setup(secrets)
 helper_set_timeout(TIMEOUT)
-coolerlog.do_coolerlog_setup(secrets)
+coolerlog.do_coolerlog_setup(secrets, DB_FILE)
 
 
 # ─── Main Execution ───
 if args.LogToDatabase:
     logger.info("Running one-shot: XML → Database")
-    valuesFromXML = log_from_xml(DB_FILE)
-    print(valuesFromXML)
-    runstate.save_data("XML_TO_DB")
-
-    # Delete all old files, so directory doesn't fill up.
-    if not args.NoDelete:
-        deleteOldFiles()
+    jobs.xml_to_sheet_job(args, DB_FILE, process_all=True)
 
 elif args.CoolerLogToUnitas:
     logger.info("Running one-shot: Cooler Log → Unitas")
-    coolerlog.run_coolerlog_to_unitas()
+    coolerlog.run_coolerlog_to_unitas(DB_FILE)
 
 elif args.LogToUnitas:
     logger.info("Running one-shot: Database → Unitas")
@@ -91,14 +83,12 @@ else:
     logger.info("Running in Forever Mode (continuous automation)")
 
     # ─── Scheduling ───
-    schedule.every().day.at("00:00:00").do(jobs.reset_flags)  # Reset daily
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
-    schedule.every(10).seconds.do(jobs.check_and_run_unitas, secrets, DB_FILE)  # Poll for Unitas upload
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE, True)  # XML → DB
 
     # Schedule coolerlog if enabled
     if LOG_COOLER_TO_UNITAS:
         run_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 1)  # One minute after XML processing
-        schedule.every().day.at(run_time).do(coolerlog.run_coolerlog_to_unitas)
+        schedule.every().day.at(run_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
         logger.info(f"Cooler log job scheduled at {run_time}")
 
     try:
