@@ -131,6 +131,26 @@ echo "   (Replace <your-ip-address> with the IP of this machine.)"
 
 
 echo ""
+echo "Setting up sudo permissions for service management..."
+
+# Create sudoers file for service management
+SUDOERS_FILE="/etc/sudoers.d/datalogger"
+cat <<EOF | sudo tee $SUDOERS_FILE > /dev/null
+# Allow webapp to manage datalogger services without password
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start datalogger.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop datalogger.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart datalogger.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start xml-watcher.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop xml-watcher.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart xml-watcher.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl show datalogger.service
+$USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl show xml-watcher.service
+EOF
+
+sudo chmod 0440 $SUDOERS_FILE
+echo "✅ Sudo permissions configured"
+
+echo ""
 echo "Creating automation service (XML processing & Unitas uploads)..."
 
 sudo tee $AUTOMATION_SERVICE > /dev/null <<EOF

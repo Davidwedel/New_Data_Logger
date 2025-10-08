@@ -1,5 +1,32 @@
 <div id="advanced" class="tabcontent" style="display:none;">
   <h2>Advanced Settings</h2>
+
+  <!-- Service Management Section -->
+  <div style="margin-bottom:30px; padding:15px; border:1px solid #ccc; border-radius:5px; max-width:600px;">
+    <h3>Service Management</h3>
+    <p>Control the automation and XML watcher services.</p>
+
+    <div id="service-status" style="margin-bottom:15px; padding:10px; background-color:#f5f5f5; border-radius:4px;">
+      <strong>Loading service status...</strong>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button type="button" onclick="controlService('automation', 'start')" style="padding:8px 15px; background-color:#28a745; color:white; border:none; border-radius:4px; cursor:pointer;">Start Automation</button>
+      <button type="button" onclick="controlService('automation', 'stop')" style="padding:8px 15px; background-color:#dc3545; color:white; border:none; border-radius:4px; cursor:pointer;">Stop Automation</button>
+      <button type="button" onclick="controlService('automation', 'restart')" style="padding:8px 15px; background-color:#ffc107; color:white; border:none; border-radius:4px; cursor:pointer;">Restart Automation</button>
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+      <button type="button" onclick="controlService('xml-watcher', 'start')" style="padding:8px 15px; background-color:#28a745; color:white; border:none; border-radius:4px; cursor:pointer;">Start XML Watcher</button>
+      <button type="button" onclick="controlService('xml-watcher', 'stop')" style="padding:8px 15px; background-color:#dc3545; color:white; border:none; border-radius:4px; cursor:pointer;">Stop XML Watcher</button>
+      <button type="button" onclick="controlService('xml-watcher', 'restart')" style="padding:8px 15px; background-color:#ffc107; color:white; border:none; border-radius:4px; cursor:pointer;">Restart XML Watcher</button>
+    </div>
+
+    <button type="button" onclick="refreshServiceStatus()" style="padding:8px 15px; background-color:#007BFF; color:white; border:none; border-radius:4px; cursor:pointer; margin-top:10px;">Refresh Status</button>
+  </div>
+
+  <!-- Default Values Section -->
+  <h3>Default Values</h3>
   <p>Set default values for Daily Farm Data Entry fields. These values will auto-fill when creating new entries.</p>
 
   <form id="defaults-form" style="max-width:600px;">
@@ -50,6 +77,80 @@
 </div>
 
 <script>
+  // Service Management Functions
+  function refreshServiceStatus() {
+    fetch('/api/service_status')
+      .then(res => res.json())
+      .then(data => {
+        const statusDiv = document.getElementById('service-status');
+        let html = '<div style="font-family:monospace;">';
+
+        // Automation service
+        const autoStatus = data.services.datalogger;
+        const autoColor = autoStatus.active === 'active' ? '#28a745' : '#dc3545';
+        html += `<div style="margin-bottom:10px;">
+          <strong>Automation Service:</strong>
+          <span style="color:${autoColor}; font-weight:bold;">${autoStatus.active}</span>
+          <span style="margin-left:10px; color:#666;">${autoStatus.sub_state}</span>
+        </div>`;
+
+        // XML Watcher service
+        const watcherStatus = data.services['xml-watcher'];
+        const watcherColor = watcherStatus.active === 'active' ? '#28a745' : '#dc3545';
+        html += `<div>
+          <strong>XML Watcher Service:</strong>
+          <span style="color:${watcherColor}; font-weight:bold;">${watcherStatus.active}</span>
+          <span style="margin-left:10px; color:#666;">${watcherStatus.sub_state}</span>
+        </div>`;
+
+        html += '</div>';
+        statusDiv.innerHTML = html;
+      })
+      .catch(err => {
+        console.error('Error loading service status:', err);
+        document.getElementById('service-status').innerHTML =
+          '<span style="color:#dc3545;">Failed to load service status</span>';
+      });
+  }
+
+  function controlService(serviceName, action) {
+    const serviceMap = {
+      'automation': 'datalogger',
+      'xml-watcher': 'xml-watcher'
+    };
+
+    const actualName = serviceMap[serviceName] || serviceName;
+
+    fetch('/api/service_control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ service: actualName, action: action })
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.status === 'ok') {
+          alert(result.message);
+          // Refresh status after a short delay
+          setTimeout(refreshServiceStatus, 1000);
+        } else {
+          alert('Error: ' + result.message);
+        }
+      })
+      .catch(err => {
+        console.error('Error controlling service:', err);
+        alert('Failed to control service');
+      });
+  }
+
+  // Load service status when Advanced tab is opened
+  document.addEventListener('DOMContentLoaded', function() {
+    // Refresh when switching to Advanced tab
+    const advancedTab = document.querySelector('[onclick*="advanced"]');
+    if (advancedTab) {
+      advancedTab.addEventListener('click', refreshServiceStatus);
+    }
+  });
+
   function loadDefaults() {
     fetch('/get_defaults')
       .then(res => res.json())

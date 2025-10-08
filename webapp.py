@@ -8,6 +8,7 @@ import sys
 import json
 import pathlib
 import requests
+import subprocess
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date, datetime
@@ -551,6 +552,77 @@ def api_today_data():
 
     bot_log = db.get_daily_bot_log(DB_FILE, today_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})
+
+# Service management endpoints
+@app.route("/api/service_status", methods=["GET"])
+def service_status():
+    """Get status of datalogger and xml-watcher services"""
+    try:
+        services = {}
+        for service_name in ['datalogger', 'xml-watcher']:
+            result = subprocess.run(
+                ['systemctl', 'show', f'{service_name}.service', '--property=ActiveState,SubState'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+
+            # Parse output: ActiveState=active\nSubState=running
+            status = {}
+            for line in result.stdout.strip().split('\n'):
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    if key == 'ActiveState':
+                        status['active'] = value
+                    elif key == 'SubState':
+                        status['sub_state'] = value
+
+            services[service_name] = status
+
+        return jsonify({"status": "ok", "services": services})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/service_control", methods=["POST"])
+def service_control():
+    """Start, stop, or restart a service"""
+    data = request.json
+    service = data.get('service')
+    action = data.get('action')
+
+    # Validate inputs
+    allowed_services = ['datalogger', 'xml-watcher']
+    allowed_actions = ['start', 'stop', 'restart']
+
+    if service not in allowed_services:
+        return jsonify({"status": "error", "message": f"Invalid service: {service}"}), 400
+
+    if action not in allowed_actions:
+        return jsonify({"status": "error", "message": f"Invalid action: {action}"}), 400
+
+    try:
+        # Execute systemctl command
+        result = subprocess.run(
+            ['sudo', 'systemctl', action, f'{service}.service'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+
+        if result.returncode == 0:
+            return jsonify({
+                "status": "ok",
+                "message": f"Successfully {action}ed {service} service"
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"Failed to {action} {service}: {result.stderr}"
+            }), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({"status": "error", "message": "Command timed out"}), 500
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == "__main__":
     import argparse

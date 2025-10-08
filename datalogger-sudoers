@@ -1,0 +1,15 @@
+# Allow webapp to manage datalogger services without password
+# This file should be copied to /etc/sudoers.d/datalogger during installation
+#
+# Usage: sudo cp datalogger-sudoers /etc/sudoers.d/datalogger
+#        sudo chmod 0440 /etc/sudoers.d/datalogger
+
+# Replace YOUR_USERNAME with the actual username running the webapp
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl start datalogger.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop datalogger.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart datalogger.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl start xml-watcher.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop xml-watcher.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart xml-watcher.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl show datalogger.service
+YOUR_USERNAME ALL=(ALL) NOPASSWD: /usr/bin/systemctl show xml-watcher.service
