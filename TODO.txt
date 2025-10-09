@@ -17,3 +17,6 @@ should really automate ftp script for my own sanity
 sql security?
 readme
 timezone stuff in settings
+belt eggs floor eggs total eggs. sigh
+urgent:
+bot log didnt run yesterday for some reason

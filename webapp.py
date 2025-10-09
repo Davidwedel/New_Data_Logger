@@ -115,6 +115,7 @@ def add_daily_userlog():
     date_val = date.today().isoformat()
     belt_eggs = data.get("belt_eggs")
     floor_eggs = data.get("floor_eggs")
+    total_eggs = data.get("total_eggs")
     mortality_indoor = data.get("mortality_indoor")
     mortality_outdoor = data.get("mortality_outdoor")
     euthanized_indoor = data.get("euthanized_indoor")
@@ -150,6 +151,7 @@ def add_daily_userlog():
         date=date_val,
         belt_eggs=belt_eggs,
         floor_eggs=floor_eggs,
+        total_eggs=total_eggs,
         mortality_indoor=mortality_indoor,
         mortality_outdoor=mortality_outdoor,
         euthanized_indoor=euthanized_indoor,

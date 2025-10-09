@@ -49,6 +49,7 @@ def setup_db(db_file):
         date DATE,
         belt_eggs INTEGER DEFAULT 0,
         floor_eggs INTEGER DEFAULT 0,
+        total_eggs INTEGER DEFAULT 0,
         mortality_indoor INTEGER DEFAULT 0,
         mortality_outdoor INTEGER DEFAULT 0,
         euthanized_indoor INTEGER DEFAULT 0,
@@ -97,6 +98,7 @@ def migrate_schema(conn):
         'nutritionist': 'TEXT',
         'ration_used': 'TEXT',
         'sent_to_unitas_at': 'TIMESTAMP',
+        'total_eggs': 'INTEGER DEFAULT 0',
     }
 
     # Add missing columns to Daily_User_Log
@@ -191,6 +193,7 @@ def insert_daily_user_log(
     date=None,
     belt_eggs=None,
     floor_eggs=None,
+    total_eggs=None,
     mortality_indoor=None,
     mortality_outdoor=None,
     euthanized_indoor=None,
@@ -217,6 +220,10 @@ def insert_daily_user_log(
     door_open=None,
     door_closed=None,
 ):
+    # Auto-set total_eggs to equal belt_eggs if not provided
+    if total_eggs is None and belt_eggs is not None:
+        total_eggs = int(belt_eggs or 0)
+
     payload = {k: v for k, v in locals().items() if v is not None and k != 'db_file'}
     return _insert_into_table(db_file, "Daily_User_Log", payload)
 
