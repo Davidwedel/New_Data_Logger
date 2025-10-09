@@ -372,7 +372,7 @@ def run_unitas_stuff(secrets, db_file, target_date=None):
                 # Mark as sent to Unitas with timestamp
                 user_log = db.get_daily_user_log(db_file, upload_date)
                 if user_log:
-                    db.update_daily_user_log(db_file, user_log['date_entered'], {
+                    db.update_daily_user_log(db_file, upload_date, {
                         'sent_to_unitas_at': datetime.now().isoformat()
                     })
                     print(f"✓ Marked {upload_date} as sent to Unitas")

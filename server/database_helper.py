@@ -46,7 +46,7 @@ def setup_db(db_file):
     # Daily_User_Log table
     curr.execute('''CREATE TABLE IF NOT EXISTS Daily_User_Log (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date_entered TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        date DATE,
         belt_eggs INTEGER DEFAULT 0,
         floor_eggs INTEGER DEFAULT 0,
         mortality_indoor INTEGER DEFAULT 0,
@@ -188,7 +188,7 @@ def insert_pallet_log(
 
 def insert_daily_user_log(
     db_file,
-    date_entered=None,
+    date=None,
     belt_eggs=None,
     floor_eggs=None,
     mortality_indoor=None,
@@ -228,9 +228,9 @@ def get_daily_user_log(db_file, date_str=None):
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
     if date_str:
-        cur.execute("SELECT * FROM Daily_User_Log WHERE date(date_entered) = ? ORDER BY date_entered DESC LIMIT 1", (date_str,))
+        cur.execute("SELECT * FROM Daily_User_Log WHERE date = ? LIMIT 1", (date_str,))
     else:
-        cur.execute("SELECT * FROM Daily_User_Log ORDER BY date_entered DESC LIMIT 1")
+        cur.execute("SELECT * FROM Daily_User_Log ORDER BY date DESC LIMIT 1")
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -251,7 +251,7 @@ def get_all_user_logs(db_file):
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("SELECT * FROM Daily_User_Log ORDER BY date_entered DESC")
+    cur.execute("SELECT * FROM Daily_User_Log ORDER BY date DESC")
     rows = cur.fetchall()
     conn.close()
     return [dict(row) for row in rows]
@@ -266,14 +266,14 @@ def get_all_bot_logs(db_file):
     return [dict(row) for row in rows]
 
 # ------------------- UPDATE FUNCTIONS -------------------
-def update_daily_user_log(db_file, date_entered, data):
+def update_daily_user_log(db_file, date_str, data):
     if not data:
         raise ValueError("No data provided to update.")
     set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
-    sql = f"UPDATE Daily_User_Log SET {set_clause} WHERE date_entered = ?"
+    sql = f"UPDATE Daily_User_Log SET {set_clause} WHERE date = ?"
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
-    cur.execute(sql, tuple(data.values()) + (date_entered,))
+    cur.execute(sql, tuple(data.values()) + (date_str,))
     conn.commit()
     conn.close()
 
@@ -301,14 +301,13 @@ def get_dates_pending_unitas_upload(db_file):
     cur = conn.cursor()
 
     # Join user_log with bot_log to ensure both exist
-    # Extract just the date part from date_entered for matching
     sql = """
-        SELECT DISTINCT date(u.date_entered) as date_only
+        SELECT DISTINCT u.date as date_only
         FROM Daily_User_Log u
-        INNER JOIN Daily_Bot_Log b ON date(u.date_entered) = b.date
+        INNER JOIN Daily_Bot_Log b ON u.date = b.date
         WHERE u.send_to_bot = 1
         AND u.sent_to_unitas_at IS NULL
-        ORDER BY date(u.date_entered) ASC
+        ORDER BY u.date ASC
     """
 
     cur.execute(sql)
@@ -337,7 +336,7 @@ def has_production_been_sent_today(db_file, date_str):
     """
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
-    cur.execute("SELECT 1 FROM Daily_User_Log WHERE date(date_entered) = ? AND sent_to_unitas_at IS NOT NULL LIMIT 1", (date_str,))
+    cur.execute("SELECT 1 FROM Daily_User_Log WHERE date = ? AND sent_to_unitas_at IS NOT NULL LIMIT 1", (date_str,))
     result = cur.fetchone()
     conn.close()
     return result is not None

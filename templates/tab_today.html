@@ -146,7 +146,7 @@
 
     // Define the expected fields for user log
     const userLogFields = [
-      'date_entered',
+      'date',
       'belt_eggs',
       'floor_eggs',
       'mortality_indoor',
@@ -182,7 +182,7 @@
     // Define display names for fields
     const fieldDisplayNames = {
       'id': 'ID',
-      'date_entered': 'Date Entered',
+      'date': 'Date',
       'send_to_bot': 'Send to Unitas',
       'belt_eggs': 'Belt Eggs',
       'floor_eggs': 'Floor Eggs',
@@ -230,7 +230,7 @@
     // Render each field as a labeled input in a grid
     for (const key of userLogFields) {
       const value = user_log[key] || '';
-      const isReadonly = key === 'id' || key === 'date_entered' ? 'readonly' : '';
+      const isReadonly = key === 'id' || key === 'date' ? 'readonly' : '';
       const displayName = fieldDisplayNames[key] || key;
 
       html += `<div style="display:flex; flex-direction:column;">`;
@@ -528,7 +528,7 @@
       // Handle regular inputs (all non-checkbox inputs)
       const inputs = form.querySelectorAll('input:not([type="checkbox"]), textarea');
       inputs.forEach(input => {
-        if (input.name && input.name !== 'id' && input.name !== 'date_entered') {
+        if (input.name && input.name !== 'id' && input.name !== 'date') {
           data[input.name] = input.value;
         }
       });
@@ -536,7 +536,7 @@
       // Handle checkboxes - convert to Yes/No or 0/1 depending on field
       const checkboxes = form.querySelectorAll('input[type="checkbox"]');
       checkboxes.forEach(checkbox => {
-        if (checkbox.name && checkbox.name !== 'id' && checkbox.name !== 'date_entered') {
+        if (checkbox.name && checkbox.name !== 'id' && checkbox.name !== 'date') {
           // send_to_bot uses 0/1, others use Yes/No
           if (checkbox.name === 'send_to_bot') {
             data[checkbox.name] = checkbox.checked ? 1 : 0;
@@ -638,7 +638,7 @@
     // Check each field and apply red border if invalid
     const checkField = (fieldName, isInvalid) => {
       const el = form.querySelector(`[name="${fieldName}"]`);
-      if (el && el.name !== 'id' && el.name !== 'date_entered') {
+      if (el && el.name !== 'id' && el.name !== 'date') {
         el.style.border = isInvalid ? '2px solid red' : '';
       }
     };

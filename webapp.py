@@ -112,7 +112,7 @@ def add_pallet():
 def add_daily_userlog():
     import json
     data = request.json
-    date_entered = datetime.now().isoformat()
+    date_val = date.today().isoformat()
     belt_eggs = data.get("belt_eggs")
     floor_eggs = data.get("floor_eggs")
     mortality_indoor = data.get("mortality_indoor")
@@ -147,7 +147,7 @@ def add_daily_userlog():
 
     db.insert_daily_user_log(
         DB_FILE,
-        date_entered=date_entered,
+        date=date_val,
         belt_eggs=belt_eggs,
         floor_eggs=floor_eggs,
         mortality_indoor=mortality_indoor,
@@ -299,15 +299,12 @@ def update_user_log():
     try:
         if not user_log:
             # No log exists, create a new one
-            data['date_entered'] = datetime.now().isoformat()
+            data['date'] = date_str
             db.insert_daily_user_log(DB_FILE, **data)
             return jsonify({"status": "ok", "message": f"User log created for {date_str}."})
         else:
             # Update existing log
-            date_entered = user_log.get("date_entered")
-            if not date_entered:
-                return jsonify({"status": "error", "message": "No date_entered in user log."}), 400
-            db.update_daily_user_log(DB_FILE, date_entered, data)
+            db.update_daily_user_log(DB_FILE, date_str, data)
             return jsonify({"status": "ok", "message": f"User log updated for {date_str}."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -459,7 +456,7 @@ def api_date_data():
                     print(f"DEBUG: Auto-filled ration_used from yesterday: {defaults['ration_used']}")
 
         # Create new entry with defaults
-        defaults['date_entered'] = datetime.now().isoformat()
+        defaults['date'] = date_str
         print(f"DEBUG: Creating user log with data: {defaults}")
         try:
             # Check again right before inserting to avoid race condition
@@ -491,7 +488,7 @@ def api_date_data():
                     if weather:
                         print(f"DEBUG: Got weather: {weather}, updating user log")
                         # Update the weather field
-                        db.update_daily_user_log(DB_FILE, user_log['date_entered'], {'weather': weather})
+                        db.update_daily_user_log(DB_FILE, date_str, {'weather': weather})
                         user_log['weather'] = weather
                     else:
                         print("DEBUG: Weather fetch returned None")
@@ -550,7 +547,7 @@ def api_today_data():
                 print(f"DEBUG: Auto-filled ration_used from yesterday: {defaults['ration_used']}")
 
         # Create new entry with defaults
-        defaults['date_entered'] = datetime.now().isoformat()
+        defaults['date'] = today_str
         print(f"DEBUG: Creating user log with data: {defaults}")
         try:
             # Check again right before inserting to avoid race condition
@@ -582,7 +579,7 @@ def api_today_data():
                     if weather:
                         print(f"DEBUG: Got weather: {weather}, updating user log")
                         # Update the weather field
-                        db.update_daily_user_log(DB_FILE, user_log['date_entered'], {'weather': weather})
+                        db.update_daily_user_log(DB_FILE, today_str, {'weather': weather})
                         user_log['weather'] = weather
                     else:
                         print("DEBUG: Weather fetch returned None")
