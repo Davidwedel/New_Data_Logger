@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
-from xml_processing import deleteOldFiles
-from xml_processing import run_xml_stuff as log_from_xml
-from xml_processing import xmlFolder
-import database_helper as db
-import unitas_manager.unitas_production as unitas
+from server.xml_processing import deleteOldFiles
+from server.xml_processing import run_xml_stuff as log_from_xml
+import server.xml_processing as xml_processing
+import server.database_helper as db
+import server.unitas_manager.unitas_production as unitas
 import glob
 import os
 
@@ -13,11 +13,11 @@ def find_oldest_complete_day_missing_from_db(db_file):
     but doesn't have a bot_log entry in the database.
     Returns date string in YYYY-MM-DD format or None if all days are logged.
     """
-    if not xmlFolder:
+    if not xml_processing.xmlFolder:
         return None
 
     # Get all XML files
-    all_xmls = glob.glob(os.path.join(xmlFolder, "*.xml"))
+    all_xmls = glob.glob(os.path.join(xml_processing.xmlFolder, "*.xml"))
     if not all_xmls:
         return None
 
