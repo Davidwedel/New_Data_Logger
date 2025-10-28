@@ -94,11 +94,16 @@ else:
     schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
     schedule.every().day.at("00:05").do(db.backup_database, DB_FILE)  # Daily backup at 12:05 AM
 
-    # Schedule coolerlog if enabled
+    # Schedule cooler log backup 1 minute after XML processing
+    cooler_backup_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 1)
+    schedule.every().day.at(cooler_backup_time).do(db.backup_cooler_logs, DB_FILE)
+    logger.info(f"Cooler log backup scheduled at {cooler_backup_time}")
+
+    # Schedule coolerlog to Unitas if enabled
     if LOG_COOLER_TO_UNITAS:
-        run_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 1)  # One minute after XML processing
-        schedule.every().day.at(run_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
-        logger.info(f"Cooler log job scheduled at {run_time}")
+        unitas_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 2)  # Two minutes after XML processing
+        schedule.every().day.at(unitas_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
+        logger.info(f"Cooler log to Unitas scheduled at {unitas_time}")
 
     logger.info("Daily database backup scheduled at 00:05")
 
