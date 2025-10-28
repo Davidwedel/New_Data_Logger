@@ -132,6 +132,18 @@
 
   <script>
     function openTab(evt, tabName) {
+      // Check for unsaved changes before switching tabs
+      if (typeof settingsHasUnsavedChanges !== 'undefined' && settingsHasUnsavedChanges) {
+        if (!confirm('You have unsaved changes in Settings. Are you sure you want to leave?')) {
+          return;
+        }
+      }
+      if (typeof advancedHasUnsavedChanges !== 'undefined' && advancedHasUnsavedChanges) {
+        if (!confirm('You have unsaved changes in Advanced. Are you sure you want to leave?')) {
+          return;
+        }
+      }
+
       var i, tabcontent, tablinks;
       tabcontent = document.getElementsByClassName("tabcontent");
       for (i = 0; i < tabcontent.length; i++) {

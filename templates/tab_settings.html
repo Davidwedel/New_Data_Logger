@@ -1,8 +1,8 @@
 <div id="settings" class="tabcontent" style="display:none;">
-  <h2>Farm Settings</h2>
+  <h2>Settings</h2>
 
-  <!-- Basic Farm Settings -->
-  <form id="settingsForm" onsubmit="saveSettings(event)" style="margin-bottom:30px;">
+  <!-- Unified Settings Form -->
+  <form id="settingsForm" onsubmit="saveAllSettings(event)">
     <h3>Basic Information</h3>
     <div class="spinner-container">
       <span class="spinner-label">Hatch Date</span>
@@ -17,12 +17,6 @@
       <input type="text" id="nws_station_id" name="nws_station_id" placeholder="e.g. KBOS" maxlength="4" style="text-transform:uppercase;">
     </div>
     <p style="font-size:12px; color:#666; margin-left:160px;">Enter your nearest NWS station ID for auto-weather. Leave blank to disable.<br>Find stations at <a href="https://www.weather.gov/" target="_blank">weather.gov</a></p>
-    <button type="submit" class="floating-btn" style="position:static; margin-top:20px;">Save Settings</button>
-    <div id="settingsMsg" style="margin-top:10px;"></div>
-  </form>
-
-  <!-- Secrets Configuration -->
-  <form id="secretsForm" onsubmit="saveSecrets(event)">
     <h3>System Configuration</h3>
 
     <div class="spinner-container">
@@ -97,24 +91,43 @@
       <input type="checkbox" id="Cooler_Log_To_Unitas" name="Cooler_Log_To_Unitas">
     </div>
 
-    <button type="submit" class="floating-btn" style="position:static; margin-top:20px;">Save Configuration</button>
-    <div id="secretsMsg" style="margin-top:10px;"></div>
+    <button type="submit" class="floating-btn" style="position:static; margin-top:20px;">Save Settings</button>
+    <div id="settingsMsg" style="margin-top:10px;"></div>
   </form>
 </div>
 
 <script>
-  // Load settings and secrets when Settings tab is opened
+  let settingsHasUnsavedChanges = false;
+
+  // Load settings when Settings tab is opened
   document.addEventListener('DOMContentLoaded', function() {
     const settingsTab = document.querySelector('[onclick*="settings"]');
     if (settingsTab) {
       settingsTab.addEventListener('click', function() {
-        loadBasicSettings();
-        loadSecrets();
+        loadAllSettings();
       });
     }
+
+    // Track changes to form fields
+    const form = document.getElementById('settingsForm');
+    if (form) {
+      form.addEventListener('input', function() {
+        settingsHasUnsavedChanges = true;
+      });
+    }
+
+    // Warn on page unload if unsaved changes
+    window.addEventListener('beforeunload', function(e) {
+      if (settingsHasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
   });
 
-  function loadBasicSettings() {
+  function loadAllSettings() {
+    // Load basic settings
     fetch('/get_settings')
       .then(res => res.json())
       .then(data => {
@@ -123,9 +136,8 @@
         if (data.nws_station_id) document.getElementById('nws_station_id').value = data.nws_station_id;
       })
       .catch(err => console.error('Error loading settings:', err));
-  }
 
-  function loadSecrets() {
+    // Load system config
     fetch('/get_secrets')
       .then(res => res.json())
       .then(data => {
@@ -142,8 +154,9 @@
         if (data.House_ID) document.getElementById('House_ID').value = data.House_ID;
         if (data.Cooler_Log_Initials) document.getElementById('Cooler_Log_Initials').value = data.Cooler_Log_Initials;
         document.getElementById('Cooler_Log_To_Unitas').checked = data.Cooler_Log_To_Unitas === true;
+        settingsHasUnsavedChanges = false;
       })
-      .catch(err => console.error('Error loading secrets:', err));
+      .catch(err => console.error('Error loading config:', err));
   }
 
   function togglePasswordVisibility(fieldId) {
@@ -158,66 +171,58 @@
     }
   }
 
-  function saveSettings(event) {
-    event.preventDefault();
-    const hatchDate = document.getElementById('hatchDate').value;
-    const birdsArrivedDate = document.getElementById('birdsArrivedDate').value;
-    const nwsStationId = document.getElementById('nws_station_id').value.toUpperCase();
-    fetch('/save_settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        hatch_date: hatchDate,
-        birds_arrived_date: birdsArrivedDate,
-        nws_station_id: nwsStationId
-      })
-    })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById('settingsMsg').textContent = data.message || 'Settings saved!';
-      })
-      .catch(() => {
-        document.getElementById('settingsMsg').textContent = 'Error saving settings.';
-      });
-  }
-
-  function saveSecrets(event) {
+  async function saveAllSettings(event) {
     event.preventDefault();
 
-    const secrets = {
-      path_to_xmls: document.getElementById('path_to_xmls').value,
-      how_long_to_save_old_files: parseInt(document.getElementById('how_long_to_save_old_files').value),
-      time_zone: document.getElementById('time_zone').value,
-      retrieve_from_xml_time: document.getElementById('retrieve_from_xml_time').value,
-      get_cooler_temp_AM: document.getElementById('get_cooler_temp_AM').value,
-      get_cooler_temp_PM: document.getElementById('get_cooler_temp_PM').value,
-      cooler_temp_time_tolerance: document.getElementById('cooler_temp_time_tolerance').value,
-      Unitas_Username: document.getElementById('Unitas_Username').value,
-      Unitas_Password: document.getElementById('Unitas_Password').value,
-      Farm_ID: document.getElementById('Farm_ID').value,
-      House_ID: document.getElementById('House_ID').value,
-      Cooler_Log_Initials: document.getElementById('Cooler_Log_Initials').value,
-      Cooler_Log_To_Unitas: document.getElementById('Cooler_Log_To_Unitas').checked
-    };
+    const msgDiv = document.getElementById('settingsMsg');
+    msgDiv.textContent = 'Saving...';
+    msgDiv.style.color = '#666';
 
-    fetch('/save_secrets', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(secrets)
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === 'ok') {
-          document.getElementById('secretsMsg').textContent = data.message || 'Configuration saved!';
-          document.getElementById('secretsMsg').style.color = 'green';
-        } else {
-          document.getElementById('secretsMsg').textContent = 'Error: ' + data.message;
-          document.getElementById('secretsMsg').style.color = 'red';
-        }
-      })
-      .catch(() => {
-        document.getElementById('secretsMsg').textContent = 'Error saving configuration.';
-        document.getElementById('secretsMsg').style.color = 'red';
+    try {
+      // Save basic settings
+      await fetch('/save_settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hatch_date: document.getElementById('hatchDate').value,
+          birds_arrived_date: document.getElementById('birdsArrivedDate').value,
+          nws_station_id: document.getElementById('nws_station_id').value.toUpperCase()
+        })
       });
+
+      // Save system config
+      await fetch('/save_secrets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          path_to_xmls: document.getElementById('path_to_xmls').value,
+          how_long_to_save_old_files: parseInt(document.getElementById('how_long_to_save_old_files').value),
+          time_zone: document.getElementById('time_zone').value,
+          retrieve_from_xml_time: document.getElementById('retrieve_from_xml_time').value,
+          get_cooler_temp_AM: document.getElementById('get_cooler_temp_AM').value,
+          get_cooler_temp_PM: document.getElementById('get_cooler_temp_PM').value,
+          cooler_temp_time_tolerance: document.getElementById('cooler_temp_time_tolerance').value,
+          Unitas_Username: document.getElementById('Unitas_Username').value,
+          Unitas_Password: document.getElementById('Unitas_Password').value,
+          Farm_ID: document.getElementById('Farm_ID').value,
+          House_ID: document.getElementById('House_ID').value,
+          Cooler_Log_Initials: document.getElementById('Cooler_Log_Initials').value,
+          Cooler_Log_To_Unitas: document.getElementById('Cooler_Log_To_Unitas').checked
+        })
+      });
+
+      msgDiv.textContent = 'All settings saved successfully!';
+      msgDiv.style.color = 'green';
+      settingsHasUnsavedChanges = false;
+
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        msgDiv.textContent = '';
+      }, 3000);
+
+    } catch (error) {
+      msgDiv.textContent = 'Error saving settings: ' + error.message;
+      msgDiv.style.color = 'red';
+    }
   }
 </script>

@@ -142,13 +142,35 @@
       });
   }
 
+  let advancedHasUnsavedChanges = false;
+
   // Load service status when Advanced tab is opened
   document.addEventListener('DOMContentLoaded', function() {
     // Refresh when switching to Advanced tab
     const advancedTab = document.querySelector('[onclick*="advanced"]');
     if (advancedTab) {
-      advancedTab.addEventListener('click', refreshServiceStatus);
+      advancedTab.addEventListener('click', function() {
+        refreshServiceStatus();
+        loadDefaults();
+      });
     }
+
+    // Track changes to defaults form
+    const defaultsForm = document.getElementById('defaults-form');
+    if (defaultsForm) {
+      defaultsForm.addEventListener('input', function() {
+        advancedHasUnsavedChanges = true;
+      });
+    }
+
+    // Warn on page unload if unsaved changes
+    window.addEventListener('beforeunload', function(e) {
+      if (advancedHasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
   });
 
   function loadDefaults() {
@@ -167,6 +189,7 @@
         document.getElementById('default_safe_indoors').checked = data.safe_indoors === 'Yes';
         document.getElementById('default_safe_outdoors').checked = data.safe_outdoors === 'Yes';
         document.getElementById('default_equipment_functioning').checked = data.equipment_functioning === 'Yes';
+        advancedHasUnsavedChanges = false;
       })
       .catch(err => console.error('Error loading defaults:', err));
   }
@@ -192,6 +215,7 @@
       .then(res => res.json())
       .then(result => {
         alert(result.message);
+        advancedHasUnsavedChanges = false;
       })
       .catch(err => {
         console.error('Error saving defaults:', err);
