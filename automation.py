@@ -44,6 +44,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--LogToDatabase", "-LD", action="store_true", help="Log XML → Database (one-shot)")
 parser.add_argument("--LogToUnitas", "-LU", action="store_true", help="Log Database → Unitas (one-shot)")
 parser.add_argument("--CoolerLogToUnitas", "-CTU", action="store_true", help="Log cooler temps → Unitas (one-shot)")
+parser.add_argument("--CoolerLogToDB", "-CTD", action="store_true", help="Backup cooler logs → Cooler DB (one-shot)")
 parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don't delete old XML files")
 args = parser.parse_args()
 
@@ -77,6 +78,10 @@ if args.LogToDatabase:
 elif args.CoolerLogToUnitas:
     logger.info("Running one-shot: Cooler Log → Unitas")
     coolerlog.run_coolerlog_to_unitas(DB_FILE)
+
+elif args.CoolerLogToDB:
+    logger.info("Running one-shot: Cooler Log → Backup Database")
+    db.backup_cooler_logs(DB_FILE)
 
 elif args.LogToUnitas:
     logger.info("Running one-shot: Database → Unitas")

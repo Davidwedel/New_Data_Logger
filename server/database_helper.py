@@ -117,6 +117,7 @@ def migrate_schema(conn):
     # Define expected columns for Daily_Bot_Log
     expected_bot_columns = {
         'cooler_logged_at': 'TIMESTAMP',
+        'cooler_to_db_at': 'TIMESTAMP',
     }
 
     # Add missing columns to Daily_Bot_Log
@@ -399,3 +400,102 @@ def backup_database(db_file, backup_dir=None):
     print("Database backup completed")
 
     return backup_file
+
+# ------------------- COOLER LOG BACKUP -------------------
+def setup_coolerlog_db(coolerlog_db_file):
+    """
+    Setup cooler log backup database with Cooler_Log table.
+
+    Args:
+        coolerlog_db_file: Path to the cooler log backup database
+    """
+    conn = sqlite3.connect(coolerlog_db_file)
+    cur = conn.cursor()
+
+    cur.execute('''CREATE TABLE IF NOT EXISTS Cooler_Log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date DATE,
+        cooler_time_am TIME,
+        cooler_temp_am REAL,
+        cooler_time_pm TIME,
+        cooler_temp_pm REAL,
+        logged_at TIMESTAMP
+    )''')
+
+    conn.commit()
+    conn.close()
+
+def backup_cooler_logs(db_file, coolerlog_dir=None):
+    """
+    Backup cooler logs from Daily_Bot_Log to separate cooler log database.
+    Only backs up entries that haven't been backed up yet (cooler_to_db_at IS NULL).
+
+    Args:
+        db_file: Path to main database file
+        coolerlog_dir: Directory for cooler log database (default: ~/.datalogger/coolerlog)
+
+    Returns:
+        Number of records backed up
+    """
+    if coolerlog_dir is None:
+        coolerlog_dir = pathlib.Path.home() / ".datalogger" / "coolerlog"
+    else:
+        coolerlog_dir = pathlib.Path(coolerlog_dir)
+
+    coolerlog_dir.mkdir(parents=True, exist_ok=True)
+    coolerlog_db_file = coolerlog_dir / "coolerlog.db"
+
+    # Setup cooler log database
+    setup_coolerlog_db(coolerlog_db_file)
+
+    # Get records that haven't been backed up yet
+    main_conn = sqlite3.connect(db_file)
+    main_conn.row_factory = sqlite3.Row
+    main_cur = main_conn.cursor()
+
+    main_cur.execute("""
+        SELECT date, cooler_time_am, cooler_temp_am, cooler_time_pm, cooler_temp_pm
+        FROM Daily_Bot_Log
+        WHERE cooler_to_db_at IS NULL
+        AND (cooler_time_am IS NOT NULL OR cooler_time_pm IS NOT NULL)
+        ORDER BY date ASC
+    """)
+
+    records = main_cur.fetchall()
+
+    if not records:
+        main_conn.close()
+        print("No new cooler logs to backup")
+        return 0
+
+    # Insert into cooler log database
+    cooler_conn = sqlite3.connect(coolerlog_db_file)
+    cooler_cur = cooler_conn.cursor()
+
+    now = datetime.now().isoformat()
+    backup_count = 0
+
+    for record in records:
+        cooler_cur.execute("""
+            INSERT INTO Cooler_Log (date, cooler_time_am, cooler_temp_am, cooler_time_pm, cooler_temp_pm, logged_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (record['date'], record['cooler_time_am'], record['cooler_temp_am'],
+              record['cooler_time_pm'], record['cooler_temp_pm'], now))
+
+        # Update main database to mark as backed up
+        main_cur.execute("""
+            UPDATE Daily_Bot_Log
+            SET cooler_to_db_at = ?
+            WHERE date = ?
+        """, (now, record['date']))
+
+        backup_count += 1
+
+    cooler_conn.commit()
+    main_conn.commit()
+
+    cooler_conn.close()
+    main_conn.close()
+
+    print(f"Backed up {backup_count} cooler log records to {coolerlog_db_file}")
+    return backup_count
