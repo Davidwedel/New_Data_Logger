@@ -44,6 +44,8 @@ python server/main.py
   - `xml`: path to XML files, retention settings, retrieve time
   - `cooler`: AM/PM times and tolerance for temperature logging
   - `system`: timezone, timeout settings
+  - `telegram`: bot_token, chat_id for XML watcher notifications
+  - `form_defaults`: default values for daily data entry form
 - Config can be edited via the webapp Settings tab
 - On first run, the script creates a default config file that must be edited with your settings
 
@@ -111,3 +113,4 @@ All tables use date-based primary keys for daily records.
 - Main database stored at `~/.datalogger/database.db`
 - Database backups stored in `~/.datalogger/backups/` (created every 24 hours)
 - Cooler log backups stored in `~/.datalogger/coolerlog/coolerlog.db`
+- XML watcher sends Telegram notifications if bot_token and chat_id are configured

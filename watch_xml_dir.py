@@ -12,15 +12,23 @@ import sys
 import time
 import pathlib
 from datetime import datetime
+import telebot
 
 # Add server directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
-from server.config import get_flat_config
+from server.config import load_config
 
 # Load configuration
 try:
-    config = get_flat_config()
-    XML_DIR = config["path_to_xmls"]
+    config = load_config()
+    XML_DIR = config["xml"]["path"]
+    TELEGRAM_BOT_TOKEN = config["telegram"].get("bot_token", "")
+    TELEGRAM_CHAT_ID = config["telegram"].get("chat_id", "")
+
+    # Initialize Telegram bot if configured
+    telegram_bot = None
+    if telebot and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+        telegram_bot = telebot.TeleBot(TELEGRAM_BOT_TOKEN)
 except Exception as e:
     print(f"Error loading configuration: {e}")
     print("Make sure ~/.datalogger/config.json exists and is properly configured")
@@ -45,12 +53,34 @@ def get_latest_file_time(directory):
         print(f"Error checking directory: {e}")
         return None
 
+def send_telegram_notification(message):
+    """Send a notification via Telegram bot."""
+    if not telegram_bot:
+        return False
+
+    try:
+        telegram_bot.send_message(
+            chat_id=TELEGRAM_CHAT_ID,
+            text=f"🚨 XML Watcher Alert\n\n{message}"
+        )
+        return True
+    except Exception as e:
+        print(f"Error sending Telegram notification: {e}")
+        return False
+
 def send_notification(message):
-    """Send a notification (currently prints to console)."""
+    """Send a notification (console + Telegram)."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"\n{'='*60}")
     print(f"[{timestamp}] ⚠️  ALERT: {message}")
     print(f"{'='*60}\n")
+
+    # Try to send via Telegram
+    if telegram_bot:
+        if send_telegram_notification(message):
+            print("✓ Telegram notification sent")
+        else:
+            print("✗ Failed to send Telegram notification")
 
 def main():
     print(f"Starting XML directory watcher...")
@@ -60,6 +90,15 @@ def main():
     if not os.path.exists(XML_DIR):
         print(f"ERROR: Directory does not exist: {XML_DIR}")
         exit(1)
+
+    # Send startup notification
+    if telegram_bot:
+        try:
+            startup_msg = f"✅ XML Watcher Started\n\nMonitoring: {XML_DIR}\nCheck interval: {CHECK_INTERVAL/60:.0f} minutes"
+            telegram_bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=startup_msg)
+            print("✓ Startup notification sent to Telegram")
+        except Exception as e:
+            print(f"✗ Failed to send startup notification: {e}")
 
     last_file_time = get_latest_file_time(XML_DIR)
 

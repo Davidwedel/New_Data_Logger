@@ -41,6 +41,7 @@ pynose==1.5.4
 pyotp==2.9.0
 pyparsing==3.2.3
 PySocks==1.7.1
+pyTelegramBotAPI==4.24.0
 pytest==8.4.1
 pytest-html==4.0.2
 pytest-metadata==3.1.1

@@ -230,6 +230,8 @@ def get_secrets():
             "get_cooler_temp_AM": config["cooler"]["am_time"],
             "get_cooler_temp_PM": config["cooler"]["pm_time"],
             "cooler_temp_time_tolerance": config["cooler"]["time_tolerance"],
+            "telegram_bot_token": config.get("telegram", {}).get("bot_token", ""),
+            "telegram_chat_id": config.get("telegram", {}).get("chat_id", ""),
             "time_zone": config["system"]["time_zone"],
             "Timeout": config["system"]["timeout"]
         })
@@ -272,6 +274,10 @@ def save_secrets():
             config["system"]["time_zone"] = data["time_zone"]
         if "Timeout" in data:
             config["system"]["timeout"] = data["Timeout"]
+        if "telegram_bot_token" in data:
+            config["telegram"]["bot_token"] = data["telegram_bot_token"]
+        if "telegram_chat_id" in data:
+            config["telegram"]["chat_id"] = data["telegram_chat_id"]
 
         save_config(config)
         return jsonify({"status": "ok", "message": "Configuration saved successfully!"})

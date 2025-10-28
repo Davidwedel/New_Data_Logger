@@ -58,6 +58,19 @@
       <input type="time" id="cooler_temp_time_tolerance" name="cooler_temp_time_tolerance" step="1">
     </div>
 
+    <h3 style="margin-top:30px;">Telegram Notifications</h3>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Bot Token</span>
+      <input type="text" id="telegram_bot_token" name="telegram_bot_token" style="width:300px;" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz">
+    </div>
+
+    <div class="spinner-container">
+      <span class="spinner-label">Chat ID</span>
+      <input type="text" id="telegram_chat_id" name="telegram_chat_id" style="width:200px;" placeholder="123456789">
+    </div>
+    <p style="font-size:12px; color:#666; margin-left:160px;">Configure Telegram bot for XML watcher alerts. Leave blank to disable.</p>
+
     <h3 style="margin-top:30px;">Unitas Integration</h3>
 
     <div class="spinner-container">
@@ -148,6 +161,8 @@
         if (data.get_cooler_temp_AM) document.getElementById('get_cooler_temp_AM').value = data.get_cooler_temp_AM;
         if (data.get_cooler_temp_PM) document.getElementById('get_cooler_temp_PM').value = data.get_cooler_temp_PM;
         if (data.cooler_temp_time_tolerance) document.getElementById('cooler_temp_time_tolerance').value = data.cooler_temp_time_tolerance;
+        if (data.telegram_bot_token) document.getElementById('telegram_bot_token').value = data.telegram_bot_token;
+        if (data.telegram_chat_id) document.getElementById('telegram_chat_id').value = data.telegram_chat_id;
         if (data.Unitas_Username) document.getElementById('Unitas_Username').value = data.Unitas_Username;
         if (data.Unitas_Password) document.getElementById('Unitas_Password').value = data.Unitas_Password;
         if (data.Farm_ID) document.getElementById('Farm_ID').value = data.Farm_ID;
@@ -202,6 +217,8 @@
           get_cooler_temp_AM: document.getElementById('get_cooler_temp_AM').value,
           get_cooler_temp_PM: document.getElementById('get_cooler_temp_PM').value,
           cooler_temp_time_tolerance: document.getElementById('cooler_temp_time_tolerance').value,
+          telegram_bot_token: document.getElementById('telegram_bot_token').value,
+          telegram_chat_id: document.getElementById('telegram_chat_id').value,
           Unitas_Username: document.getElementById('Unitas_Username').value,
           Unitas_Password: document.getElementById('Unitas_Password').value,
           Farm_ID: document.getElementById('Farm_ID').value,

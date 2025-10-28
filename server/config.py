@@ -37,6 +37,10 @@ DEFAULT_CONFIG = {
         "time_zone": "America/Chicago",
         "timeout": 30
     },
+    "telegram": {
+        "bot_token": "",
+        "chat_id": ""
+    },
     "legacy": {
         "spreadsheet_id": "",
         "xml_to_sheet_range_name": "Nightly_Bot_Responses!A3",
@@ -78,6 +82,27 @@ def load_config() -> Dict[str, Any]:
 
     try:
         config = json.loads(CONFIG_FILE.read_text())
+
+        # Auto-migrate: add missing sections from DEFAULT_CONFIG
+        needs_save = False
+        for section, defaults in DEFAULT_CONFIG.items():
+            if section not in config:
+                config[section] = defaults
+                needs_save = True
+                print(f"Added missing config section: {section}")
+            elif isinstance(defaults, dict):
+                # Add missing keys within existing sections
+                for key, default_value in defaults.items():
+                    if key not in config[section]:
+                        config[section][key] = default_value
+                        needs_save = True
+                        print(f"Added missing config key: {section}.{key}")
+
+        # Save if we added anything
+        if needs_save:
+            save_config(config)
+            print(f"Config auto-migrated and saved to {CONFIG_FILE}")
+
         return config
     except json.JSONDecodeError as e:
         raise RuntimeError(f"Invalid JSON in config file {CONFIG_FILE}: {e}")
