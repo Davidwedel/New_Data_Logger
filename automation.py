@@ -17,6 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "server"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 
 # Local imports
+from server.config import load_config, get_flat_config
 from server.helpers import check_all_settings_there as check_settings
 import server.jobs as jobs
 import server.database_helper as db
@@ -50,21 +51,20 @@ args = parser.parse_args()
 
 # ─── Config ───
 DB_FILE = pathlib.Path(__file__).parent / "database.db"
-CONFIG_FILE = pathlib.Path(__file__).parent / "secrets.json"
-secrets = json.loads(CONFIG_FILE.read_text())
+config = get_flat_config()
 
-RETRIEVE_FROM_XML_TIME = secrets["retrieve_from_xml_time"]
-LOG_COOLER_TO_UNITAS = secrets["Cooler_Log_To_Unitas"]
-TIMEOUT = secrets["Timeout"]
+RETRIEVE_FROM_XML_TIME = config["retrieve_from_xml_time"]
+LOG_COOLER_TO_UNITAS = config["Cooler_Log_To_Unitas"]
+TIMEOUT = config["Timeout"]
 
 
 # ─── Init ───
 db.setup_db(DB_FILE)
-check_settings(secrets)
-unitas.do_unitas_setup(secrets)
-do_xml_setup(secrets)
+check_settings(config)
+unitas.do_unitas_setup(config)
+do_xml_setup(config)
 helper_set_timeout(TIMEOUT)
-coolerlog.do_coolerlog_setup(secrets, DB_FILE)
+coolerlog.do_coolerlog_setup(config, DB_FILE)
 
 # Backup database on startup
 db.backup_database(DB_FILE)
@@ -85,7 +85,7 @@ elif args.CoolerLogToDB:
 
 elif args.LogToUnitas:
     logger.info("Running one-shot: Database → Unitas")
-    unitas.run_unitas_stuff(secrets, DB_FILE)
+    unitas.run_unitas_stuff(config, DB_FILE)
 
 else:
     logger.info("Running in Forever Mode (continuous automation)")

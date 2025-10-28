@@ -3,11 +3,9 @@
 __pycache__/
 *.pyc
 .~lock*
-secrets.json
-defaults.json
 .runstate.json
-settings.json
 server/corrupt_files
 .claude
 *.pp
 *.mod
+ignored/

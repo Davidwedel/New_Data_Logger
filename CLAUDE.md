@@ -38,9 +38,14 @@ python server/main.py
 
 ### Configuration
 
-- `secrets.json` - Contains credentials, Unitas login, timing settings, and XML paths
-- `settings.json` - Contains farm-specific settings (hatch_date, birds_arrived_date, nws_station_id)
-- Both can be edited via the webapp Settings tab
+- `~/.datalogger/config.json` - Single config file with all settings organized in sections:
+  - `farm`: hatch_date, birds_arrived_date, nws_station_id
+  - `unitas`: credentials and settings for Unitas upload
+  - `xml`: path to XML files, retention settings, retrieve time
+  - `cooler`: AM/PM times and tolerance for temperature logging
+  - `system`: timezone, timeout settings
+- Config can be edited via the webapp Settings tab
+- On first run, the script creates a default config file that must be edited with your settings
 
 ## Architecture
 
@@ -62,9 +67,13 @@ python server/main.py
 3. **Database → Unitas** (triggered via web UI or CLI)
    - `unitas_manager/unitas_production.py` uses Selenium to automate form filling
    - Merges bot and user logs for target date (default: yesterday)
-   - Logs into Unitas using credentials from `secrets.json`
+   - Logs into Unitas using credentials from config
    - `unitas_login.py` handles authentication
    - `unitas_coolerlog.py` handles cooler temperature logging
+
+4. **Cooler Log Backup** (scheduled 1 minute after XML → DB)
+   - Backs up cooler temperature data to `~/.datalogger/coolerlog/coolerlog.db`
+   - Tracks backup status via `cooler_to_db_at` timestamp in Daily_Bot_Log
 
 ### State Management
 
@@ -74,11 +83,12 @@ python server/main.py
 
 ### Key Modules
 
-- **server/main.py** - Entry point, argument parsing, scheduling loop
+- **automation.py** - Main entry point, argument parsing, scheduling loop
+- **webapp.py** - Flask web application for data entry and viewing
+- **server/config.py** - Configuration management (loads from ~/.datalogger/config.json)
 - **server/jobs.py** - Scheduled job definitions and timing helpers
-- **server/database_helper.py** - SQLite operations (setup, insert, update, query)
+- **server/database_helper.py** - SQLite operations (setup, insert, update, query, backups)
 - **server/xml_processing.py** - XML parsing, temperature extraction, unit conversion
-- **server/webapp.py** - Flask routes and API endpoints
 - **server/helpers.py** - Utility functions (bird age calculation, settings validation)
 - **server/unitas_manager/** - Selenium automation for Unitas website
 
@@ -92,9 +102,11 @@ All tables use date-based primary keys for daily records.
 
 ## Important Notes
 
-- XML files are expected in the path specified by `secrets.json["path_to_xmls"]`
-- Cooler temperature extraction has tolerance window (`cooler_temp_time_tolerance`)
+- XML files are expected in the path specified by config `xml.path`
+- Cooler temperature extraction has tolerance window (`cooler.time_tolerance`)
 - Light on/off times are rounded to 15-minute intervals
-- Bird age calculated from `settings.json["hatch_date"]` in format "week.day"
-- Timezone handling uses ZoneInfo (configured via `secrets.json["time_zone"]`)
+- Bird age calculated from config `farm.hatch_date` in format "week.day"
+- Timezone handling uses ZoneInfo (configured via config `system.time_zone`)
 - Selenium runs in non-headless mode by default (see `unitas_production.py:28`)
+- Database backups stored in `~/.datalogger/backups/` (created every 24 hours)
+- Cooler log backups stored in `~/.datalogger/coolerlog/coolerlog.db`

@@ -1,30 +1,29 @@
 import json
 import os
 from datetime import datetime, timedelta, date
+from server.config import load_config
 
-def check_all_settings_there(secrets):
+def check_all_settings_there(config):
     LOGIN_URL = "https://vitalfarms.poultrycloud.com/login"  # confirm this
     print('LOGIN_URL in setup:', LOGIN_URL)
-    USERNAME = secrets["Unitas_Username"]
-    PASSWORD = secrets["Unitas_Password"]
-    TIMEOUT = secrets["Timeout"]
+    USERNAME = config["Unitas_Username"]
+    PASSWORD = config["Unitas_Password"]
+    TIMEOUT = config["Timeout"]
 
     if not USERNAME or not PASSWORD:
-        raise SystemExit("Set Unitas_Username and Unitas_Password in secrets.json!")
+        raise SystemExit("Set Unitas_Username and Unitas_Password in config!")
 
 
-def get_hatch_date(settings_path=None):
-    """Read hatch_date from settings.json."""
-    if settings_path is None:
-        settings_path = os.path.join(os.path.dirname(__file__), "..", "settings.json")
-    if not os.path.exists(settings_path):
-        raise FileNotFoundError(f"Settings file not found: {settings_path}")
-    with open(settings_path, "r") as f:
-        settings = json.load(f)
-    hatch_date = settings.get("hatch_date")
-    if not hatch_date:
-        raise ValueError("hatch_date not found in settings.json")
-    return hatch_date
+def get_hatch_date():
+    """Read hatch_date from config."""
+    try:
+        config = load_config()
+        hatch_date = config["farm"].get("hatch_date")
+        if not hatch_date:
+            raise ValueError("hatch_date not found in config")
+        return hatch_date
+    except Exception as e:
+        raise ValueError(f"Failed to load hatch_date from config: {e}")
 
 def get_bird_age():
 

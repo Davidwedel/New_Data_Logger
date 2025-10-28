@@ -16,6 +16,7 @@ from datetime import date, datetime
 # Add server directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 import database_helper as db
+from server.config import load_config, save_config
 
 app = Flask(__name__)
 
@@ -185,15 +186,12 @@ def add_daily_userlog():
 @app.route("/save_settings", methods=["POST"])
 def save_settings():
     data = request.json
-    settings = {
-        "hatch_date": data.get("hatch_date"),
-        "birds_arrived_date": data.get("birds_arrived_date"),
-        "nws_station_id": data.get("nws_station_id")
-    }
-    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
     try:
-        with open(settings_path, "w") as f:
-            json.dump(settings, f, indent=2)
+        config = load_config()
+        config["farm"]["hatch_date"] = data.get("hatch_date")
+        config["farm"]["birds_arrived_date"] = data.get("birds_arrived_date")
+        config["farm"]["nws_station_id"] = data.get("nws_station_id")
+        save_config(config)
         return jsonify({"status": "ok", "message": "Settings saved!"})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save settings: {e}"}), 500
@@ -201,47 +199,79 @@ def save_settings():
 # Endpoint to get farm settings
 @app.route("/get_settings", methods=["GET"])
 def get_settings():
-    import json, os
-    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
-    if not os.path.exists(settings_path):
+    try:
+        config = load_config()
+        return jsonify({
+            "hatch_date": config["farm"]["hatch_date"],
+            "birds_arrived_date": config["farm"]["birds_arrived_date"],
+            "nws_station_id": config["farm"]["nws_station_id"]
+        })
+    except Exception:
         return jsonify({"hatch_date": "", "birds_arrived_date": "", "nws_station_id": ""})
-    with open(settings_path, "r") as f:
-        settings = json.load(f)
-    return jsonify(settings)
 
-# Endpoint to get secrets configuration
+# Endpoint to get full configuration
 @app.route("/get_secrets", methods=["GET"])
 def get_secrets():
-    secrets_path = os.path.join(os.path.dirname(__file__), "secrets.json")
-    if not os.path.exists(secrets_path):
-        return jsonify({})
     try:
-        with open(secrets_path, "r") as f:
-            secrets = json.load(f)
-        return jsonify(secrets)
+        config = load_config()
+        # Return flattened config for backwards compatibility with UI
+        return jsonify({
+            "Unitas_Username": config["unitas"]["username"],
+            "Unitas_Password": config["unitas"]["password"],
+            "Farm_ID": config["unitas"]["farm_id"],
+            "House_ID": config["unitas"]["house_id"],
+            "Cooler_Log_To_Unitas": config["unitas"]["cooler_log_enabled"],
+            "Cooler_Log_Initials": config["unitas"]["cooler_log_initials"],
+            "path_to_xmls": config["xml"]["path"],
+            "how_long_to_save_old_files": config["xml"]["retention_days"],
+            "retrieve_from_xml_time": config["xml"]["retrieve_time"],
+            "get_cooler_temp_AM": config["cooler"]["am_time"],
+            "get_cooler_temp_PM": config["cooler"]["pm_time"],
+            "cooler_temp_time_tolerance": config["cooler"]["time_tolerance"],
+            "time_zone": config["system"]["time_zone"],
+            "Timeout": config["system"]["timeout"]
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Endpoint to save secrets configuration
+# Endpoint to save configuration
 @app.route("/save_secrets", methods=["POST"])
 def save_secrets():
     data = request.json
-    secrets_path = os.path.join(os.path.dirname(__file__), "secrets.json")
-
     try:
-        # Load existing secrets to preserve any fields not in the form
-        existing_secrets = {}
-        if os.path.exists(secrets_path):
-            with open(secrets_path, "r") as f:
-                existing_secrets = json.load(f)
+        config = load_config()
 
-        # Update with new values
-        existing_secrets.update(data)
+        # Update config sections from flat data
+        if "Unitas_Username" in data:
+            config["unitas"]["username"] = data["Unitas_Username"]
+        if "Unitas_Password" in data:
+            config["unitas"]["password"] = data["Unitas_Password"]
+        if "Farm_ID" in data:
+            config["unitas"]["farm_id"] = data["Farm_ID"]
+        if "House_ID" in data:
+            config["unitas"]["house_id"] = data["House_ID"]
+        if "Cooler_Log_To_Unitas" in data:
+            config["unitas"]["cooler_log_enabled"] = data["Cooler_Log_To_Unitas"]
+        if "Cooler_Log_Initials" in data:
+            config["unitas"]["cooler_log_initials"] = data["Cooler_Log_Initials"]
+        if "path_to_xmls" in data:
+            config["xml"]["path"] = data["path_to_xmls"]
+        if "how_long_to_save_old_files" in data:
+            config["xml"]["retention_days"] = data["how_long_to_save_old_files"]
+        if "retrieve_from_xml_time" in data:
+            config["xml"]["retrieve_time"] = data["retrieve_from_xml_time"]
+        if "get_cooler_temp_AM" in data:
+            config["cooler"]["am_time"] = data["get_cooler_temp_AM"]
+        if "get_cooler_temp_PM" in data:
+            config["cooler"]["pm_time"] = data["get_cooler_temp_PM"]
+        if "cooler_temp_time_tolerance" in data:
+            config["cooler"]["time_tolerance"] = data["cooler_temp_time_tolerance"]
+        if "time_zone" in data:
+            config["system"]["time_zone"] = data["time_zone"]
+        if "Timeout" in data:
+            config["system"]["timeout"] = data["Timeout"]
 
-        # Write back to file
-        with open(secrets_path, "w") as f:
-            json.dump(existing_secrets, f, indent=2)
-
+        save_config(config)
         return jsonify({"status": "ok", "message": "Configuration saved successfully!"})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save configuration: {e}"}), 500
@@ -249,29 +279,26 @@ def save_secrets():
 # Endpoint to fetch current weather from NWS
 @app.route("/get_weather", methods=["GET"])
 def get_weather():
-    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
-    if not os.path.exists(settings_path):
+    try:
+        config = load_config()
+        station_id = config["farm"].get("nws_station_id")
+
+        if not station_id:
+            return jsonify({"weather": None, "error": "No weather station configured"})
+
+        weather = fetch_nws_weather(station_id)
+        return jsonify({"weather": weather})
+    except Exception:
         return jsonify({"weather": None, "error": "No weather station configured"})
-
-    with open(settings_path, "r") as f:
-        settings = json.load(f)
-
-    station_id = settings.get("nws_station_id")
-
-    if not station_id:
-        return jsonify({"weather": None, "error": "No weather station configured"})
-
-    weather = fetch_nws_weather(station_id)
-    return jsonify({"weather": weather})
 
 # Endpoint to save default values
 @app.route("/save_defaults", methods=["POST"])
 def save_defaults():
     data = request.json
-    defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
     try:
-        with open(defaults_path, "w") as f:
-            json.dump(data, f, indent=2)
+        config = load_config()
+        config["form_defaults"] = data
+        save_config(config)
         return jsonify({"status": "ok", "message": "Defaults saved!"})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save defaults: {e}"}), 500
@@ -279,12 +306,11 @@ def save_defaults():
 # Endpoint to get default values
 @app.route("/get_defaults", methods=["GET"])
 def get_defaults():
-    defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
-    if not os.path.exists(defaults_path):
+    try:
+        config = load_config()
+        return jsonify(config.get("form_defaults", {}))
+    except Exception:
         return jsonify({})
-    with open(defaults_path, "r") as f:
-        defaults = json.load(f)
-    return jsonify(defaults)
 
 
 
@@ -411,27 +437,25 @@ def api_date_data():
     # Get date from query parameter, default to today
     date_str = request.args.get('date', date.today().isoformat())
     user_log = db.get_daily_user_log(DB_FILE, date_str)
-    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
     # If no user log exists for this date, create one with defaults
     if not user_log:
         print(f"DEBUG: No user log found for {date_str}, creating new one")
-        defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
         defaults = {}
 
-        # Load defaults
-        if os.path.exists(defaults_path):
-            with open(defaults_path, "r") as f:
-                defaults = json.load(f)
+        # Load defaults from config
+        try:
+            config = load_config()
+            defaults = config.get("form_defaults", {}).copy()
             print(f"DEBUG: Loaded defaults: {defaults}")
+        except Exception as e:
+            print(f"DEBUG: Failed to load defaults from config: {e}")
 
         # Auto-fetch weather if station is configured (only for today)
         if date_str == date.today().isoformat():
-            if os.path.exists(settings_path):
-                with open(settings_path, "r") as f:
-                    settings = json.load(f)
-                print(f"DEBUG: Loaded settings: {settings}")
-                station_id = settings.get("nws_station_id")
+            try:
+                config = load_config()
+                station_id = config["farm"].get("nws_station_id")
                 if station_id:
                     print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
                     weather = fetch_nws_weather(station_id)
@@ -440,10 +464,8 @@ def api_date_data():
                         defaults['weather'] = weather
                     else:
                         print("DEBUG: Weather fetch returned None")
-                else:
-                    print("DEBUG: No station ID configured")
-            else:
-                print("DEBUG: No settings.json file found")
+            except Exception as e:
+                print(f"DEBUG: Failed to load config for weather: {e}")
 
             # Auto-fill nutritionist and ration_used from yesterday
             from datetime import timedelta
@@ -480,10 +502,9 @@ def api_date_data():
         # If weather is blank and this is today, try to auto-fetch it
         if date_str == date.today().isoformat() and (not user_log.get('weather') or user_log.get('weather').strip() == ''):
             print("DEBUG: Weather is blank, attempting to fetch")
-            if os.path.exists(settings_path):
-                with open(settings_path, "r") as f:
-                    settings = json.load(f)
-                station_id = settings.get("nws_station_id")
+            try:
+                config = load_config()
+                station_id = config["farm"].get("nws_station_id")
                 if station_id:
                     print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
                     weather = fetch_nws_weather(station_id)
@@ -494,6 +515,8 @@ def api_date_data():
                         user_log['weather'] = weather
                     else:
                         print("DEBUG: Weather fetch returned None")
+            except Exception as e:
+                print(f"DEBUG: Failed to load config for weather: {e}")
 
     bot_log = db.get_daily_bot_log(DB_FILE, date_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})
@@ -503,26 +526,24 @@ def api_date_data():
 def api_today_data():
     today_str = date.today().isoformat()
     user_log = db.get_daily_user_log(DB_FILE, today_str)
-    settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
     # If no user log exists for today, create one with defaults
     if not user_log:
         print("DEBUG: No user log found for today, creating new one")
-        defaults_path = os.path.join(os.path.dirname(__file__), "defaults.json")
         defaults = {}
 
-        # Load defaults
-        if os.path.exists(defaults_path):
-            with open(defaults_path, "r") as f:
-                defaults = json.load(f)
+        # Load defaults from config
+        try:
+            config = load_config()
+            defaults = config.get("form_defaults", {}).copy()
             print(f"DEBUG: Loaded defaults: {defaults}")
+        except Exception as e:
+            print(f"DEBUG: Failed to load defaults from config: {e}")
 
         # Auto-fetch weather if station is configured
-        if os.path.exists(settings_path):
-            with open(settings_path, "r") as f:
-                settings = json.load(f)
-            print(f"DEBUG: Loaded settings: {settings}")
-            station_id = settings.get("nws_station_id")
+        try:
+            config = load_config()
+            station_id = config["farm"].get("nws_station_id")
             if station_id:
                 print(f"DEBUG: Attempting to fetch weather for station: {station_id}")
                 weather = fetch_nws_weather(station_id)
@@ -531,10 +552,8 @@ def api_today_data():
                     defaults['weather'] = weather
                 else:
                     print("DEBUG: Weather fetch returned None")
-            else:
-                print("DEBUG: No station ID configured")
-        else:
-            print("DEBUG: No settings.json file found")
+        except Exception as e:
+            print(f"DEBUG: Failed to load config for weather: {e}")
 
         # Auto-fill nutritionist and ration_used from yesterday
         from datetime import timedelta

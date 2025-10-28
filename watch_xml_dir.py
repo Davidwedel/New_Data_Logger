@@ -2,25 +2,28 @@
 """
 XML Directory Watcher - Monitors XML directory for inactivity
 
-This script watches the XML directory specified in secrets.json and sends
+This script watches the XML directory specified in config and sends
 a notification if no new files are added within the check interval.
 """
 
 import json
 import os
+import sys
 import time
 import pathlib
 from datetime import datetime
 
+# Add server directory to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
+from server.config import get_flat_config
+
 # Load configuration
-CONFIG_FILE = pathlib.Path(__file__).parent / "secrets.json"
 try:
-    with open(CONFIG_FILE, 'r') as f:
-        secrets = json.load(f)
-    XML_DIR = secrets["path_to_xmls"]
-except (FileNotFoundError, KeyError) as e:
+    config = get_flat_config()
+    XML_DIR = config["path_to_xmls"]
+except Exception as e:
     print(f"Error loading configuration: {e}")
-    print("Make sure secrets.json exists and has 'path_to_xmls' field")
+    print("Make sure ~/.datalogger/config.json exists and is properly configured")
     exit(1)
 
 # Configuration
