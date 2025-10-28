@@ -62,12 +62,14 @@
 
     <div class="spinner-container">
       <span class="spinner-label">Bot Token</span>
-      <input type="text" id="telegram_bot_token" name="telegram_bot_token" style="width:300px;" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz">
+      <input type="password" id="telegram_bot_token" name="telegram_bot_token" style="width:300px;" placeholder="1234567890:ABCdefGHIjklMNOpqrsTUVwxyz">
+      <button type="button" onclick="togglePasswordVisibility('telegram_bot_token')" style="margin-left:10px;">Show</button>
     </div>
 
     <div class="spinner-container">
       <span class="spinner-label">Chat ID</span>
-      <input type="text" id="telegram_chat_id" name="telegram_chat_id" style="width:200px;" placeholder="123456789">
+      <input type="password" id="telegram_chat_id" name="telegram_chat_id" style="width:200px;" placeholder="123456789">
+      <button type="button" onclick="togglePasswordVisibility('telegram_chat_id')" style="margin-left:10px;">Show</button>
     </div>
     <p style="font-size:12px; color:#666; margin-left:160px;">Configure Telegram bot for XML watcher alerts. Leave blank to disable.</p>
 
