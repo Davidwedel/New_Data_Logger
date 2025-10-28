@@ -19,12 +19,12 @@
     <p style="font-size:12px; color:#666; margin-left:160px;">Enter your nearest NWS station ID for auto-weather. Leave blank to disable.<br>Find stations at <a href="https://www.weather.gov/" target="_blank">weather.gov</a></p>
     <h3>System Configuration</h3>
 
-    <div class="spinner-container">
+    <div class="spinner-container" style="display:none;">
       <span class="spinner-label">XML Directory Path</span>
       <input type="text" id="path_to_xmls" name="path_to_xmls" style="width:300px;">
     </div>
 
-    <div class="spinner-container">
+    <div class="spinner-container" style="display:none;">
       <span class="spinner-label">Days to Keep Old Files</span>
       <input type="number" id="how_long_to_save_old_files" name="how_long_to_save_old_files" min="0" style="width:100px;">
       <span style="font-size:12px; color:#666; margin-left:10px;">(0 to disable, 2 recommended)</span>
@@ -37,7 +37,7 @@
 
     <h3 style="margin-top:30px;">Scheduling</h3>
 
-    <div class="spinner-container">
+    <div class="spinner-container" style="display:none;">
       <span class="spinner-label">Retrieve XML Time</span>
       <input type="time" id="retrieve_from_xml_time" name="retrieve_from_xml_time" step="1">
       <span style="font-size:12px; color:#666; margin-left:10px;">(00:15:00 recommended)</span>
@@ -53,7 +53,7 @@
       <input type="time" id="get_cooler_temp_PM" name="get_cooler_temp_PM" step="1">
     </div>
 
-    <div class="spinner-container">
+    <div class="spinner-container" style="display:none;">
       <span class="spinner-label">Cooler Temp Tolerance</span>
       <input type="time" id="cooler_temp_time_tolerance" name="cooler_temp_time_tolerance" step="1">
     </div>
