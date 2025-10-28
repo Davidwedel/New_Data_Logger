@@ -21,7 +21,9 @@ from server.config import load_config, save_config
 app = Flask(__name__)
 
 # Initialize database on startup
-DB_FILE = pathlib.Path(__file__).parent / "database.db"
+DB_FILE = pathlib.Path.home() / ".datalogger" / "database.db"
+# Ensure directory exists
+DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 db.setup_db(DB_FILE)
 
 def fetch_nws_weather(station_id):
