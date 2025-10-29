@@ -18,3 +18,8 @@ timezone stuff in settings
 belt eggs floor eggs total eggs. sigh
 urgent:
 bot log didnt run yesterday for some reason
+ration delivered amt delivered. popup and mutual requirement
+data validation all
+date
+bot log ui horrible
+scroll within scroll horrible
