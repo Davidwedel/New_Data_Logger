@@ -211,6 +211,8 @@ def insert_daily_user_log(
     weather="",
     air_sensory=None,
     ration=None,
+    nutritionist=None,
+    ration_used=None,
     drinkers_clean=None,
     birds_under_slats=None,
     safe_indoors=None,
