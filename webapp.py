@@ -580,6 +580,27 @@ def api_date_data():
             user_log = db.get_daily_user_log(DB_FILE, date_str)
     else:
         print(f"DEBUG: Found existing user log for {date_str}: {user_log}")
+        updates = {}
+
+        # Auto-fill nutritionist and ration_used from previous day if empty
+        if not user_log.get('nutritionist') or user_log.get('nutritionist', '').strip() == '':
+            from datetime import datetime, timedelta
+            current_date = datetime.fromisoformat(date_str).date()
+            previous_day = (current_date - timedelta(days=1)).isoformat()
+            previous_log = db.get_daily_user_log(DB_FILE, previous_day)
+            if previous_log and previous_log.get('nutritionist'):
+                updates['nutritionist'] = previous_log.get('nutritionist')
+                print(f"DEBUG: Auto-filling nutritionist from {previous_day}: {updates['nutritionist']}")
+
+        if not user_log.get('ration_used') or user_log.get('ration_used', '').strip() == '':
+            from datetime import datetime, timedelta
+            current_date = datetime.fromisoformat(date_str).date()
+            previous_day = (current_date - timedelta(days=1)).isoformat()
+            previous_log = db.get_daily_user_log(DB_FILE, previous_day)
+            if previous_log and previous_log.get('ration_used'):
+                updates['ration_used'] = previous_log.get('ration_used')
+                print(f"DEBUG: Auto-filling ration_used from {previous_day}: {updates['ration_used']}")
+
         # If weather is blank and this is today, try to auto-fetch it
         if date_str == date.today().isoformat() and (not user_log.get('weather') or user_log.get('weather').strip() == ''):
             print("DEBUG: Weather is blank, attempting to fetch")
@@ -591,13 +612,17 @@ def api_date_data():
                     weather = fetch_nws_weather(station_id)
                     if weather:
                         print(f"DEBUG: Got weather: {weather}, updating user log")
-                        # Update the weather field
-                        db.update_daily_user_log(DB_FILE, date_str, {'weather': weather})
-                        user_log['weather'] = weather
+                        updates['weather'] = weather
                     else:
                         print("DEBUG: Weather fetch returned None")
             except Exception as e:
                 print(f"DEBUG: Failed to load config for weather: {e}")
+
+        # Apply all updates at once
+        if updates:
+            db.update_daily_user_log(DB_FILE, date_str, updates)
+            user_log.update(updates)
+            print(f"DEBUG: Applied updates to user log: {updates}")
 
     bot_log = db.get_daily_bot_log(DB_FILE, date_str)
     return jsonify({"user_log": user_log, "bot_log": bot_log})
