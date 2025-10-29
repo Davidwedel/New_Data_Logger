@@ -9,14 +9,17 @@ import json
 import pathlib
 import requests
 import subprocess
+import threading
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date, datetime
 
 # Add server directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 import database_helper as db
-from server.config import load_config, save_config
+from server.config import load_config, save_config, get_flat_config
+import server.unitas_manager.unitas_production as unitas
 
 app = Flask(__name__)
 
@@ -25,6 +28,13 @@ DB_FILE = pathlib.Path.home() / ".datalogger" / "database.db"
 # Ensure directory exists
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 db.setup_db(DB_FILE)
+
+# Initialize Unitas module with config
+try:
+    config = get_flat_config()
+    unitas.do_unitas_setup(config)
+except Exception as e:
+    print(f"Warning: Failed to initialize Unitas module: {e}")
 
 def fetch_nws_weather(station_id):
     """Fetch current weather from National Weather Service station"""
@@ -324,6 +334,16 @@ def get_defaults():
 
 
 # Endpoint to update user log for a specific date
+def trigger_unitas_upload_background(date_str):
+    """Run Unitas upload in background thread for specific date"""
+    try:
+        print(f"[Background] Starting Unitas upload for {date_str}")
+        config = get_flat_config()
+        unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str)
+        print(f"[Background] Completed Unitas upload for {date_str}")
+    except Exception as e:
+        print(f"[Background] Error uploading {date_str} to Unitas: {e}")
+
 @app.route("/update_user_log", methods=["POST"])
 def update_user_log():
     data = request.json
@@ -332,16 +352,39 @@ def update_user_log():
     # Get the current record to find the rowid or unique key
     user_log = db.get_daily_user_log(DB_FILE, date_str)
 
+    # Check if send_to_bot is being changed from 0 to 1
+    send_to_bot_changed = False
+    if 'send_to_bot' in data:
+        old_send_to_bot = user_log.get('send_to_bot') if user_log else 0
+        new_send_to_bot = data['send_to_bot']
+        # Trigger upload if changing from unchecked to checked
+        if not old_send_to_bot and new_send_to_bot:
+            send_to_bot_changed = True
+
     try:
         if not user_log:
             # No log exists, create a new one
             data['date'] = date_str
             db.insert_daily_user_log(DB_FILE, **data)
-            return jsonify({"status": "ok", "message": f"User log created for {date_str}."})
+            message = f"User log created for {date_str}."
         else:
             # Update existing log
             db.update_daily_user_log(DB_FILE, date_str, data)
-            return jsonify({"status": "ok", "message": f"User log updated for {date_str}."})
+            message = f"User log updated for {date_str}."
+
+        # Trigger Unitas upload in background if checkbox was just checked
+        if send_to_bot_changed:
+            # Check that bot_log exists before uploading
+            bot_log = db.get_daily_bot_log(DB_FILE, date_str)
+            if bot_log:
+                thread = threading.Thread(target=trigger_unitas_upload_background, args=(date_str,))
+                thread.daemon = True
+                thread.start()
+                message += " Upload to Unitas started."
+            else:
+                message += " Warning: No bot log data found for this date - skipping upload."
+
+        return jsonify({"status": "ok", "message": message})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

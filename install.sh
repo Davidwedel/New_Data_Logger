@@ -156,7 +156,7 @@ echo "Creating automation service (XML processing & Unitas uploads)..."
 sudo tee $AUTOMATION_SERVICE > /dev/null <<EOF
 [Unit]
 Description=Farm Data Logger Automation
-After=network.target
+After=network.target graphical.target
 
 [Service]
 Type=simple
@@ -169,8 +169,10 @@ User=$USER
 StandardOutput=journal
 StandardError=journal
 
-# Optional: prevent output buffering
+# Allow GUI applications to run
 Environment=PYTHONUNBUFFERED=1
+Environment=DISPLAY=:0.0
+Environment=XAUTHORITY=/run/lightdm/$USER/xauthority
 
 [Install]
 WantedBy=multi-user.target
@@ -181,7 +183,7 @@ echo "Creating web application service..."
 sudo tee $WEBAPP_SERVICE > /dev/null <<EOF
 [Unit]
 Description=Farm Data Web Application
-After=network.target
+After=network.target graphical.target
 
 [Service]
 Type=simple
@@ -194,8 +196,10 @@ User=$USER
 StandardOutput=journal
 StandardError=journal
 
-# Optional: prevent output buffering
+# Allow GUI applications to run
 Environment=PYTHONUNBUFFERED=1
+Environment=DISPLAY=:0.0
+Environment=XAUTHORITY=/run/lightdm/$USER/xauthority
 
 [Install]
 WantedBy=multi-user.target

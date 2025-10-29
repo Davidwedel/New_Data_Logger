@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Data Logger Automation Service
-Handles XML → Database and Database → Unitas automation
+Handles XML → Database automation and daily Unitas upload cleanup
+
+Note: Primary Unitas uploads are triggered immediately via webapp when
+send_to_bot checkbox is checked. This script runs a daily cleanup job
+at 3 AM to catch any missed uploads.
 """
 import sys
 import schedule
@@ -107,6 +111,10 @@ else:
         unitas_time = jobs.schedule_offset(RETRIEVE_FROM_XML_TIME, 2)  # Two minutes after XML processing
         schedule.every().day.at(unitas_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
         logger.info(f"Cooler log to Unitas scheduled at {unitas_time}")
+
+    # Schedule daily cleanup job for missed Unitas uploads (catches any failed webhook uploads)
+    schedule.every().day.at("03:00").do(unitas.run_unitas_stuff, config, DB_FILE, None)
+    logger.info("Daily Unitas upload cleanup scheduled at 03:00")
 
     logger.info("Daily database backup scheduled at 00:05")
 

@@ -312,7 +312,7 @@ def fill_production_form(
     helper.fill_input_by_id(driver, "V88-H1", predator_activity)
     helper.fill_input_by_id(driver, "Comment-H1", comment)
 
-def run_unitas_stuff(secrets, db_file, target_date=None):
+def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
     """
     Upload data to Unitas for dates that are flagged.
 
@@ -321,6 +321,12 @@ def run_unitas_stuff(secrets, db_file, target_date=None):
       - Have send_to_bot flag set
       - Have not been sent yet (sent_to_unitas_at is NULL)
       - Have bot_log data available
+
+    Args:
+        secrets: Configuration dict
+        db_file: Path to database
+        target_date: Specific date to upload (None = upload all pending)
+        headless: Force headless mode (None = use global HEADLESS setting)
     """
     from datetime import datetime
 
@@ -341,7 +347,9 @@ def run_unitas_stuff(secrets, db_file, target_date=None):
         print(f"Found {len(dates_to_upload)} date(s) pending upload: {dates_to_upload}")
 
     # Now that we know we have work to do, start the browser and login
-    driver = make_driver(HEADLESS)
+    # Use provided headless parameter or fall back to global HEADLESS setting
+    use_headless = headless if headless is not None else HEADLESS
+    driver = make_driver(use_headless)
 
     try:
         login(driver, secrets)
