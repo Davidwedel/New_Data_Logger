@@ -614,6 +614,18 @@
       missingFields.push('cull_reasons');
     }
 
+    // Check mutual requirement: ration delivered and amount delivered
+    const rationDelivered = getValue('ration').trim();
+    const amountDelivered = getValue('amount_delivered').trim();
+    if ((rationDelivered !== '' && amountDelivered === '') || (rationDelivered === '' && amountDelivered !== '')) {
+      if (rationDelivered !== '' && amountDelivered === '') {
+        missingFields.push('amount_delivered (required when ration delivered is filled)');
+      }
+      if (rationDelivered === '' && amountDelivered !== '') {
+        missingFields.push('ration (required when amount delivered is filled)');
+      }
+    }
+
     if (missingFields.length > 0) {
       event.preventDefault();
       checkbox.checked = false;
@@ -671,6 +683,12 @@
     checkField('air_sensory', getValue('air_sensory').trim() === '');
     checkField('nutritionist', getValue('nutritionist').trim() === '');
     checkField('ration_used', getValue('ration_used').trim() === '');
+
+    // 5. Mutual requirement: ration delivered and amount delivered
+    const rationDelivered = getValue('ration').trim();
+    const amountDelivered = getValue('amount_delivered').trim();
+    checkField('ration', rationDelivered === '' && amountDelivered !== '');
+    checkField('amount_delivered', amountDelivered === '' && rationDelivered !== '');
   }
 
   function renderBotLog(bot_log) {
