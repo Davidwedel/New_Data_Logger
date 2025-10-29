@@ -128,7 +128,20 @@ def add_daily_userlog():
     date_val = date.today().isoformat()
     belt_eggs = data.get("belt_eggs")
     floor_eggs = data.get("floor_eggs")
-    total_eggs = data.get("total_eggs")
+
+    # Calculate total_eggs based on floor_eggs_through_belt setting
+    config = load_config()
+    floor_eggs_through_belt = config["farm"]["floor_eggs_through_belt"]
+
+    belt_eggs_int = int(belt_eggs or 0)
+    floor_eggs_int = int(floor_eggs or 0)
+
+    if floor_eggs_through_belt:
+        # Floor eggs go through belt, so total = belt only
+        total_eggs = belt_eggs_int
+    else:
+        # Floor eggs counted separately, so total = belt + floor
+        total_eggs = belt_eggs_int + floor_eggs_int
     mortality_indoor = data.get("mortality_indoor")
     mortality_outdoor = data.get("mortality_outdoor")
     euthanized_indoor = data.get("euthanized_indoor")
@@ -203,6 +216,7 @@ def save_settings():
         config["farm"]["hatch_date"] = data.get("hatch_date")
         config["farm"]["birds_arrived_date"] = data.get("birds_arrived_date")
         config["farm"]["nws_station_id"] = data.get("nws_station_id")
+        config["farm"]["floor_eggs_through_belt"] = data.get("floor_eggs_through_belt", False)
         save_config(config)
         return jsonify({"status": "ok", "message": "Settings saved!"})
     except Exception as e:
@@ -216,7 +230,8 @@ def get_settings():
         return jsonify({
             "hatch_date": config["farm"]["hatch_date"],
             "birds_arrived_date": config["farm"]["birds_arrived_date"],
-            "nws_station_id": config["farm"]["nws_station_id"]
+            "nws_station_id": config["farm"]["nws_station_id"],
+            "floor_eggs_through_belt": config["farm"]["floor_eggs_through_belt"]
         })
     except Exception:
         return jsonify({"hatch_date": "", "birds_arrived_date": "", "nws_station_id": ""})
@@ -351,6 +366,21 @@ def update_user_log():
     date_str = request.args.get('date', date.today().isoformat())
     # Get the current record to find the rowid or unique key
     user_log = db.get_daily_user_log(DB_FILE, date_str)
+
+    # Calculate total_eggs based on floor_eggs_through_belt setting
+    if 'belt_eggs' in data or 'floor_eggs' in data:
+        config = load_config()
+        floor_eggs_through_belt = config["farm"]["floor_eggs_through_belt"]
+
+        belt_eggs = int(data.get('belt_eggs', 0) or 0)
+        floor_eggs = int(data.get('floor_eggs', 0) or 0)
+
+        if floor_eggs_through_belt:
+            # Floor eggs go through belt, so total = belt only
+            data['total_eggs'] = belt_eggs
+        else:
+            # Floor eggs counted separately, so total = belt + floor
+            data['total_eggs'] = belt_eggs + floor_eggs
 
     # Check if send_to_bot is being changed from 0 to 1
     send_to_bot_changed = False

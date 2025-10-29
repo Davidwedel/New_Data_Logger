@@ -17,6 +17,11 @@
       <input type="text" id="nws_station_id" name="nws_station_id" placeholder="e.g. KBOS" maxlength="4" style="text-transform:uppercase;">
     </div>
     <p style="font-size:12px; color:#666; margin-left:160px;">Enter your nearest NWS station ID for auto-weather. Leave blank to disable.<br>Find stations at <a href="https://www.weather.gov/" target="_blank">weather.gov</a></p>
+    <div class="spinner-container">
+      <span class="spinner-label">Floor Eggs Through Belt</span>
+      <input type="checkbox" id="floor_eggs_through_belt" name="floor_eggs_through_belt">
+    </div>
+    <p style="font-size:12px; color:#666; margin-left:160px;">Check this if you run floor eggs through the belt (Total = Belt only). Uncheck if counted separately (Total = Belt + Floor).</p>
     <h3>System Configuration</h3>
 
     <div class="spinner-container" style="display:none;">
@@ -149,6 +154,7 @@
         if (data.hatch_date) document.getElementById('hatchDate').value = data.hatch_date;
         if (data.birds_arrived_date) document.getElementById('birdsArrivedDate').value = data.birds_arrived_date;
         if (data.nws_station_id) document.getElementById('nws_station_id').value = data.nws_station_id;
+        document.getElementById('floor_eggs_through_belt').checked = data.floor_eggs_through_belt === true;
       })
       .catch(err => console.error('Error loading settings:', err));
 
@@ -203,7 +209,8 @@
         body: JSON.stringify({
           hatch_date: document.getElementById('hatchDate').value,
           birds_arrived_date: document.getElementById('birdsArrivedDate').value,
-          nws_station_id: document.getElementById('nws_station_id').value.toUpperCase()
+          nws_station_id: document.getElementById('nws_station_id').value.toUpperCase(),
+          floor_eggs_through_belt: document.getElementById('floor_eggs_through_belt').checked
         })
       });
 
