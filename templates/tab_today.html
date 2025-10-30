@@ -240,6 +240,14 @@
       // Special handling for date field - display only
       if (key === 'date') {
         html += `<div style="padding:4px; font-size:12px; background:#f0f0f0; border:1px solid #ccc; border-radius:3px; color:#555;">${value}</div>`;
+      } else if (key === 'floor_eggs') {
+        // Special floor eggs adder: readonly total + editable add box + button
+        html += `<div style="display:flex; gap:5px; align-items:center; border:1px solid #ccc; border-radius:3px; padding:3px;">`;
+        html += `<input type="number" name="${key}" value="${value}" readonly style="width:40px; padding:4px; font-size:12px; background:#f0f0f0; border:none; text-align:center; -moz-appearance:textfield;">`;
+        html += `<input type="text" id="floor_eggs_add" placeholder="+/-" style="width:50px; padding:4px; font-size:11px; text-align:center; border:1px solid #999; border-radius:3px;">`;
+        html += `<button type="button" onclick="addFloorEggs()" style="padding:4px 10px; font-size:11px; cursor:pointer; background:#28a745; color:white; border:none; border-radius:3px;">±</button>`;
+        html += `</div>`;
+        html += `<style>input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }</style>`;
       } else if (key === 'mortality_reasons') {
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showMortalityReasonsDropdown(this)" onblur="hideDropdownDelayed()" onclick="showMortalityReasonsDropdown(this)">`;
       } else if (key === 'cull_reasons') {
@@ -507,6 +515,24 @@
     }
   }
 
+  function addFloorEggs() {
+    const form = document.getElementById('userlog-edit-form');
+    const floorEggsInput = form.querySelector('[name="floor_eggs"]');
+    const addInput = document.getElementById('floor_eggs_add');
+
+    const currentTotal = parseInt(floorEggsInput.value) || 0;
+    const changeValue = parseInt(addInput.value) || 0;
+
+    if (changeValue !== 0) {
+      const newTotal = Math.max(0, currentTotal + changeValue); // Don't go below 0
+      floorEggsInput.value = newTotal;
+      addInput.value = '';
+
+      // Trigger auto-save
+      autoSaveUserLog();
+    }
+  }
+
   function updateCheckboxField(checkbox) {
     // Update the value based on checkbox state
     const value = checkbox.checked ? 'Yes' : 'No';
@@ -654,7 +680,15 @@
     const checkField = (fieldName, isInvalid) => {
       const el = form.querySelector(`[name="${fieldName}"]`);
       if (el && el.name !== 'id' && el.name !== 'date') {
-        el.style.border = isInvalid ? '2px solid red' : '';
+        // For floor_eggs, highlight the container div instead of the input
+        if (fieldName === 'floor_eggs') {
+          const container = el.closest('div[style*="display:flex"]');
+          if (container) {
+            container.style.border = isInvalid ? '2px solid red' : '1px solid #ccc';
+          }
+        } else {
+          el.style.border = isInvalid ? '2px solid red' : '';
+        }
       }
     };
 
