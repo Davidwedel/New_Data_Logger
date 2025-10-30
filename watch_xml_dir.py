@@ -101,6 +101,7 @@ def main():
             print(f"✗ Failed to send startup notification: {e}")
 
     last_file_time = get_latest_file_time(XML_DIR)
+    already_warned = False  # Track if we've already sent a warning
 
     if last_file_time:
         print(f"Initial check: Last file at {datetime.fromtimestamp(last_file_time).strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -116,18 +117,30 @@ def main():
 
             if current_file_time is None:
                 print(f"[{timestamp}] No XML files found in directory")
-                send_notification("No XML files found in directory!")
+                if not already_warned:
+                    send_notification("No XML files found in directory!")
+                    already_warned = True
             elif current_file_time == last_file_time:
                 # No new files since last check
                 last_datetime = datetime.fromtimestamp(last_file_time)
-                send_notification(
-                    f"No new XML files in the last {CHECK_INTERVAL/60:.0f} minutes! "
-                    f"Last file at {last_datetime.strftime('%H:%M:%S')}"
-                )
+                if not already_warned:
+                    send_notification(
+                        f"No new XML files in the last {CHECK_INTERVAL/60:.0f} minutes! "
+                        f"Last file at {last_datetime.strftime('%H:%M:%S')}"
+                    )
+                    already_warned = True
                 print(f"[{timestamp}] ⚠️  No new files since {last_datetime.strftime('%H:%M:%S')}")
             else:
                 # New file detected
                 new_datetime = datetime.fromtimestamp(current_file_time)
+
+                # If we had previously warned, send a "resumed" notification
+                if already_warned:
+                    send_notification(
+                        f"✅ XML files resumed! New file detected at {new_datetime.strftime('%H:%M:%S')}"
+                    )
+                    already_warned = False  # Reset warning flag for next gap
+
                 print(f"[{timestamp}] ✓ New file detected at {new_datetime.strftime('%H:%M:%S')}")
                 last_file_time = current_file_time
 
