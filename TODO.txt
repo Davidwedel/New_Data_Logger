@@ -8,16 +8,10 @@ selinux stuff still isn't all ok. i don't know the best way to deal with selinux
 clean up daily bot log
 freeze timestamp cell and show only date on data entry page
 somethign with pallet stuff and weight
-add floor eggs wo having to manualy add
 remove stuff about starting services manually and just start the webapp and give appropiate message, and even open if we can
-we need to hide some settings
 should really automate ftp script for my own sanity
 sql security?
 readme
 timezone stuff in settings
-urgent:
-ration delivered amt delivered. popup and mutual requirement
 data validation all
-date
 bot log ui horrible
-scroll within scroll horrible
