@@ -24,7 +24,7 @@ import server.unitas_manager.unitas_production as unitas
 app = Flask(__name__)
 
 # Initialize database on startup
-DB_FILE = pathlib.Path.home() / ".datalogger" / "database.db"
+DB_FILE = pathlib.Path("/var/lib/datalogger/database.db")
 # Ensure directory exists
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 db.setup_db(DB_FILE)

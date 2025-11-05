@@ -54,7 +54,7 @@ parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don't delete
 args = parser.parse_args()
 
 # ─── Config ───
-DB_FILE = pathlib.Path.home() / ".datalogger" / "database.db"
+DB_FILE = pathlib.Path("/var/lib/datalogger/database.db")
 # Ensure directory exists
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 
