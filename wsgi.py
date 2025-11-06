@@ -9,6 +9,9 @@ import os
 # Force production mode for WSGI deployment
 os.environ['DEPLOYMENT_MODE'] = 'production'
 
+# Set config directory explicitly for Apache (Path.home() doesn't work correctly under Apache)
+os.environ['DATALOGGER_CONFIG_DIR'] = '/home/chickenbarn/.datalogger'
+
 # Add project directory to Python path
 project_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_dir)
