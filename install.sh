@@ -91,6 +91,7 @@ if ! command -v getenforce &> /dev/null; then
 else
     echo "SELinux is installed. Configuring..."
     sudo setsebool -P allow_ftpd_anon_write=1
+    sudo setsebool -P httpd_can_network_connect=1
     sudo semanage fcontext -a -t public_content_rw_t "($UPLOAD_DIR)(/.*)?"
     sudo restorecon -Rv $UPLOAD_DIR
 
