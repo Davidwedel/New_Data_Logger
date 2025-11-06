@@ -95,23 +95,14 @@ Config file not found and cannot be created due to permission error.
 Location: {CONFIG_FILE}
 Error: {e}
 
-To fix this, create the config file manually:
+To fix this, run these commands:
 
-1. Create the directory:
-   sudo mkdir -p {CONFIG_DIR}
-
-2. Create config from defaults:
-   sudo python3 -c "import json; print(json.dumps({DEFAULT_CONFIG}, indent=2))" | sudo tee {CONFIG_FILE} > /dev/null
-
-   OR copy from existing config:
-   sudo cp ~/.datalogger/config.json {CONFIG_FILE}
-
-3. Set permissions (if using Apache):
-   sudo chown apache:apache {CONFIG_FILE}
-   sudo chmod 644 {CONFIG_FILE}
-
-4. Restart the web server:
-   sudo systemctl restart httpd
+sudo mkdir -p {CONFIG_DIR}
+sudo cp ~/.datalogger/config.json {CONFIG_FILE}
+sudo chown apache:apache {CONFIG_DIR} {CONFIG_FILE}
+sudo chmod 755 {CONFIG_DIR}
+sudo chmod 644 {CONFIG_FILE}
+sudo systemctl restart httpd
 """
         raise RuntimeError(error_msg)
 
