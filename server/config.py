@@ -98,11 +98,11 @@ Error: {e}
 To fix this, run these commands:
 
 sudo mkdir -p {CONFIG_DIR}
-sudo cp ~/.datalogger/config.json {CONFIG_FILE}
-sudo chown apache:apache {CONFIG_DIR} {CONFIG_FILE}
+sudo chown apache:apache {CONFIG_DIR}
 sudo chmod 755 {CONFIG_DIR}
-sudo chmod 644 {CONFIG_FILE}
 sudo systemctl restart httpd
+
+The config file will be created automatically on restart.
 """
         raise RuntimeError(error_msg)
 
