@@ -17,6 +17,10 @@ import json
 from datetime import datetime, timedelta
 import pathlib
 
+# Set config directory for production deployment
+# Automation service uses production config at /var/lib/datalogger/
+os.environ['DATALOGGER_CONFIG_DIR'] = '/var/lib/datalogger'
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "server"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 
