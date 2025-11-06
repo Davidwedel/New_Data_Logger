@@ -2,19 +2,84 @@
 
 set -e
 
+# Parse installation mode
+MODE="dev"  # Default to dev mode
+SYSTEMD_ONLY=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --production)
+            MODE="production"
+            shift
+            ;;
+        --dev)
+            MODE="dev"
+            shift
+            ;;
+        --systemd)
+            SYSTEMD_ONLY=true
+            shift
+            ;;
+        *)
+            echo "Usage: $0 [--production|--dev] [--systemd]"
+            echo ""
+            echo "Installation modes:"
+            echo "  --production: Full install for production (venv at /opt/rec/venv, FTP, SELinux, systemd)"
+            echo "  --dev:        Full install for development (venv at .venv, FTP, SELinux, no systemd by default)"
+            echo ""
+            echo "Optional flags:"
+            echo "  --systemd:    Only configure systemd services (skips FTP, SELinux, venv)"
+            echo ""
+            echo "Examples:"
+            echo "  $0 --production           # Full production install"
+            echo "  $0 --dev                  # Full dev install"
+            echo "  $0 --production --systemd # Only set up systemd for production"
+            echo "  $0 --dev --systemd        # Only set up systemd for dev"
+            exit 1
+            ;;
+    esac
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$SYSTEMD_ONLY" == true ]]; then
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔧 SYSTEMD-ONLY MODE - ${MODE^^}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Install directory: $SCRIPT_DIR"
+    echo ""
+    echo "Skipping: FTP setup, SELinux, Python venv"
+    echo "Setting up: Systemd services only"
+    echo ""
+else
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📦 DATALOGGER INSTALLATION - ${MODE^^} MODE"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "Install directory: $SCRIPT_DIR"
+    echo ""
+fi
+
+# Configure paths based on mode
+if [[ "$MODE" == "production" ]]; then
+    VENV_DIR="/opt/rec/venv"
+    VENV_PYTHON="$VENV_DIR/bin/python"
+else
+    VENV_DIR="$SCRIPT_DIR/.venv"
+    VENV_PYTHON="$VENV_DIR/bin/python"
+fi
 
 # Stuff for Systemd
 AUTOMATION_NAME="datalogger"
 AUTOMATION_SCRIPT="$SCRIPT_DIR/automation.py"
-VENV="$SCRIPT_DIR/.venv/bin/python"
 AUTOMATION_SERVICE="/etc/systemd/system/${AUTOMATION_NAME}.service"
 
-# Note: Webapp is now deployed via Apache/WSGI, not as a systemd service
-
-# End of
-
 UPLOAD_DIR="/srv/ftp/upload"
+
+# Skip full installation if systemd-only mode
+if [[ "$SYSTEMD_ONLY" == true ]]; then
+    echo "[*] Skipping full installation (--systemd flag set)"
+    echo ""
+else
 
 echo "[*] Installing vsftpd..."
 
@@ -127,21 +192,38 @@ echo "[*] Restarting vsftpd..."
 sudo systemctl restart vsftpd
 sudo systemctl enable vsftpd
 
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-
 echo ""
 echo "✅ FTP server is running."
 echo "📂 Anonymous uploads are allowed at: ftp://<your-ip-address>/upload/"
 echo "   (Replace <your-ip-address> with the IP of this machine.)"
 
-
 echo ""
-echo "Setting up sudo permissions for service management..."
+echo "[*] Creating Python virtual environment at $VENV_DIR..."
+if [[ "$MODE" == "production" ]]; then
+    sudo mkdir -p "$(dirname "$VENV_DIR")"
+    sudo python3 -m venv "$VENV_DIR"
+    sudo "$VENV_DIR/bin/pip" install -r "$SCRIPT_DIR/requirements.txt"
+    echo "✅ Production venv created at $VENV_DIR"
+else
+    python3 -m venv "$VENV_DIR"
+    "$VENV_DIR/bin/pip" install -r "$SCRIPT_DIR/requirements.txt"
+    echo "✅ Dev venv created at $VENV_DIR"
+fi
 
-# Create sudoers file for service management
-SUDOERS_FILE="/etc/sudoers.d/datalogger"
-cat <<EOF | sudo tee $SUDOERS_FILE > /dev/null
+fi  # End of full installation (skipped if --systemd)
+
+# Systemd setup - runs in production mode OR when --systemd flag is used
+if [[ "$MODE" == "production" ]] || [[ "$SYSTEMD_ONLY" == true ]]; then
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "🔧 SYSTEMD SETUP - ${MODE^^} MODE"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Setting up sudo permissions for service management..."
+
+    # Create sudoers file for service management
+    SUDOERS_FILE="/etc/sudoers.d/datalogger"
+    cat <<EOF | sudo tee $SUDOERS_FILE > /dev/null
 # Allow webapp to manage datalogger services without password
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl start datalogger.service
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop datalogger.service
@@ -153,20 +235,20 @@ $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl show datalogger.service
 $USER ALL=(ALL) NOPASSWD: /usr/bin/systemctl show xml-watcher.service
 EOF
 
-sudo chmod 0440 $SUDOERS_FILE
-echo "✅ Sudo permissions configured"
+    sudo chmod 0440 $SUDOERS_FILE
+    echo "✅ Sudo permissions configured"
 
-echo ""
-echo "Creating automation service (XML processing & Unitas uploads)..."
+    echo ""
+    echo "Creating automation service (XML processing & Unitas uploads)..."
 
-sudo tee $AUTOMATION_SERVICE > /dev/null <<EOF
+    sudo tee $AUTOMATION_SERVICE > /dev/null <<EOF
 [Unit]
 Description=Farm Data Logger Automation
 After=network.target graphical.target
 
 [Service]
 Type=simple
-ExecStart=$VENV $AUTOMATION_SCRIPT
+ExecStart=$VENV_PYTHON $AUTOMATION_SCRIPT
 WorkingDirectory=$SCRIPT_DIR
 Restart=on-failure
 User=$USER
@@ -184,36 +266,36 @@ Environment=XAUTHORITY=/run/lightdm/$USER/xauthority
 WantedBy=multi-user.target
 EOF
 
-echo "Reloading systemd..."
-sudo systemctl daemon-reload
+    echo "Reloading systemd..."
+    sudo systemctl daemon-reload
 
-echo "Enabling automation service to start on boot..."
-sudo systemctl enable $AUTOMATION_NAME.service
+    echo "Enabling automation service to start on boot..."
+    sudo systemctl enable $AUTOMATION_NAME.service
 
-echo ""
-echo "✅ Automation service created!"
-echo "You can start it now with:"
-echo "  sudo systemctl start $AUTOMATION_NAME.service"
-echo ""
-echo "View logs with:"
-echo "  sudo journalctl -u $AUTOMATION_NAME.service -f"
+    echo ""
+    echo "✅ Automation service created!"
+    echo "You can start it now with:"
+    echo "  sudo systemctl start $AUTOMATION_NAME.service"
+    echo ""
+    echo "View logs with:"
+    echo "  sudo journalctl -u $AUTOMATION_NAME.service -f"
 
-# Create XML watcher service
-WATCHER_NAME="xml-watcher"
-WATCHER_SCRIPT="$SCRIPT_DIR/watch_xml_dir.py"
-WATCHER_SERVICE_FILE="/etc/systemd/system/${WATCHER_NAME}.service"
+    # Create XML watcher service
+    WATCHER_NAME="xml-watcher"
+    WATCHER_SCRIPT="$SCRIPT_DIR/watch_xml_dir.py"
+    WATCHER_SERVICE_FILE="/etc/systemd/system/${WATCHER_NAME}.service"
 
-echo ""
-echo "Creating XML directory watcher service..."
+    echo ""
+    echo "Creating XML directory watcher service..."
 
-sudo tee $WATCHER_SERVICE_FILE > /dev/null <<EOF
+    sudo tee $WATCHER_SERVICE_FILE > /dev/null <<EOF
 [Unit]
 Description=XML Directory Watcher
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=$VENV $WATCHER_SCRIPT
+ExecStart=$VENV_PYTHON $WATCHER_SCRIPT
 WorkingDirectory=$SCRIPT_DIR
 Restart=on-failure
 User=$USER
@@ -229,33 +311,74 @@ Environment=PYTHONUNBUFFERED=1
 WantedBy=multi-user.target
 EOF
 
-echo "Reloading systemd..."
-sudo systemctl daemon-reload
+    echo "Reloading systemd..."
+    sudo systemctl daemon-reload
 
-echo "Enabling XML watcher service to start on boot..."
-sudo systemctl enable $WATCHER_NAME.service
+    echo "Enabling XML watcher service to start on boot..."
+    sudo systemctl enable $WATCHER_NAME.service
 
-echo ""
-echo "✅ XML watcher service created!"
-echo "You can start it now with:"
-echo "  sudo systemctl start $WATCHER_NAME.service"
-echo ""
-echo "View watcher logs with:"
-echo "  sudo journalctl -u $WATCHER_NAME.service -f"
+    echo ""
+    echo "✅ XML watcher service created!"
+    echo "You can start it now with:"
+    echo "  sudo systemctl start $WATCHER_NAME.service"
+    echo ""
+    echo "View watcher logs with:"
+    echo "  sudo journalctl -u $WATCHER_NAME.service -f"
+fi  # End of systemd setup
+
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📋 WEBAPP DEPLOYMENT"
+echo "📋 NEXT STEPS"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-echo "The webapp can be deployed in two ways:"
-echo ""
-echo "1️⃣  LOCALHOST (for testing):"
-echo "   - Edit ~/.datalogger/config.json and set deployment.mode = \"localhost\""
-echo "   - Run: python3 webapp.py"
-echo "   - Access at: http://localhost:5000"
-echo ""
-echo "2️⃣  APACHE (for production):"
-echo "   - Edit ~/.datalogger/config.json and set deployment.mode = \"production\""
-echo "   - Copy Apache config: sudo cp $SCRIPT_DIR/domain.com-le-ssl.conf /etc/httpd/conf.d/"
-echo "   - Restart Apache: sudo systemctl restart httpd"
+
+if [[ "$SYSTEMD_ONLY" == true ]]; then
+    echo "Systemd-only installation complete!"
+    echo ""
+    echo "🤖 Systemd services configured for ${MODE^^} mode:"
+    echo "   - Working directory: $SCRIPT_DIR"
+    echo "   - Python venv: $VENV_PYTHON"
+    echo ""
+    echo "   Start automation: sudo systemctl start datalogger.service"
+    echo "   Start XML watcher: sudo systemctl start xml-watcher.service"
+    echo ""
+    echo "   View logs:"
+    echo "   - sudo journalctl -u datalogger.service -f"
+    echo "   - sudo journalctl -u xml-watcher.service -f"
+    echo ""
+elif [[ "$MODE" == "production" ]]; then
+    echo "Production mode installation complete!"
+    echo ""
+    echo "🔧 Configuration:"
+    echo "   - Edit /var/lib/datalogger/config.json with your farm settings"
+    echo "   - Set deployment.mode = \"production\" in config"
+    echo ""
+    echo "🌐 Apache deployment:"
+    echo "   - Code location: $SCRIPT_DIR"
+    echo "   - Python venv: $VENV_DIR"
+    echo "   - Apache should use WSGIDaemonProcess with python-home=$VENV_DIR"
+    echo "   - Restart Apache: sudo systemctl restart httpd"
+    echo ""
+    echo "🤖 Systemd services:"
+    echo "   - Start automation: sudo systemctl start datalogger.service"
+    echo "   - Start XML watcher: sudo systemctl start xml-watcher.service"
+    echo ""
+else
+    echo "Development mode installation complete!"
+    echo ""
+    echo "🔧 Configuration:"
+    echo "   - Edit ~/.datalogger/config.json with your settings"
+    echo "   - Set deployment.mode = \"localhost\" in config"
+    echo ""
+    echo "🌐 Run webapp locally:"
+    echo "   - Activate venv: source $VENV_DIR/bin/activate"
+    echo "   - Run webapp: python3 webapp.py"
+    echo "   - Access at: http://localhost:5000"
+    echo ""
+    echo "🧪 Test automation scripts:"
+    echo "   - python3 automation.py --LogToDatabase"
+    echo "   - python3 automation.py --LogToUnitas"
+    echo ""
+fi
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
