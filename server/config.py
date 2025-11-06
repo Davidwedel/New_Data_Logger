@@ -143,8 +143,22 @@ def load_config() -> Dict[str, Any]:
 
 def save_config(config: Dict[str, Any]):
     """Save configuration to file"""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    CONFIG_FILE.write_text(json.dumps(config, indent=2))
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+        CONFIG_FILE.write_text(json.dumps(config, indent=2))
+    except (PermissionError, OSError) as e:
+        error_msg = f"""
+Cannot save configuration file due to permission error.
+
+Location: {CONFIG_FILE}
+Error: {e}
+
+To fix this, run:
+
+sudo chown apache:apache {CONFIG_FILE}
+sudo chmod 644 {CONFIG_FILE}
+"""
+        raise RuntimeError(error_msg)
 
 
 def get_flat_config() -> Dict[str, Any]:
