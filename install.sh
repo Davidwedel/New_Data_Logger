@@ -95,6 +95,12 @@ else
     sudo semanage fcontext -a -t public_content_rw_t "($UPLOAD_DIR)(/.*)?"
     sudo restorecon -Rv $UPLOAD_DIR
 
+    # Set SELinux context for Apache to write to datalogger directory
+    echo "[*] Setting SELinux context for /var/lib/datalogger..."
+    sudo semanage fcontext -a -t httpd_sys_rw_content_t "/var/lib/datalogger(/.*)?"
+    sudo mkdir -p /var/lib/datalogger
+    sudo restorecon -Rv /var/lib/datalogger
+
     # Systemd permissions - compile and load policy on target system
     echo "[*] Compiling and loading SELinux policy module..."
     if [[ -f "$SCRIPT_DIR/datalogger.te" ]]; then
