@@ -3,10 +3,17 @@ Configuration management for datalogger
 Loads config from ~/.datalogger/config.json
 """
 import json
+import os
 import pathlib
 from typing import Any, Dict
 
-CONFIG_DIR = pathlib.Path.home() / ".datalogger"
+# Allow config directory to be overridden via environment variable
+# This is important for Apache/WSGI where Path.home() may resolve incorrectly
+_config_dir_override = os.environ.get('DATALOGGER_CONFIG_DIR')
+if _config_dir_override:
+    CONFIG_DIR = pathlib.Path(_config_dir_override)
+else:
+    CONFIG_DIR = pathlib.Path.home() / ".datalogger"
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 DEFAULT_CONFIG = {
@@ -61,7 +68,7 @@ DEFAULT_CONFIG = {
     "deployment": {
         "mode": "localhost",
         "localhost_port": 5000,
-        "localhost_database": str(pathlib.Path.home() / ".datalogger" / "dev_database.db"),
+        "localhost_database": str(CONFIG_DIR / "dev_database.db"),
         "production_database": "/var/lib/datalogger/database.db"
     }
 }
