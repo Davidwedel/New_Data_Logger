@@ -23,18 +23,25 @@ import server.unitas_manager.unitas_production as unitas
 
 app = Flask(__name__)
 
-# Initialize database on startup - path depends on deployment mode
-DB_FILE = pathlib.Path(get_database_path())
-# Ensure directory exists
-DB_FILE.parent.mkdir(parents=True, exist_ok=True)
-db.setup_db(DB_FILE)
+# Global variable to store startup errors
+STARTUP_ERROR = None
+DB_FILE = None
 
-# Initialize Unitas module with config
+# Initialize database on startup - path depends on deployment mode
 try:
+    DB_FILE = pathlib.Path(get_database_path())
+    # Ensure directory exists
+    DB_FILE.parent.mkdir(parents=True, exist_ok=True)
+    db.setup_db(DB_FILE)
+
+    # Initialize Unitas module with config
     config = get_flat_config()
     unitas.do_unitas_setup(config)
 except Exception as e:
-    print(f"Warning: Failed to initialize Unitas module: {e}")
+    # Store the error to display in UI
+    STARTUP_ERROR = str(e)
+    print(f"STARTUP ERROR: {e}")
+    # Continue to allow Flask to start, but routes will show error page
 
 def fetch_nws_weather(station_id):
     """Fetch current weather from National Weather Service station"""
@@ -97,7 +104,93 @@ def fetch_nws_weather(station_id):
         traceback.print_exc()
         return None
 
+
+# ─── Startup Error Handling ───
+
+from functools import wraps
+
+def check_startup_error(f):
+    """Decorator to check for startup errors before executing routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if STARTUP_ERROR:
+            return render_startup_error(), 503
+        return f(*args, **kwargs)
+    return decorated_function
+
+def render_startup_error():
+    """Render a helpful error page when config/database initialization fails"""
+    error_html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Configuration Error - Data Logger</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }}
+        .error-container {{
+            background: white;
+            border-left: 5px solid #dc3545;
+            padding: 30px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+        h1 {{
+            color: #dc3545;
+            margin-top: 0;
+        }}
+        .error-message {{
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: auto;
+        }}
+        .info {{
+            margin-top: 20px;
+            padding: 15px;
+            background: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            border-radius: 4px;
+        }}
+        code {{
+            background: #f1f1f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }}
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>⚠️ Configuration Error</h1>
+        <p>The data logger web application could not start due to a configuration error.</p>
+
+        <h3>Error Details:</h3>
+        <div class="error-message">{STARTUP_ERROR}</div>
+
+        <div class="info">
+            <strong>ℹ️ Note:</strong> After fixing the configuration, restart the web server:<br>
+            <code>sudo systemctl restart httpd</code> (for Apache)<br>
+            or simply restart the Flask development server (for localhost mode)
+        </div>
+    </div>
+</body>
+</html>
+"""
+    return error_html
+
+
 @app.route("/")   # homepage route
+@check_startup_error
 def index():
     today_str = date.today().isoformat()
     user_log = db.get_daily_user_log(DB_FILE, today_str)
@@ -107,6 +200,7 @@ def index():
     return render_template("index.html", user_log=user_log, bot_log=bot_log, user_logs=user_logs, bot_logs=bot_logs)
 
 @app.route("/add_pallet", methods=["POST"])
+@check_startup_error
 def add_pallet():
     data = request.json
     thedate = date.today().isoformat() 
@@ -122,6 +216,7 @@ def add_pallet():
     return jsonify({"status": "ok", "message": "Pallet saved!"})
 
 @app.route("/add_daily_userlog", methods=["POST"])
+@check_startup_error
 def add_daily_userlog():
     import json
     data = request.json
@@ -209,6 +304,7 @@ def add_daily_userlog():
     return jsonify({"status": "ok", "message": "Daily userlog saved!"})
 
 @app.route("/save_settings", methods=["POST"])
+@check_startup_error
 def save_settings():
     data = request.json
     try:
@@ -224,6 +320,7 @@ def save_settings():
 
 # Endpoint to get farm settings
 @app.route("/get_settings", methods=["GET"])
+@check_startup_error
 def get_settings():
     try:
         config = load_config()
@@ -238,6 +335,7 @@ def get_settings():
 
 # Endpoint to get full configuration
 @app.route("/get_secrets", methods=["GET"])
+@check_startup_error
 def get_secrets():
     try:
         config = load_config()
@@ -265,6 +363,7 @@ def get_secrets():
 
 # Endpoint to save configuration
 @app.route("/save_secrets", methods=["POST"])
+@check_startup_error
 def save_secrets():
     data = request.json
     try:
@@ -311,6 +410,7 @@ def save_secrets():
 
 # Endpoint to fetch current weather from NWS
 @app.route("/get_weather", methods=["GET"])
+@check_startup_error
 def get_weather():
     try:
         config = load_config()
@@ -326,6 +426,7 @@ def get_weather():
 
 # Endpoint to save default values
 @app.route("/save_defaults", methods=["POST"])
+@check_startup_error
 def save_defaults():
     data = request.json
     try:
@@ -338,6 +439,7 @@ def save_defaults():
 
 # Endpoint to get default values
 @app.route("/get_defaults", methods=["GET"])
+@check_startup_error
 def get_defaults():
     try:
         config = load_config()
@@ -360,6 +462,7 @@ def trigger_unitas_upload_background(date_str):
         print(f"[Background] Error uploading {date_str} to Unitas: {e}")
 
 @app.route("/update_user_log", methods=["POST"])
+@check_startup_error
 def update_user_log():
     data = request.json
     # Get date from query parameter, default to today
@@ -420,6 +523,7 @@ def update_user_log():
 
 # Endpoint to update today's bot log
 @app.route("/update_bot_log", methods=["POST"])
+@check_startup_error
 def update_bot_log():
     data = request.json
     today_str = date.today().isoformat()
@@ -438,6 +542,7 @@ def update_bot_log():
 
 # API endpoint to check send_to_bot status for a date range
 @app.route("/api/check_send_to_bot")
+@check_startup_error
 def check_send_to_bot():
     """Check if dates have send_to_bot flag set"""
     date_str = request.args.get('date')
@@ -456,6 +561,7 @@ def check_send_to_bot():
 
 # API endpoint to find next available editable date
 @app.route("/api/find_editable_date")
+@check_startup_error
 def find_editable_date():
     """Find the next date in the given direction that doesn't have send_to_bot checked"""
     start_date_str = request.args.get('start_date')
@@ -499,6 +605,7 @@ def find_editable_date():
     })
 
 @app.route("/all_data")
+@check_startup_error
 def all_data():
     # Fetch all user and bot logs
     user_logs = db.get_all_user_logs(DB_FILE)
@@ -507,6 +614,7 @@ def all_data():
 
 # API endpoint to fetch all user and bot logs as JSON for History tab
 @app.route("/api/all_data")
+@check_startup_error
 def api_all_data():
     user_logs = db.get_all_user_logs(DB_FILE)
     bot_logs = db.get_all_bot_logs(DB_FILE)
@@ -514,6 +622,7 @@ def api_all_data():
 
 # API endpoint to fetch data for a specific date
 @app.route("/api/date_data")
+@check_startup_error
 def api_date_data():
     # Get date from query parameter, default to today
     date_str = request.args.get('date', date.today().isoformat())
@@ -629,6 +738,7 @@ def api_date_data():
 
 # API endpoint to fetch today's data (kept for backward compatibility)
 @app.route("/api/today_data")
+@check_startup_error
 def api_today_data():
     today_str = date.today().isoformat()
     user_log = db.get_daily_user_log(DB_FILE, today_str)
@@ -716,6 +826,7 @@ def api_today_data():
 
 # Service management endpoints
 @app.route("/api/service_status", methods=["GET"])
+@check_startup_error
 def service_status():
     """Get status of datalogger and xml-watcher services"""
     try:
@@ -745,6 +856,7 @@ def service_status():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/service_control", methods=["POST"])
+@check_startup_error
 def service_control():
     """Start, stop, or restart a service"""
     data = request.json

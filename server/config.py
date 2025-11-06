@@ -75,15 +75,45 @@ DEFAULT_CONFIG = {
 
 
 def ensure_config_exists():
-    """Create config file with defaults if it doesn't exist"""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    """Create config file with defaults if it doesn't exist
 
-    if not CONFIG_FILE.exists():
-        print(f"Creating default config at {CONFIG_FILE}")
-        print("Please edit this file with your settings.")
-        CONFIG_FILE.write_text(json.dumps(DEFAULT_CONFIG, indent=2))
-        return False
-    return True
+    Raises RuntimeError with helpful message if config cannot be created due to permissions.
+    """
+    try:
+        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+
+        if not CONFIG_FILE.exists():
+            print(f"Creating default config at {CONFIG_FILE}")
+            print("Please edit this file with your settings.")
+            CONFIG_FILE.write_text(json.dumps(DEFAULT_CONFIG, indent=2))
+            return False
+        return True
+    except (PermissionError, OSError) as e:
+        error_msg = f"""
+Config file not found and cannot be created due to permission error.
+
+Location: {CONFIG_FILE}
+Error: {e}
+
+To fix this, create the config file manually:
+
+1. Create the directory:
+   sudo mkdir -p {CONFIG_DIR}
+
+2. Create config from defaults:
+   sudo python3 -c "import json; print(json.dumps({DEFAULT_CONFIG}, indent=2))" | sudo tee {CONFIG_FILE} > /dev/null
+
+   OR copy from existing config:
+   sudo cp ~/.datalogger/config.json {CONFIG_FILE}
+
+3. Set permissions (if using Apache):
+   sudo chown apache:apache {CONFIG_FILE}
+   sudo chmod 644 {CONFIG_FILE}
+
+4. Restart the web server:
+   sudo systemctl restart httpd
+"""
+        raise RuntimeError(error_msg)
 
 
 def load_config() -> Dict[str, Any]:
