@@ -14,6 +14,10 @@ import pathlib
 from datetime import datetime
 import telebot
 
+# Set config directory for production deployment
+# XML watcher service uses production config at /var/lib/datalogger/
+os.environ['DATALOGGER_CONFIG_DIR'] = '/var/lib/datalogger'
+
 # Add server directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 from server.config import load_config

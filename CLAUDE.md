@@ -65,7 +65,11 @@ python3 automation.py --CoolerLogToDB
 
 ### Configuration
 
-- `~/.datalogger/config.json` - Single config file with all settings organized in sections:
+Configuration file location depends on deployment mode:
+- **Localhost mode**: `~/.datalogger/config.json` (user home directory)
+- **Production mode**: `/var/lib/datalogger/config.json` (system directory, used by Apache and systemd services)
+
+Settings organized in sections:
   - `farm`: hatch_date, birds_arrived_date, nws_station_id, floor_eggs_through_belt
   - `unitas`: credentials and settings for Unitas upload
   - `xml`: path to XML files, retention settings, retrieve time
@@ -80,7 +84,8 @@ python3 automation.py --CoolerLogToDB
     - `production_database`: Database path for production (default: `/var/lib/datalogger/database.db`)
 - Config can be edited via the webapp Settings tab
 - On first run, the script creates a default config file that must be edited with your settings
-- Automation service always uses `production_database` regardless of deployment mode
+- **Important**: Copy config to production location after setup: `sudo cp ~/.datalogger/config.json /var/lib/datalogger/config.json`
+- Automation and XML watcher services always use production config at `/var/lib/datalogger/config.json`
 
 ## Architecture
 
@@ -145,6 +150,9 @@ All tables use date-based primary keys for daily records.
 - Bird age calculated from config `farm.hatch_date` in format "week.day"
 - Timezone handling uses ZoneInfo (configured via config `system.time_zone`)
 - Selenium runs in non-headless mode by default (see `unitas_production.py:28`)
+- **Config file locations**:
+  - **Production**: `/var/lib/datalogger/config.json` (used by automation, xml-watcher services and Apache webapp)
+  - **Localhost**: `~/.datalogger/config.json` (used when testing webapp locally)
 - **Database paths**:
   - **Production**: `/var/lib/datalogger/database.db` (used by automation service and Apache webapp)
   - **Localhost**: `~/.datalogger/dev_database.db` (used when testing webapp locally)
