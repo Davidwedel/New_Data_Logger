@@ -21,7 +21,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "server"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 
 # Local imports
-from server.config import load_config, get_flat_config
+from server.config import load_config, get_flat_config, get_database_path
 from server.helpers import check_all_settings_there as check_settings
 import server.jobs as jobs
 import server.database_helper as db
@@ -54,7 +54,9 @@ parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don't delete
 args = parser.parse_args()
 
 # ─── Config ───
-DB_FILE = pathlib.Path("/var/lib/datalogger/database.db")
+# Automation always uses production database (systemd service)
+full_config = load_config()
+DB_FILE = pathlib.Path(full_config["deployment"]["production_database"])
 # Ensure directory exists
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 

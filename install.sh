@@ -7,11 +7,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Stuff for Systemd
 AUTOMATION_NAME="datalogger"
 AUTOMATION_SCRIPT="$SCRIPT_DIR/automation.py"
-WEBAPP_NAME="farm-webapp"
-WEBAPP_SCRIPT="$SCRIPT_DIR/webapp.py"
 VENV="$SCRIPT_DIR/.venv/bin/python"
 AUTOMATION_SERVICE="/etc/systemd/system/${AUTOMATION_NAME}.service"
-WEBAPP_SERVICE="/etc/systemd/system/${WEBAPP_NAME}.service"
+
+# Note: Webapp is now deployed via Apache/WSGI, not as a systemd service
 
 # End of
 
@@ -178,49 +177,19 @@ Environment=XAUTHORITY=/run/lightdm/$USER/xauthority
 WantedBy=multi-user.target
 EOF
 
-echo "Creating web application service..."
-
-sudo tee $WEBAPP_SERVICE > /dev/null <<EOF
-[Unit]
-Description=Farm Data Web Application
-After=network.target graphical.target
-
-[Service]
-Type=simple
-ExecStart=$VENV $WEBAPP_SCRIPT
-WorkingDirectory=$SCRIPT_DIR
-Restart=on-failure
-User=$USER
-
-# These ensure logs go to journal
-StandardOutput=journal
-StandardError=journal
-
-# Allow GUI applications to run
-Environment=PYTHONUNBUFFERED=1
-Environment=DISPLAY=:0.0
-Environment=XAUTHORITY=/run/lightdm/$USER/xauthority
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
 echo "Reloading systemd..."
 sudo systemctl daemon-reload
 
-echo "Enabling services to start on boot..."
+echo "Enabling automation service to start on boot..."
 sudo systemctl enable $AUTOMATION_NAME.service
-sudo systemctl enable $WEBAPP_NAME.service
 
 echo ""
-echo "✅ Services created!"
-echo "You can start them now with:"
+echo "✅ Automation service created!"
+echo "You can start it now with:"
 echo "  sudo systemctl start $AUTOMATION_NAME.service"
-echo "  sudo systemctl start $WEBAPP_NAME.service"
 echo ""
 echo "View logs with:"
 echo "  sudo journalctl -u $AUTOMATION_NAME.service -f"
-echo "  sudo journalctl -u $WEBAPP_NAME.service -f"
 
 # Create XML watcher service
 WATCHER_NAME="xml-watcher"
@@ -266,3 +235,20 @@ echo "  sudo systemctl start $WATCHER_NAME.service"
 echo ""
 echo "View watcher logs with:"
 echo "  sudo journalctl -u $WATCHER_NAME.service -f"
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📋 WEBAPP DEPLOYMENT"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "The webapp can be deployed in two ways:"
+echo ""
+echo "1️⃣  LOCALHOST (for testing):"
+echo "   - Edit ~/.datalogger/config.json and set deployment.mode = \"localhost\""
+echo "   - Run: python3 webapp.py"
+echo "   - Access at: http://localhost:5000"
+echo ""
+echo "2️⃣  APACHE (for production):"
+echo "   - Edit ~/.datalogger/config.json and set deployment.mode = \"production\""
+echo "   - Copy Apache config: sudo cp $SCRIPT_DIR/domain.com-le-ssl.conf /etc/httpd/conf.d/"
+echo "   - Restart Apache: sudo systemctl restart httpd"
+echo ""

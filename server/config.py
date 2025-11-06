@@ -57,6 +57,12 @@ DEFAULT_CONFIG = {
         "safe_indoors": "Yes",
         "safe_outdoors": "Yes",
         "equipment_functioning": "Yes"
+    },
+    "deployment": {
+        "mode": "localhost",
+        "localhost_port": 5000,
+        "localhost_database": str(pathlib.Path.home() / ".datalogger" / "dev_database.db"),
+        "production_database": "/var/lib/datalogger/database.db"
     }
 }
 
@@ -158,3 +164,35 @@ def get_flat_config() -> Dict[str, Any]:
     flat["sheet_to_unitas_range_name"] = config["legacy"]["sheet_to_unitas_range_name"]
 
     return flat
+
+
+def get_deployment_mode() -> str:
+    """Get current deployment mode (localhost or production)
+
+    Can be overridden by DEPLOYMENT_MODE environment variable.
+    """
+    import os
+    # Environment variable takes precedence (used by wsgi.py)
+    env_mode = os.environ.get('DEPLOYMENT_MODE')
+    if env_mode:
+        return env_mode
+
+    config = load_config()
+    return config["deployment"]["mode"]
+
+
+def get_database_path() -> str:
+    """Get database path based on deployment mode"""
+    config = load_config()
+    mode = config["deployment"]["mode"]
+
+    if mode == "production":
+        return config["deployment"]["production_database"]
+    else:  # localhost or any other mode defaults to localhost
+        return config["deployment"]["localhost_database"]
+
+
+def get_localhost_port() -> int:
+    """Get port for localhost mode"""
+    config = load_config()
+    return config["deployment"]["localhost_port"]

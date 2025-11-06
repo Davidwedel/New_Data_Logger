@@ -18,13 +18,13 @@ from datetime import date, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 import database_helper as db
-from server.config import load_config, save_config, get_flat_config
+from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port
 import server.unitas_manager.unitas_production as unitas
 
 app = Flask(__name__)
 
-# Initialize database on startup
-DB_FILE = pathlib.Path("/var/lib/datalogger/database.db")
+# Initialize database on startup - path depends on deployment mode
+DB_FILE = pathlib.Path(get_database_path())
 # Ensure directory exists
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 db.setup_db(DB_FILE)
@@ -788,10 +788,25 @@ def service_control():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Farm Data Web Application")
-    parser.add_argument("--port", type=int, default=5000, help="Port to run the web server on")
+    parser.add_argument("--port", type=int, default=None, help="Port to run the web server on (overrides config)")
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind the web server to")
     parser.add_argument("--debug", action="store_true", help="Run in debug mode")
     args = parser.parse_args()
 
-    print(f"Starting web server on {args.host}:{args.port}")
-    app.run(host=args.host, port=args.port, debug=args.debug)
+    # Check deployment mode
+    deployment_mode = get_deployment_mode()
+
+    if deployment_mode == "production":
+        print("ERROR: Deployment mode is set to 'production' in config.")
+        print("The Flask development server should not be used in production mode.")
+        print("Please either:")
+        print("  1. Change deployment.mode to 'localhost' in ~/.datalogger/config.json")
+        print("  2. Run the application through Apache/WSGI instead")
+        sys.exit(1)
+
+    # Use config port if not overridden by command line
+    port = args.port if args.port is not None else get_localhost_port()
+
+    print(f"Starting web server in LOCALHOST mode on {args.host}:{port}")
+    print(f"Using database: {DB_FILE}")
+    app.run(host=args.host, port=port, debug=args.debug)
