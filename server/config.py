@@ -110,10 +110,8 @@ The config file will be created automatically on restart.
 def load_config() -> Dict[str, Any]:
     """Load configuration from file"""
     if not ensure_config_exists():
-        raise RuntimeError(
-            f"Config file created at {CONFIG_FILE}. "
-            "Please edit it with your settings and run again."
-        )
+        print(f"Config file created at {CONFIG_FILE} with default values.")
+        print("Please edit the settings through the web UI Settings page.")
 
     try:
         config = json.loads(CONFIG_FILE.read_text())
@@ -224,3 +222,29 @@ def get_localhost_port() -> int:
     """Get port for localhost mode"""
     config = load_config()
     return config["deployment"]["localhost_port"]
+
+
+def is_config_unconfigured() -> bool:
+    """Check if config file is using default values and needs to be configured
+
+    Returns True if critical settings are empty/default, indicating user needs to configure.
+    """
+    try:
+        config = load_config()
+
+        # Check critical fields that should be configured
+        unitas = config.get("unitas", {})
+        farm = config.get("farm", {})
+
+        # If Unitas credentials are empty, config needs setup
+        if not unitas.get("username") or not unitas.get("password"):
+            return True
+
+        # If farm_id or house_id are empty, config needs setup
+        if not unitas.get("farm_id") or not unitas.get("house_id"):
+            return True
+
+        return False
+    except Exception:
+        # If we can't load config, assume it needs configuration
+        return True

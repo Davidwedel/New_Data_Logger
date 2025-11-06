@@ -121,12 +121,56 @@
     .floating-btn:hover {
       background-color: #218838;
     }
+
+    .config-warning-banner {
+      background-color: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 5px;
+      padding: 15px 20px;
+      margin: 20px auto;
+      max-width: 800px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .config-warning-banner strong {
+      color: #856404;
+      font-size: 18px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .config-warning-banner p {
+      margin: 8px 0;
+      color: #856404;
+    }
+
+    .config-warning-banner ul {
+      margin: 10px 0;
+      padding-left: 20px;
+      color: #856404;
+    }
+
+    .config-warning-banner li {
+      margin: 5px 0;
+    }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
 
 <body>
   <h1>Farm Data Entry System</h1>
+
+  {% if config_needs_setup %}
+  <div class="config-warning-banner">
+    <strong>⚠️ Configuration Required</strong>
+    <p>The system is using default configuration values. Please update your settings in the <strong>Settings</strong> tab, especially:</p>
+    <ul>
+      <li>Unitas username and password</li>
+      <li>Farm ID and House ID</li>
+      <li>Hatch date and arrival date</li>
+    </ul>
+  </div>
+  {% endif %}
 
   {% block content %}{% endblock %}
 

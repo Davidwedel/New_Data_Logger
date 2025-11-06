@@ -18,13 +18,14 @@ from datetime import date, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 import database_helper as db
-from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port
+from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port, is_config_unconfigured
 import server.unitas_manager.unitas_production as unitas
 
 app = Flask(__name__)
 
-# Global variable to store startup errors
+# Global variables to store startup state
 STARTUP_ERROR = None
+CONFIG_NEEDS_SETUP = False
 DB_FILE = None
 
 # Initialize database on startup - path depends on deployment mode
@@ -37,6 +38,11 @@ try:
     # Initialize Unitas module with config
     config = get_flat_config()
     unitas.do_unitas_setup(config)
+
+    # Check if config needs to be configured
+    CONFIG_NEEDS_SETUP = is_config_unconfigured()
+    if CONFIG_NEEDS_SETUP:
+        print("WARNING: Configuration is using default values. Please update settings via the web UI.")
 except Exception as e:
     # Store the error to display in UI
     STARTUP_ERROR = str(e)
@@ -117,6 +123,11 @@ def check_startup_error(f):
             return render_startup_error(), 503
         return f(*args, **kwargs)
     return decorated_function
+
+@app.context_processor
+def inject_config_status():
+    """Inject configuration status into all templates"""
+    return dict(config_needs_setup=CONFIG_NEEDS_SETUP)
 
 def render_startup_error():
     """Render a helpful error page when config/database initialization fails"""
