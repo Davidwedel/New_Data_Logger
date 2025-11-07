@@ -58,9 +58,9 @@ parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don't delete
 args = parser.parse_args()
 
 # ─── Config ───
-# Automation always uses production database (systemd service)
+# Database path respects deployment.mode setting in config
 full_config = load_config()
-DB_FILE = pathlib.Path(full_config["deployment"]["production_database"])
+DB_FILE = pathlib.Path(get_database_path())
 # Ensure directory exists
 DB_FILE.parent.mkdir(parents=True, exist_ok=True)
 
