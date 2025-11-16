@@ -34,6 +34,7 @@ from server.xml_processing import deleteOldFiles, do_xml_setup
 import server.unitas_manager.unitas_coolerlog as coolerlog
 import server.unitas_manager.unitas_production as unitas
 from server.unitas_manager.unitas_helper import set_timeout as helper_set_timeout
+import server.upload_queue as upload_queue
 
 
 # ─── Logging ───
@@ -55,6 +56,7 @@ parser.add_argument("--LogToUnitas", "-LU", action="store_true", help="Log Datab
 parser.add_argument("--CoolerLogToUnitas", "-CTU", action="store_true", help="Log cooler temps → Unitas (one-shot)")
 parser.add_argument("--CoolerLogToDB", "-CTD", action="store_true", help="Backup cooler logs → Cooler DB (one-shot)")
 parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don't delete old XML files")
+parser.add_argument("--date", "-d", type=str, help="Specific date for Unitas upload (YYYY-MM-DD format)")
 args = parser.parse_args()
 
 # ─── Config ───
@@ -83,6 +85,29 @@ coolerlog.do_coolerlog_setup(config, DB_FILE)
 db.backup_database(DB_FILE)
 
 
+# ─── Upload Queue Processing ───
+def process_upload_queue():
+    """Process all dates in the upload queue"""
+    queued_dates = upload_queue.get_queued_dates()
+
+    if not queued_dates:
+        return  # Nothing to process
+
+    logger.info(f"Processing upload queue: {len(queued_dates)} date(s) queued")
+
+    for date_str in queued_dates:
+        try:
+            logger.info(f"Processing queued upload for {date_str}")
+            unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str)
+            # Remove from queue after successful upload
+            upload_queue.remove_from_queue(date_str)
+            logger.info(f"Successfully processed and removed {date_str} from queue")
+        except Exception as e:
+            logger.error(f"Error processing {date_str} from queue: {e}")
+            # Leave it in queue to retry later
+            logger.info(f"Keeping {date_str} in queue for retry")
+
+
 # ─── Main Execution ───
 if args.LogToDatabase:
     logger.info("Running one-shot: XML → Database")
@@ -97,8 +122,12 @@ elif args.CoolerLogToDB:
     db.backup_cooler_logs(DB_FILE)
 
 elif args.LogToUnitas:
-    logger.info("Running one-shot: Database → Unitas")
-    unitas.run_unitas_stuff(config, DB_FILE)
+    if args.date:
+        logger.info(f"Running one-shot: Database → Unitas for date {args.date}")
+        unitas.run_unitas_stuff(config, DB_FILE, target_date=args.date)
+    else:
+        logger.info("Running one-shot: Database → Unitas (all pending)")
+        unitas.run_unitas_stuff(config, DB_FILE)
 
 else:
     logger.info("Running in Forever Mode (continuous automation)")
@@ -121,6 +150,10 @@ else:
     # Schedule daily cleanup job for missed Unitas uploads (catches any failed webhook uploads)
     schedule.every().day.at("03:00").do(unitas.run_unitas_stuff, config, DB_FILE, None)
     logger.info("Daily Unitas upload cleanup scheduled at 03:00")
+
+    # Schedule upload queue processing every minute
+    schedule.every(1).minutes.do(process_upload_queue)
+    logger.info("Upload queue processing scheduled every 1 minute")
 
     logger.info("Daily database backup scheduled at 00:05")
 

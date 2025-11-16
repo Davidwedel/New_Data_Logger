@@ -6,6 +6,10 @@ Exposes the Flask application for production deployment
 import sys
 import os
 
+# Disable Python bytecode (.pyc) writing to avoid SELinux issues
+# Code directory should be read-only for security
+os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+
 # Force production mode for WSGI deployment
 os.environ['DEPLOYMENT_MODE'] = 'production'
 
