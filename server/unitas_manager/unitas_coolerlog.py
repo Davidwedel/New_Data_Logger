@@ -32,8 +32,9 @@ def make_driver(headless: bool = False):
     options = webdriver.FirefoxOptions()
     if headless:
         options.add_argument("--headless")
+    # Use cached geckodriver for 999 days to avoid GitHub API rate limits
     return webdriver.Firefox(
-        service=Service(GeckoDriverManager().install()),
+        service=Service(GeckoDriverManager(cache_valid_range=999).install()),
         options=options
     )
 def open_coolerlog_page(driver):
