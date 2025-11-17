@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
 Data Logger Automation Service
-Handles XML → Database automation and daily Unitas upload cleanup
+Handles XML → Database automation and Unitas upload scheduling
 
-Note: Primary Unitas uploads are triggered immediately via webapp when
-send_to_bot checkbox is checked. This script runs a daily cleanup job
-at 3 AM to catch any missed uploads.
+Upload triggers:
+- On startup: Check database for pending uploads
+- At 3 AM daily: Check database for pending uploads
+- On file detection: When pending_upload file appears in /var/lib/datalogger/
 """
 import sys
 import schedule
@@ -16,6 +17,8 @@ import os
 import json
 from datetime import datetime, timedelta
 import pathlib
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 # Set config directory for production deployment
 # Automation service uses production config at /var/lib/datalogger/
@@ -34,7 +37,6 @@ from server.xml_processing import deleteOldFiles, do_xml_setup
 import server.unitas_manager.unitas_coolerlog as coolerlog
 import server.unitas_manager.unitas_production as unitas
 from server.unitas_manager.unitas_helper import set_timeout as helper_set_timeout
-import server.upload_queue as upload_queue
 
 
 # ─── Logging ───
@@ -85,27 +87,47 @@ coolerlog.do_coolerlog_setup(config, DB_FILE)
 db.backup_database(DB_FILE)
 
 
-# ─── Upload Queue Processing ───
-def process_upload_queue():
-    """Process all dates in the upload queue"""
-    queued_dates = upload_queue.get_queued_dates()
+# ─── Pending Upload Processing ───
+TRIGGER_FILE_PATH = pathlib.Path("/var/lib/datalogger/pending_upload")
 
-    if not queued_dates:
-        return  # Nothing to process
+def check_and_process_pending_uploads():
+    """Check database for pending uploads and process them"""
+    try:
+        pending_dates = db.get_dates_pending_unitas_upload(DB_FILE)
 
-    logger.info(f"Processing upload queue: {len(queued_dates)} date(s) queued")
+        if not pending_dates:
+            logger.info("No pending uploads found")
+            return
 
-    for date_str in queued_dates:
-        try:
-            logger.info(f"Processing queued upload for {date_str}")
-            unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str)
-            # Remove from queue after successful upload
-            upload_queue.remove_from_queue(date_str)
-            logger.info(f"Successfully processed and removed {date_str} from queue")
-        except Exception as e:
-            logger.error(f"Error processing {date_str} from queue: {e}")
-            # Leave it in queue to retry later
-            logger.info(f"Keeping {date_str} in queue for retry")
+        logger.info(f"Found {len(pending_dates)} pending upload(s): {pending_dates}")
+
+        for date_str in pending_dates:
+            try:
+                logger.info(f"Processing upload for {date_str}")
+                unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str)
+                logger.info(f"Successfully uploaded {date_str}")
+            except Exception as e:
+                logger.error(f"Error uploading {date_str}: {e}")
+                # Continue with next date even if one fails
+
+    except Exception as e:
+        logger.error(f"Error checking pending uploads: {e}")
+
+
+# ─── File Watcher for Trigger File ───
+class PendingUploadHandler(FileSystemEventHandler):
+    """Watch for pending_upload file creation"""
+
+    def on_created(self, event):
+        if event.src_path == str(TRIGGER_FILE_PATH):
+            logger.info("Detected pending_upload trigger file")
+            check_and_process_pending_uploads()
+            # Delete trigger file after processing
+            try:
+                TRIGGER_FILE_PATH.unlink()
+                logger.info("Removed pending_upload trigger file")
+            except Exception as e:
+                logger.error(f"Error removing trigger file: {e}")
 
 
 # ─── Main Execution ───
@@ -132,6 +154,10 @@ elif args.LogToUnitas:
 else:
     logger.info("Running in Forever Mode (continuous automation)")
 
+    # ─── Startup Upload Check ───
+    logger.info("Checking for pending uploads on startup...")
+    check_and_process_pending_uploads()
+
     # ─── Scheduling ───
     schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
     schedule.every().day.at("00:05").do(db.backup_database, DB_FILE)  # Daily backup at 12:05 AM
@@ -147,15 +173,19 @@ else:
         schedule.every().day.at(unitas_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
         logger.info(f"Cooler log to Unitas scheduled at {unitas_time}")
 
-    # Schedule daily cleanup job for missed Unitas uploads (catches any failed webhook uploads)
-    schedule.every().day.at("03:00").do(unitas.run_unitas_stuff, config, DB_FILE, None)
-    logger.info("Daily Unitas upload cleanup scheduled at 03:00")
-
-    # Schedule upload queue processing every minute
-    schedule.every(1).minutes.do(process_upload_queue)
-    logger.info("Upload queue processing scheduled every 1 minute")
+    # Schedule daily database check for pending Unitas uploads at 3 AM
+    schedule.every().day.at("03:00").do(check_and_process_pending_uploads)
+    logger.info("Daily Unitas upload check scheduled at 03:00")
 
     logger.info("Daily database backup scheduled at 00:05")
+
+    # ─── File Watcher Setup ───
+    event_handler = PendingUploadHandler()
+    observer = Observer()
+    watch_dir = str(TRIGGER_FILE_PATH.parent)
+    observer.schedule(event_handler, watch_dir, recursive=False)
+    observer.start()
+    logger.info(f"File watcher started for {watch_dir}")
 
     try:
         # Forever loop
@@ -165,3 +195,5 @@ else:
 
     except KeyboardInterrupt:
         logger.info("Stopped by user")
+        observer.stop()
+        observer.join()

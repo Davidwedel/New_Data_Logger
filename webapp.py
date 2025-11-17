@@ -20,7 +20,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server/unitas_manage
 import database_helper as db
 from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port, is_config_unconfigured
 import server.unitas_manager.unitas_production as unitas
-import server.upload_queue as upload_queue
 
 app = Flask(__name__)
 
@@ -463,17 +462,27 @@ def get_defaults():
 
 
 # Endpoint to update user log for a specific date
-def trigger_unitas_upload_background(date_str):
-    """Add date to upload queue for automation service to process"""
+TRIGGER_FILE_PATH = pathlib.Path("/var/lib/datalogger/pending_upload")
+
+def trigger_unitas_upload(date_str):
+    """
+    Trigger Unitas upload for a specific date.
+    - If date is today: Do nothing (waits for 3 AM check)
+    - If date is not today: Create pending_upload trigger file
+    """
+    today_str = date.today().isoformat()
+
+    if date_str == today_str:
+        print(f"[Upload] Date {date_str} is today - will upload at 3 AM")
+        return
+
     try:
-        print(f"[Queue] Adding {date_str} to Unitas upload queue")
-        success = upload_queue.add_to_queue(date_str)
-        if success:
-            print(f"[Queue] Successfully queued {date_str} for upload")
-        else:
-            print(f"[Queue] Failed to queue {date_str}")
+        # Create trigger file for non-today dates
+        TRIGGER_FILE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        TRIGGER_FILE_PATH.touch()
+        print(f"[Upload] Created trigger file for {date_str}")
     except Exception as e:
-        print(f"[Queue] Error queueing {date_str} for upload: {e}")
+        print(f"[Upload] Error creating trigger file: {e}")
 
 @app.route("/update_user_log", methods=["POST"])
 @check_startup_error
@@ -519,13 +528,16 @@ def update_user_log():
             db.update_daily_user_log(DB_FILE, date_str, data)
             message = f"User log updated for {date_str}."
 
-        # Add to upload queue if checkbox was just checked
+        # Trigger upload if checkbox was just checked
         if send_to_bot_changed:
-            # Check that bot_log exists before queueing
+            # Check that bot_log exists before triggering upload
             bot_log = db.get_daily_bot_log(DB_FILE, date_str)
             if bot_log:
-                trigger_unitas_upload_background(date_str)
-                message += " Added to upload queue."
+                trigger_unitas_upload(date_str)
+                if date_str == date.today().isoformat():
+                    message += " Will upload at 3 AM."
+                else:
+                    message += " Upload triggered."
             else:
                 message += " Warning: No bot log data found for this date - skipping upload."
 
