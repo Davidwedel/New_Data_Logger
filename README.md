@@ -171,7 +171,7 @@ sudo systemctl restart farm-webapp.service
 
 4. **Cooler Log Backup** (Scheduled)
    - Backs up cooler temperatures to separate database
-   - Stored in `~/.datalogger/coolerlog/coolerlog.db`
+   - Stored in `/var/lib/datalogger/coolerlog/coolerlog.db` (production) or `~/.datalogger/coolerlog/coolerlog.db` (localhost)
 
 ### Database Schema
 
@@ -192,11 +192,13 @@ sudo systemctl restart farm-webapp.service
 
 ## Database
 
-Main database: `~/.datalogger/database.db`
+Main database:
+- Production: `/var/lib/datalogger/database.db`
+- Localhost: `~/.datalogger/dev_database.db`
 
-Backups:
-- Daily backups at 00:05 in `~/.datalogger/backups/`
-- Cooler log backups in `~/.datalogger/coolerlog/coolerlog.db`
+Backups (follow deployment mode):
+- Daily backups at 00:05 in `/var/lib/datalogger/backups/` (production) or `~/.datalogger/backups/` (localhost)
+- Cooler log backups in `/var/lib/datalogger/coolerlog/coolerlog.db` (production) or `~/.datalogger/coolerlog/coolerlog.db` (localhost)
 
 ## Data Validation
 
@@ -255,9 +257,13 @@ Environment=XAUTHORITY=/run/lightdm/davidwedel/xauthority
 
 ### Database errors
 
-1. Check database file exists: `ls -la ~/.datalogger/database.db`
-2. Check permissions: `chmod 644 ~/.datalogger/database.db`
-3. Restore from backup: `~/.datalogger/backups/database_*.db`
+1. Check database file exists:
+   - Production: `ls -la /var/lib/datalogger/database.db`
+   - Localhost: `ls -la ~/.datalogger/dev_database.db`
+2. Check permissions (production): `sudo chmod 644 /var/lib/datalogger/database.db`
+3. Restore from backup:
+   - Production: `/var/lib/datalogger/backups/database_*.db`
+   - Localhost: `~/.datalogger/backups/database_*.db`
 
 ## Security Considerations
 
