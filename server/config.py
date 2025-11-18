@@ -232,6 +232,26 @@ def get_database_path() -> str:
         return config["deployment"]["localhost_database"]
 
 
+def get_backup_dir() -> str:
+    """Get backup directory path based on CONFIG_DIR
+
+    Returns:
+        - Production mode: /var/lib/datalogger/backups
+        - Localhost mode: ~/.datalogger/backups
+    """
+    return str(CONFIG_DIR / "backups")
+
+
+def get_coolerlog_dir() -> str:
+    """Get cooler log directory path based on CONFIG_DIR
+
+    Returns:
+        - Production mode: /var/lib/datalogger/coolerlog
+        - Localhost mode: ~/.datalogger/coolerlog
+    """
+    return str(CONFIG_DIR / "coolerlog")
+
+
 def get_localhost_port() -> int:
     """Get port for localhost mode"""
     config = load_config()

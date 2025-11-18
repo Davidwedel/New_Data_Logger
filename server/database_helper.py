@@ -2,6 +2,7 @@ import sqlite3
 import shutil
 import pathlib
 from datetime import datetime
+from server.config import get_backup_dir, get_coolerlog_dir
 
 # ------------------- DATABASE SETUP -------------------
 def setup_db(db_file):
@@ -370,13 +371,13 @@ def backup_database(db_file, backup_dir=None):
 
     Args:
         db_file: Path to the database file to backup
-        backup_dir: Directory to store backups (default: ~/.datalogger/backups)
+        backup_dir: Directory to store backups (default: deployment-mode-aware path)
 
     Returns:
         Path to backup file if created, None if skipped
     """
     if backup_dir is None:
-        backup_dir = pathlib.Path.home() / ".datalogger" / "backups"
+        backup_dir = pathlib.Path(get_backup_dir())
     else:
         backup_dir = pathlib.Path(backup_dir)
 
@@ -434,13 +435,13 @@ def backup_cooler_logs(db_file, coolerlog_dir=None):
 
     Args:
         db_file: Path to main database file
-        coolerlog_dir: Directory for cooler log database (default: ~/.datalogger/coolerlog)
+        coolerlog_dir: Directory for cooler log database (default: deployment-mode-aware path)
 
     Returns:
         Number of records backed up
     """
     if coolerlog_dir is None:
-        coolerlog_dir = pathlib.Path.home() / ".datalogger" / "coolerlog"
+        coolerlog_dir = pathlib.Path(get_coolerlog_dir())
     else:
         coolerlog_dir = pathlib.Path(coolerlog_dir)
 

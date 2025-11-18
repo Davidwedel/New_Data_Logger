@@ -112,7 +112,8 @@ Settings organized in sections:
    - `unitas_coolerlog.py` handles cooler temperature logging
 
 4. **Cooler Log Backup** (scheduled 1 minute after XML → DB)
-   - Backs up cooler temperature data to `~/.datalogger/coolerlog/coolerlog.db`
+   - Backs up cooler temperature data to coolerlog database
+   - Location: `/var/lib/datalogger/coolerlog/coolerlog.db` (production) or `~/.datalogger/coolerlog/coolerlog.db` (localhost)
    - Tracks backup status via `cooler_to_db_at` timestamp in Daily_Bot_Log
 
 ### State Management
@@ -157,8 +158,10 @@ All tables use date-based primary keys for daily records.
   - **Production**: `/var/lib/datalogger/database.db` (used by automation service and Apache webapp)
   - **Localhost**: `~/.datalogger/dev_database.db` (used when testing webapp locally)
   - Deployment mode is controlled by `deployment.mode` in config.json
-- Database backups stored in `~/.datalogger/backups/` (created every 24 hours by automation service)
-- Cooler log backups stored in `~/.datalogger/coolerlog/coolerlog.db`
+- **Backup paths** (follow deployment mode):
+  - **Production**: `/var/lib/datalogger/backups/` (database backups) and `/var/lib/datalogger/coolerlog/coolerlog.db` (cooler logs)
+  - **Localhost**: `~/.datalogger/backups/` (database backups) and `~/.datalogger/coolerlog/coolerlog.db` (cooler logs)
+  - Database backups created every 24 hours by automation service
 - XML watcher sends Telegram notifications if bot_token and chat_id are configured
 - **Systemd services**: Only `datalogger.service` (automation) and `xml-watcher.service` run as services
 - **Webapp deployment**: Run via Apache/WSGI in production, or standalone Flask server for testing
