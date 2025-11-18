@@ -12,6 +12,7 @@ remove stuff about starting services manually and just start the webapp and give
 should really automate ftp script for my own sanity
 sql security?
 readme
-timezone stuff in settings
+timezone stuff in settings 
+timezone stuff horrible
 data validation all
 bot log ui horrible
