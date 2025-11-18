@@ -158,6 +158,14 @@ else:
     logger.info("Checking for pending uploads on startup...")
     check_and_process_pending_uploads()
 
+    # Check for pending coolerlog uploads if enabled
+    if LOG_COOLER_TO_UNITAS:
+        logger.info("Checking for pending coolerlog uploads on startup...")
+        try:
+            coolerlog.run_coolerlog_to_unitas(DB_FILE)
+        except Exception as e:
+            logger.error(f"Error processing pending coolerlog uploads on startup: {e}")
+
     # ─── Scheduling ───
     schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
     schedule.every().day.at("00:05").do(db.backup_database, DB_FILE)  # Daily backup at 12:05 AM

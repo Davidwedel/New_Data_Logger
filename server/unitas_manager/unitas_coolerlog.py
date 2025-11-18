@@ -16,15 +16,17 @@ COOLERLOG_URL = None
 TIMEOUT = None
 INITIALS = None
 DB_FILE = None
+SECRETS = None
 
 def do_coolerlog_setup(secrets, db_file=None):
-    global FARM_ID, HOUSE_ID, COOLERLOG_URL, TIMEOUT, INITIALS, DB_FILE
+    global FARM_ID, HOUSE_ID, COOLERLOG_URL, TIMEOUT, INITIALS, DB_FILE, SECRETS
 
     FARM_ID = secrets["Farm_ID"]
     HOUSE_ID = secrets["House_ID"]
     TIMEOUT = secrets["Timeout"]
     INITIALS = secrets["Cooler_Log_Initials"]
     COOLERLOG_URL = f"https://vitalfarms.poultrycloud.com/farm/cooler-log/coolerlog/new?farmId={FARM_ID}&houseId={HOUSE_ID}"
+    SECRETS = secrets
     if db_file:
         DB_FILE = db_file
 
@@ -137,67 +139,111 @@ def fill_coolerlog_values(driver, data):
     save_btn.click()
 
 
-def run_coolerlog_to_unitas(db_file=None):
-    """Send cooler log data to Unitas from database"""
+def run_coolerlog_to_unitas(db_file=None, target_date=None):
+    """
+    Send cooler log data to Unitas from database
+
+    Args:
+        db_file: Path to database file (uses global DB_FILE if None)
+        target_date: Specific date to upload (YYYY-MM-DD format), or None to upload all pending dates
+    """
     if db_file is None:
         db_file = DB_FILE
 
-    # Get yesterday's date
-    yesterday = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+    # Determine which dates to upload BEFORE logging in
+    if target_date is not None:
+        # Single date mode
+        dates_to_upload = [target_date]
+        print(f"Single date mode: uploading coolerlog for {target_date}")
+    else:
+        # Multi-date mode: find all pending dates
+        dates_to_upload = db.get_dates_pending_coolerlog_upload(db_file)
+        if not dates_to_upload:
+            print("="*60)
+            print("No dates pending coolerlog upload. All caught up!")
+            print("="*60)
+            return
+        print(f"Found {len(dates_to_upload)} date(s) pending coolerlog upload: {dates_to_upload}")
 
-    # Check if already logged
-    if db.has_cooler_been_logged_today(db_file, yesterday):
-        print(f"Cooler log already sent for {yesterday}")
-        return
-
-    # Get bot log data for yesterday
-    bot_log = db.get_daily_bot_log(db_file, yesterday)
-    if not bot_log:
-        print(f"No bot log data found for {yesterday}")
-        return
-
-    # Get user log for eggs_picked_up and comments
-    user_log = db.get_daily_user_log(db_file, yesterday)
-
-    # Format data for coolerlog form
-    # Expected format: [[am_hour, am_minute, am_temp, pm_hour, pm_minute, pm_temp, eggs_picked_up, comments]]
-    cooler_time_am = bot_log.get('cooler_time_am', '')
-    cooler_temp_am = bot_log.get('cooler_temp_am', '')
-    cooler_time_pm = bot_log.get('cooler_time_pm', '')
-    cooler_temp_pm = bot_log.get('cooler_temp_pm', '')
-
-    # Parse time strings (format: "HH:MM:SS" or "HH:MM")
-    am_hour, am_minute = '', ''
-    if cooler_time_am:
-        parts = str(cooler_time_am).split(':')
-        am_hour = parts[0] if len(parts) > 0 else ''
-        am_minute = parts[1] if len(parts) > 1 else ''
-
-    pm_hour, pm_minute = '', ''
-    if cooler_time_pm:
-        parts = str(cooler_time_pm).split(':')
-        pm_hour = parts[0] if len(parts) > 0 else ''
-        pm_minute = parts[1] if len(parts) > 1 else ''
-
-    eggs_picked_up = user_log.get('eggs_picked_up', '') if user_log else ''
-    comments = user_log.get('coolerlog_comments', '') if user_log else ''
-
-    valuesToSend = [[am_hour, am_minute, str(cooler_temp_am), pm_hour, pm_minute, str(cooler_temp_pm), str(eggs_picked_up), comments]]
-
+    # Now that we know we have work to do, start the browser and login
     driver = make_driver(False)
-    try:
-        login(driver)
-        open_coolerlog_page(driver)
-        print(f"Sending cooler log for {yesterday}:")
-        print(valuesToSend)
-        fill_coolerlog_values(driver, valuesToSend)
 
-        # Update database with timestamp
-        db.update_daily_bot_log(db_file, yesterday, {'cooler_logged_at': datetime.now().isoformat()})
-        print(f"Cooler log successfully sent for {yesterday}")
+    try:
+        login(driver, SECRETS)
+
+        # Upload each date
+        successful_uploads = []
+        failed_uploads = []
+
+        for upload_date in dates_to_upload:
+            print(f"\n{'='*60}")
+            print(f"Processing coolerlog for date: {upload_date}")
+            print(f"{'='*60}")
+
+            try:
+                # Get bot log data for this date
+                bot_log = db.get_daily_bot_log(db_file, upload_date)
+                if not bot_log:
+                    print(f"No bot log data found for {upload_date}, skipping")
+                    failed_uploads.append(upload_date)
+                    continue
+
+                # Get user log for eggs_picked_up and comments
+                user_log = db.get_daily_user_log(db_file, upload_date)
+
+                # Format data for coolerlog form
+                cooler_time_am = bot_log.get('cooler_time_am', '')
+                cooler_temp_am = bot_log.get('cooler_temp_am', '')
+                cooler_time_pm = bot_log.get('cooler_time_pm', '')
+                cooler_temp_pm = bot_log.get('cooler_temp_pm', '')
+
+                # Parse time strings (format: "HH:MM:SS" or "HH:MM")
+                am_hour, am_minute = '', ''
+                if cooler_time_am:
+                    parts = str(cooler_time_am).split(':')
+                    am_hour = parts[0] if len(parts) > 0 else ''
+                    am_minute = parts[1] if len(parts) > 1 else ''
+
+                pm_hour, pm_minute = '', ''
+                if cooler_time_pm:
+                    parts = str(cooler_time_pm).split(':')
+                    pm_hour = parts[0] if len(parts) > 0 else ''
+                    pm_minute = parts[1] if len(parts) > 1 else ''
+
+                eggs_picked_up = user_log.get('eggs_picked_up', '') if user_log else ''
+                comments = user_log.get('coolerlog_comments', '') if user_log else ''
+
+                valuesToSend = [[am_hour, am_minute, str(cooler_temp_am), pm_hour, pm_minute, str(cooler_temp_pm), str(eggs_picked_up), comments]]
+
+                # Open coolerlog page and fill form
+                open_coolerlog_page(driver)
+                print(f"Sending coolerlog data:")
+                print(valuesToSend)
+                fill_coolerlog_values(driver, valuesToSend)
+
+                # Update database with timestamp
+                db.update_daily_bot_log(db_file, upload_date, {'cooler_logged_at': datetime.now().isoformat()})
+                print(f"✓ Coolerlog successfully sent for {upload_date}")
+                successful_uploads.append(upload_date)
+
+            except Exception as e:
+                print(f"✗ Error uploading coolerlog for {upload_date}: {e}")
+                failed_uploads.append(upload_date)
+                # Continue with next date even if one fails
+
+        # Summary
+        print("\n" + "="*60)
+        print("COOLERLOG UPLOAD SUMMARY")
+        print("="*60)
+        print(f"Successful: {len(successful_uploads)}")
+        if successful_uploads:
+            print(f"  {', '.join(successful_uploads)}")
+        print(f"Failed: {len(failed_uploads)}")
+        if failed_uploads:
+            print(f"  {', '.join(failed_uploads)}")
+        print("="*60)
 
     finally:
-        print("Quitting.")
-        print("Goodbye!")
+        print("Quitting browser.")
         driver.quit()
     

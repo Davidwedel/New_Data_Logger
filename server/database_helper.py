@@ -327,6 +327,32 @@ def get_dates_pending_unitas_upload(db_file):
 
     return [row[0] for row in results]
 
+def get_dates_pending_coolerlog_upload(db_file):
+    """
+    Get all dates that have:
+    1. Bot log data with cooler temperatures
+    2. NOT yet logged to Unitas (cooler_logged_at IS NULL)
+    3. Have valid cooler temperature data (not NULL or empty)
+    Returns list of date strings in ISO format
+    """
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+
+    sql = """
+        SELECT date
+        FROM Daily_Bot_Log
+        WHERE cooler_logged_at IS NULL
+        AND (cooler_temp_am IS NOT NULL OR cooler_temp_pm IS NOT NULL)
+        AND (cooler_temp_am != '' OR cooler_temp_pm != '')
+        ORDER BY date ASC
+    """
+
+    cur.execute(sql)
+    results = cur.fetchall()
+    conn.close()
+
+    return [row[0] for row in results]
+
 # ------------------- JOB STATUS FUNCTIONS -------------------
 def has_xml_been_processed_today(db_file, date_str):
     """
