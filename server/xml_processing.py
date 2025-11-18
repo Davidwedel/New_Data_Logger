@@ -5,6 +5,7 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
+from collections import Counter
 import database_helper
 from helpers import get_bird_age
 
@@ -43,6 +44,38 @@ def extract_hour_min_from_filename(filename):
     minute = int(time_part[2:4])
     return hour, minute
 
+def extract_time_and_growthday(filename):
+    """
+    Extract Time and GrowthDay from XML file.
+    Returns: (time_str, growthday_int) or (None, None) if invalid/missing
+
+    time_str format: "HH:MM" (e.g., "23:45")
+    growthday_int: integer day number (e.g., 256)
+
+    Returns (None, None) if Time or GrowthDay is -9999 or cannot be parsed
+    """
+    try:
+        tree = ET.parse(filename)
+        root = tree.getroot()
+
+        # Extract Time from <General><Time>
+        time_element = root.find(".//General/Time")
+        if time_element is None or time_element.text == "-9999":
+            return None, None
+        time_str = time_element.text.strip()
+
+        # Extract GrowthDay from <General><GrowthDay>
+        growthday_element = root.find(".//General/GrowthDay")
+        if growthday_element is None or growthday_element.text == "-9999":
+            return None, None
+        growthday_int = int(growthday_element.text)
+
+        return time_str, growthday_int
+
+    except Exception as e:
+        print(f"Failed to extract time/growthday from {filename}: {e}")
+        return None, None
+
 def c_to_f(celsius):
     if celsius == "=NA()":
         return "=NA()"
@@ -51,7 +84,12 @@ def c_to_f(celsius):
 def kg_to_lb(kg):
     return kg * 2.20462
 
-def doProcessingOnAllFiles(yesterdayFiles):
+def doProcessingOnAllFiles(file_list):
+    """
+    Process all files in the provided list (not a glob pattern).
+    Files are sorted by internal <General><Time> field.
+    Files with invalid Time (-9999) are skipped.
+    """
     lightStatus = False
     lightOnTime = "=NA()"
     lightOffTime = "=NA()"
@@ -59,12 +97,17 @@ def doProcessingOnAllFiles(yesterdayFiles):
     outsideTemps = []
     insideTemps = []
 
-    def extract_timestamp(filename):
-        # Assumes filenames like: 20250722225053_...
-        base = os.path.basename(filename)
-        return base.split('_')[0]  # '20250722225053'
+    # Sort files by internal Time field
+    files_with_time = []
+    for filename in file_list:
+        time_str, _ = extract_time_and_growthday(filename)
+        if time_str is not None:  # Skip files with Time == -9999
+            files_with_time.append((filename, time_str))
 
-    for filename in sorted(glob.glob(yesterdayFiles), key=extract_timestamp):
+    # Sort by time string (HH:MM format sorts correctly)
+    files_with_time.sort(key=lambda x: x[1])
+
+    for filename, _ in files_with_time:
         try: 
             tree = ET.parse(filename)
             root = tree.getroot()
@@ -230,24 +273,37 @@ def deleteOldFiles():
        print(f"Deleted {howManyDeleted} XML files!")
 
 def getCoolerTemp(theTime, theTolerance, theName):
+    """
+    Find file closest to target time using internal <General><Time> field.
+    theName: list of file paths
+    """
+    def time_to_minutes(time_str):
+        """Convert HH:MM string to total minutes"""
+        h, m = map(int, time_str.split(':'))
+        return h * 60 + m
 
-    def diff_minutes(hm):
-        h, m = hm
-        total = h * 60 + m
+    def diff_minutes(time_str):
+        """Calculate difference in minutes from target time"""
+        if time_str is None:
+            return float('inf')
+        total = time_to_minutes(time_str)
         return abs(total - target_total_minutes)
-
 
     target_total_minutes = grab_hr_min_frm_var(theTime)
     theTolerance = grab_hr_min_frm_var(theTolerance)
 
-    # Filter files within tolerance
-    candidates = [f for f in theName if diff_minutes(extract_hour_min_from_filename(f)) <= theTolerance]
+    # Extract time from each file and filter within tolerance
+    candidates = []
+    for f in theName:
+        time_str, _ = extract_time_and_growthday(f)
+        if time_str is not None and diff_minutes(time_str) <= theTolerance:
+            candidates.append((f, time_str))
 
     if not candidates:
         return '=NA()', '=NA()'
 
     # Return closest file among candidates
-    closest_file = min(candidates, key=lambda f: diff_minutes(extract_hour_min_from_filename(f)))
+    closest_file = min(candidates, key=lambda x: diff_minutes(x[1]))[0]
 
     try: 
         tree = ET.parse(closest_file)
@@ -300,16 +356,60 @@ def run_xml_stuff(db_file=None, target_date=None):
 
     print(f"Processing XML files for date: {yesterday_readable}")
 
-    #file pattern to files for this date
+    # Step 1: Get initial file list using filename pattern (most will be correct day)
     yesterdayFiles = os.path.join(xmlFolder, (yesterday+"*.xml"))
+    candidate_files = glob.glob(yesterdayFiles)
 
-    xmlNameOnly = glob.glob(yesterdayFiles)
-
-    if xmlNameOnly:
-        last_yesterdayFile = max(xmlNameOnly, key=lambda f: datetime.strptime(os.path.basename(f)[:14], "%Y%m%d%H%M%S"))
-    else:
+    if not candidate_files:
         print("No files found for yesterday. Exiting...")
         return None
+
+    # Step 2: Parse GrowthDay from candidate files to determine which GrowthDay to process
+    print(f"Found {len(candidate_files)} candidate files, determining target GrowthDay...")
+    growthdays = []
+    for filename in candidate_files:
+        _, growthday = extract_time_and_growthday(filename)
+        if growthday is not None:
+            growthdays.append(growthday)
+
+    if not growthdays:
+        print("No valid GrowthDay values found in candidate files. Exiting...")
+        return None
+
+    # Step 3: Find most common GrowthDay (should be 23-24 out of 24 files)
+    growthday_counts = Counter(growthdays)
+    target_growthday = growthday_counts.most_common(1)[0][0]
+    print(f"Target GrowthDay: {target_growthday} (appears in {growthday_counts[target_growthday]}/{len(candidate_files)} candidate files)")
+
+    # Step 4: Get ALL files from directory that match target GrowthDay
+    all_xml_files = glob.glob(os.path.join(xmlFolder, "*.xml"))
+    xmlNameOnly = []
+    for filename in all_xml_files:
+        _, growthday = extract_time_and_growthday(filename)
+        if growthday == target_growthday:
+            xmlNameOnly.append(filename)
+
+    print(f"Processing {len(xmlNameOnly)} files with GrowthDay {target_growthday}")
+
+    if not xmlNameOnly:
+        print("No files found with target GrowthDay. Exiting...")
+        return None
+
+    # Step 5: Find last file by internal Time value (not filename)
+    files_with_time = []
+    for filename in xmlNameOnly:
+        time_str, _ = extract_time_and_growthday(filename)
+        if time_str is not None:
+            files_with_time.append((filename, time_str))
+
+    if not files_with_time:
+        print("No files with valid Time found. Exiting...")
+        return None
+
+    # Sort by time string (HH:MM format sorts correctly as strings)
+    files_with_time.sort(key=lambda x: x[1])
+    last_yesterdayFile = files_with_time[-1][0]
+    print(f"Last file time: {files_with_time[-1][1]}")
 
     #end figuring various things we need to know
 
@@ -323,7 +423,7 @@ def run_xml_stuff(db_file=None, target_date=None):
 
     #parse all files from yesterday and average the outside temp
     #return outsideHigh, outsideLow, insideHigh, insideLow !!What gets returned!!
-    databack = doProcessingOnAllFiles(yesterdayFiles)
+    databack = doProcessingOnAllFiles(xmlNameOnly)
 
     outsideHigh = c_to_f(databack[0])
     outsideLow = c_to_f(databack[1])
