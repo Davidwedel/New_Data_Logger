@@ -10,3 +10,4 @@ server/corrupt_files
 *.mod
 ignored/
 .vscode/
+*.swp
