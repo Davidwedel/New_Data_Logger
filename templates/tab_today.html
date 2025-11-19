@@ -732,18 +732,50 @@
       return;
     }
 
-    let html = '<div style="max-width:100%; border:1px solid #ccc; border-radius:6px; overflow-x:auto;">';
-    html += '<form id="botlog-edit-form"><table style="font-size:12px; min-width:600px;"><tr>';
+    // Define display names for bot log fields
+    const botLogFieldDisplayNames = {
+      'date': 'Date',
+      'bird_age': 'Bird Age',
+      'feed_consumption': 'Feed Consumption (lbs)',
+      'water_consumption': 'Water Consumption (gal)',
+      'body_weight': 'Body Weight (lbs)',
+      'lights_on': 'Lights On',
+      'lights_off': 'Lights Off',
+      'door_open': 'Door Open',
+      'door_closed': 'Door Closed',
+      'birds_restricted': 'Birds Restricted',
+      'inside_low_temp': 'Inside Low Temp (°F)',
+      'inside_high_temp': 'Inside High Temp (°F)',
+      'outside_low_temp': 'Outside Low Temp (°F)',
+      'outside_high_temp': 'Outside High Temp (°F)',
+      'cooler_time_am': 'Cooler Time AM',
+      'cooler_temp_am': 'Cooler Temp AM (°F)',
+      'cooler_time_pm': 'Cooler Time PM',
+      'cooler_temp_pm': 'Cooler Temp PM (°F)'
+    };
+
+    // Fields to exclude from display
+    const excludeFields = ['id', 'cooler_logged_at', 'cooler_to_db_at', 'date', 'door_open', 'door_closed'];
+
+    let html = '<div id="botlog-scroll-container" style="max-width:100%; border:1px solid #ccc; border-radius:6px; padding:10px;">';
+    html += '<form id="botlog-edit-form">';
+    html += '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 200px)); gap:10px;">';
+
+    // Render each field as a labeled input in a grid (similar to user log)
     for (const key in bot_log) {
-      html += `<th style="padding:4px 6px;">${key}</th>`;
-    }
-    html += '<th style="padding:4px 6px;">Save</th></tr><tr>';
-    for (const key in bot_log) {
+      // Skip excluded fields
+      if (excludeFields.includes(key)) continue;
+
       const value = bot_log[key] || '';
-      html += `<td style="padding:4px 6px;"><input style="width:100px; font-size:12px;" name="${key}" value="${value}"></td>`;
+      const displayName = botLogFieldDisplayNames[key] || key;
+
+      html += `<div style="display:flex; flex-direction:column;">`;
+      html += `<label style="font-weight:bold; margin-bottom:2px; font-size:11px;">${displayName}</label>`;
+      html += `<input style="padding:4px; font-size:12px; border:1px solid #ccc; border-radius:3px;" name="${key}" value="${value}" oninput="autoSaveBotLog()">`;
+      html += `</div>`;
     }
-    html += '<td><button type="button" onclick="saveBotLog()">Save</button></td>';
-    html += '</tr></table></form></div>';
+
+    html += '</div></form></div>';
     container.innerHTML = html;
   }
 
@@ -775,5 +807,41 @@
       .then(res => res.json())
       .then(data => alert(data.message))
       .catch(() => alert('Error saving bot log.'));
+  }
+
+  let botSaveTimeout = null;
+  function autoSaveBotLog() {
+    // Clear any existing timeout
+    if (botSaveTimeout) {
+      clearTimeout(botSaveTimeout);
+    }
+
+    // Set a new timeout to save after a brief delay (debounce)
+    botSaveTimeout = setTimeout(() => {
+      const form = document.getElementById('botlog-edit-form');
+      const data = {};
+
+      // Handle all inputs
+      const inputs = form.querySelectorAll('input');
+      inputs.forEach(input => {
+        if (input.name && input.name !== 'date') {
+          data[input.name] = input.value;
+        }
+      });
+
+      // Include the selected date in the request
+      fetch(`/update_bot_log?date=${currentSelectedDate}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      })
+        .then(res => res.json())
+        .then(result => {
+          console.log('Bot log auto-saved:', result.message);
+        })
+        .catch(err => {
+          console.error('Bot log auto-save failed:', err);
+        });
+    }, 500); // Wait 500ms after user stops typing
   }
 </script>
