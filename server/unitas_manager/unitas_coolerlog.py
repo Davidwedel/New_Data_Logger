@@ -25,7 +25,7 @@ def do_coolerlog_setup(secrets, db_file=None):
     HOUSE_ID = secrets["House_ID"]
     TIMEOUT = secrets["Timeout"]
     INITIALS = secrets["Cooler_Log_Initials"]
-    COOLERLOG_URL = f"https://vitalfarms.poultrycloud.com/farm/cooler-log/coolerlog/new?farmId={FARM_ID}&houseId={HOUSE_ID}"
+    COOLERLOG_URL = f"https://vitalfarms.poultrycloud.com/farm/coolerlog/coolerlog/new?farmId={FARM_ID}&houseId={HOUSE_ID}"
     SECRETS = secrets
     if db_file:
         DB_FILE = db_file
@@ -44,51 +44,44 @@ def open_coolerlog_page(driver):
 
 def fill_coolerlog_values(driver, data):
 
-    def pick_date(driver, date_input, target_date: date):
-        # 1. Open the date picker
-        date_input.click()
+    def pick_date(driver, date_picker_button, target_date: date):
+        # 1. Open the date picker by clicking the button
+        date_picker_button.click()
         time.sleep(0.5)  # let popup render
 
-        # 2. Navigate to correct month/year
-        while True:
-            header = driver.find_element(By.CSS_SELECTOR, ".flex.justify-between.items-center.mb-2 div span")
-            month_year = header.text.strip()  # e.g. "August"
-            year_text = driver.find_element(By.CSS_SELECTOR, ".flex.justify-between.items-center.mb-2 div span.ml-1").text.strip()
+        # 2. Select month using dropdown
+        month_dropdown = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "select.rdp-months_dropdown"))
+        )
+        from selenium.webdriver.support.ui import Select
+        select_month = Select(month_dropdown)
+        select_month.select_by_value(str(target_date.month - 1))  # Month is 0-indexed in dropdown
+        time.sleep(0.3)
 
-            # convert to int month/year
-            import calendar
-            current_month = list(calendar.month_name).index(month_year)
-            current_year = int(year_text)
+        # 3. Select year using dropdown
+        year_dropdown = driver.find_element(By.CSS_SELECTOR, "select.rdp-years_dropdown")
+        select_year = Select(year_dropdown)
+        select_year.select_by_value(str(target_date.year))
+        time.sleep(0.3)
 
-            if current_month == target_date.month and current_year == target_date.year:
-                break  # desired month is shown
-
-            if (current_year, current_month) > (target_date.year, target_date.month):
-                # too far ahead → click previous
-                prev_btn = driver.find_element(By.CSS_SELECTOR, "button[aria-label='previous month']")
-                prev_btn.click()
-            else:
-                # behind → click next
-                next_btn = driver.find_element(By.CSS_SELECTOR, "button[aria-label='next month']")
-                next_btn.click()
-            time.sleep(0.3)
-
-        # 3. Click the day cell
-        selector = f"[data-cy='date-{target_date.day}']"
-        day_elem = driver.find_element(By.CSS_SELECTOR, selector)
-        day_elem.click()
+        # 4. Click the day button - data-day format is "M/D/YYYY"
+        day_selector = f"button[data-day='{target_date.month}/{target_date.day}/{target_date.year}']"
+        day_button = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, day_selector))
+        )
+        day_button.click()
+        time.sleep(0.3)
 
 
 
     
 
-    # wait until the input is present and clickable
-    date_input = WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.ID, "select-date-input"))
+    # wait until the date picker button is present and clickable
+    date_picker_button = WebDriverWait(driver, 10).until(
+        EC.element_to_be_clickable((By.XPATH, "//button[contains(@aria-haspopup, 'dialog') and .//span[contains(text(), 'Pick a date')]]"))
     )
 
-    yesterday = date.today() - timedelta(days=1)
-    pick_date(driver, date_input, yesterday)
+    pick_date(driver, date_picker_button, data[1])
 
     #start filling in the rest
 
@@ -213,12 +206,17 @@ def run_coolerlog_to_unitas(db_file=None, target_date=None):
                 eggs_picked_up = user_log.get('eggs_picked_up', '') if user_log else ''
                 comments = user_log.get('coolerlog_comments', '') if user_log else ''
 
-                valuesToSend = [[am_hour, am_minute, str(cooler_temp_am), pm_hour, pm_minute, str(cooler_temp_pm), str(eggs_picked_up), comments]]
+                # Convert upload_date string to date object for date picker
+                from datetime import datetime as dt
+                date_obj = dt.strptime(upload_date, '%Y-%m-%d').date()
+
+                # valuesToSend: [data_row, date_object]
+                valuesToSend = [[am_hour, am_minute, str(cooler_temp_am), pm_hour, pm_minute, str(cooler_temp_pm), str(eggs_picked_up), comments], date_obj]
 
                 # Open coolerlog page and fill form
                 open_coolerlog_page(driver)
-                print(f"Sending coolerlog data:")
-                print(valuesToSend)
+                print(f"Sending coolerlog data for {upload_date}:")
+                print(valuesToSend[0])  # Print just the data row
                 fill_coolerlog_values(driver, valuesToSend)
 
                 # Update database with timestamp
