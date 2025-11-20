@@ -232,6 +232,12 @@ def add_pallet():
 
     return jsonify({"status": "ok", "message": "Pallet saved!"})
 
+@app.route("/get_pallet_logs", methods=["GET"])
+@check_startup_error
+def get_pallet_logs():
+    logs = db.get_recent_pallet_logs(DB_FILE, limit=10)
+    return jsonify(logs)
+
 @app.route("/add_daily_userlog", methods=["POST"])
 @check_startup_error
 def add_daily_userlog():

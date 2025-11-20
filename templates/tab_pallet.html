@@ -25,9 +25,66 @@
   <br>
   <br>
   <button onclick="submitPallets()">Submit Pallet Data</button>
+
+  <br>
+  <br>
+  <h3>Recent Pallet Entries</h3>
+  <div id="palletLogContainer">
+    <table id="palletLogTable" style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background-color: #f0f0f0;">
+          <th style="padding: 8px; border: 1px solid #ddd;">Date</th>
+          <th style="padding: 8px; border: 1px solid #ddd;">Pallet ID</th>
+          <th style="padding: 8px; border: 1px solid #ddd;">Total Weight (lbs)</th>
+          <th style="padding: 8px; border: 1px solid #ddd;">Case Weight (lbs)</th>
+          <th style="padding: 8px; border: 1px solid #ddd;">Yolk Color</th>
+        </tr>
+      </thead>
+      <tbody id="palletLogBody">
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 16px;">Loading...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <script>
+  async function loadPalletLog() {
+    try {
+      const response = await fetch("/get_pallet_logs");
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const logs = await response.json();
+      const tbody = document.getElementById("palletLogBody");
+
+      if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 16px;">No pallet entries yet</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = logs.map(log => {
+        const caseWeight = log.case_weight ? log.case_weight.toFixed(2) : 'N/A';
+        const totalWeight = log.total_pallet_weight ? log.total_pallet_weight.toFixed(0) : 'N/A';
+        return `
+          <tr>
+            <td style="padding: 8px; border: 1px solid #ddd;">${log.thedate || 'N/A'}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${log.pallet_id || 'N/A'}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${totalWeight}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${caseWeight}</td>
+            <td style="padding: 8px; border: 1px solid #ddd;">${log.yolk_color || 'N/A'}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (error) {
+      console.error("Failed to load pallet log:", error);
+      document.getElementById("palletLogBody").innerHTML =
+        '<tr><td colspan="5" style="text-align: center; padding: 16px; color: red;">Error loading pallet log</td></tr>';
+    }
+  }
+
   async function submitPallets() {
     const palletId = document.getElementById("palletId").value;
     const weight = document.getElementById("palletWeight").value;
@@ -47,18 +104,30 @@
       const result = await response.json();
       alert(result.message);
 
-      // Reset inputs
-      const palletInputs = document.querySelectorAll('#pallet table input');
-      palletInputs.forEach(input => {
-        if (input.type === 'number') {
-          input.value = 0;
-        } else {
-          input.value = '';
-        }
-      });
+      // Increment pallet ID by 1
+      const palletIdInput = document.getElementById("palletId");
+      const currentId = palletIdInput.value;
+      // Try to parse as number and increment, otherwise just clear it
+      const numericId = parseInt(currentId);
+      if (!isNaN(numericId)) {
+        palletIdInput.value = numericId + 1;
+      } else {
+        palletIdInput.value = '';
+      }
+
+      // Reset weight to 0
+      document.getElementById("palletWeight").value = 0;
+
+      // Keep yolk color selected (don't reset it)
+
+      // Reload the pallet log to show the new entry
+      loadPalletLog();
     } catch (error) {
       console.error("Submit failed:", error);
       alert("Failed to save pallet data. Please try again.");
     }
   }
+
+  // Load pallet log when page loads
+  document.addEventListener('DOMContentLoaded', loadPalletLog);
 </script>
