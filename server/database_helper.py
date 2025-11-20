@@ -276,6 +276,16 @@ def get_all_bot_logs(db_file):
     conn.close()
     return [dict(row) for row in rows]
 
+def get_recent_pallet_logs(db_file, limit=10):
+    """Get recent pallet log entries, most recent first"""
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Pallet_Log ORDER BY id DESC LIMIT ?", (limit,))
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
 # ------------------- UPDATE FUNCTIONS -------------------
 def update_daily_user_log(db_file, date_str, data):
     if not data:
