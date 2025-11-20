@@ -21,7 +21,9 @@ DEFAULT_CONFIG = {
         "hatch_date": "2025-03-05",
         "birds_arrived_date": "2025-06-01",
         "nws_station_id": "KMPR",
-        "floor_eggs_through_belt": False
+        "floor_eggs_through_belt": False,
+        "pallet_tare": 192,
+        "cases_per_pallet": 30
     },
     "unitas": {
         "username": "",
@@ -175,6 +177,8 @@ def get_flat_config() -> Dict[str, Any]:
     flat["birds_arrived_date"] = config["farm"]["birds_arrived_date"]
     flat["nws_station_id"] = config["farm"]["nws_station_id"]
     flat["floor_eggs_through_belt"] = config["farm"]["floor_eggs_through_belt"]
+    flat["pallet_tare"] = config["farm"]["pallet_tare"]
+    flat["cases_per_pallet"] = config["farm"]["cases_per_pallet"]
 
     # Unitas settings
     flat["Unitas_Username"] = config["unitas"]["username"]

@@ -214,11 +214,17 @@ def index():
 @check_startup_error
 def add_pallet():
     data = request.json
-    thedate = date.today().isoformat() 
+    thedate = date.today().isoformat()
     pallet_id = data.get("pallet_id")
     house_id = 1
     total_pallet_weight = float(data.get("weight", 0))
-    case_weight = (total_pallet_weight - 192) / 30
+
+    # Get pallet settings from config
+    config = load_config()
+    pallet_tare = config["farm"].get("pallet_tare", 192)
+    cases_per_pallet = config["farm"].get("cases_per_pallet", 30)
+
+    case_weight = (total_pallet_weight - pallet_tare) / cases_per_pallet
     flock_age = 22.5
     yolk_color = data.get("yolk_color")
 
@@ -324,6 +330,8 @@ def save_settings():
         config["farm"]["birds_arrived_date"] = data.get("birds_arrived_date")
         config["farm"]["nws_station_id"] = data.get("nws_station_id")
         config["farm"]["floor_eggs_through_belt"] = data.get("floor_eggs_through_belt", False)
+        config["farm"]["pallet_tare"] = data.get("pallet_tare", 192)
+        config["farm"]["cases_per_pallet"] = data.get("cases_per_pallet", 30)
         save_config(config)
         return jsonify({"status": "ok", "message": "Settings saved!"})
     except Exception as e:
@@ -339,10 +347,12 @@ def get_settings():
             "hatch_date": config["farm"]["hatch_date"],
             "birds_arrived_date": config["farm"]["birds_arrived_date"],
             "nws_station_id": config["farm"]["nws_station_id"],
-            "floor_eggs_through_belt": config["farm"]["floor_eggs_through_belt"]
+            "floor_eggs_through_belt": config["farm"]["floor_eggs_through_belt"],
+            "pallet_tare": config["farm"]["pallet_tare"],
+            "cases_per_pallet": config["farm"]["cases_per_pallet"]
         })
     except Exception:
-        return jsonify({"hatch_date": "", "birds_arrived_date": "", "nws_station_id": ""})
+        return jsonify({"hatch_date": "", "birds_arrived_date": "", "nws_station_id": "", "pallet_tare": 192, "cases_per_pallet": 30})
 
 # Endpoint to get full configuration
 @app.route("/get_secrets", methods=["GET"])

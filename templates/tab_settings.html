@@ -22,6 +22,16 @@
       <input type="checkbox" id="floor_eggs_through_belt" name="floor_eggs_through_belt">
     </div>
     <p style="font-size:12px; color:#666; margin-left:160px;">Check this if you run floor eggs through the belt (Total = Belt only). Uncheck if counted separately (Total = Belt + Floor).</p>
+    <div class="spinner-container">
+      <span class="spinner-label">Pallet Tare</span>
+      <input type="number" id="pallet_tare" name="pallet_tare" min="0" step="1" style="width:100px;">
+      <span style="font-size:12px; color:#666; margin-left:10px;">lbs (weight of empty pallet)</span>
+    </div>
+    <div class="spinner-container">
+      <span class="spinner-label">Cases Per Pallet</span>
+      <input type="number" id="cases_per_pallet" name="cases_per_pallet" min="1" step="1" style="width:100px;">
+      <span style="font-size:12px; color:#666; margin-left:10px;">(number of egg cases per pallet)</span>
+    </div>
     <h3>System Configuration</h3>
 
     <div class="spinner-container" style="display:none;">
@@ -155,6 +165,8 @@
         if (data.birds_arrived_date) document.getElementById('birdsArrivedDate').value = data.birds_arrived_date;
         if (data.nws_station_id) document.getElementById('nws_station_id').value = data.nws_station_id;
         document.getElementById('floor_eggs_through_belt').checked = data.floor_eggs_through_belt === true;
+        if (data.pallet_tare !== undefined) document.getElementById('pallet_tare').value = data.pallet_tare;
+        if (data.cases_per_pallet !== undefined) document.getElementById('cases_per_pallet').value = data.cases_per_pallet;
       })
       .catch(err => console.error('Error loading settings:', err));
 
@@ -210,7 +222,9 @@
           hatch_date: document.getElementById('hatchDate').value,
           birds_arrived_date: document.getElementById('birdsArrivedDate').value,
           nws_station_id: document.getElementById('nws_station_id').value.toUpperCase(),
-          floor_eggs_through_belt: document.getElementById('floor_eggs_through_belt').checked
+          floor_eggs_through_belt: document.getElementById('floor_eggs_through_belt').checked,
+          pallet_tare: parseFloat(document.getElementById('pallet_tare').value),
+          cases_per_pallet: parseInt(document.getElementById('cases_per_pallet').value)
         })
       });
 

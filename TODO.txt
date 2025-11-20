@@ -9,6 +9,6 @@ somethign with pallet stuff and weight
 remove stuff about starting services manually and just start the webapp and give appropiate message, and even open if we can
 should really automate ftp script for my own sanity
 sql security?
-readme
 timezone stuff in settings 
 data validation all
+urgent corrupt_files
