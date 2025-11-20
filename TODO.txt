@@ -1,7 +1,4 @@
-check that pallet data is full and correct
-add date box to pallet entry
 whole nightmare with if settings are all set up
-add box for emtpy pallet weight, startup week, 
 urgent check all settings there
 check that xmls are right, as in all there
 selinux stuff still isn't all ok. i don't know the best way to deal with selinux
@@ -12,3 +9,8 @@ sql security?
 timezone stuff in settings 
 data validation all
 urgent corrupt_files
+show cooler log in daily entry show in red if temps above 37
+show pallet log in daily
+send pallet log to unitas
+urgent cooler log at 00:05 and 23:00
+xml->db doesn't catch up old dates when systemd startup
