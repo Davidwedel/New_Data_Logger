@@ -217,14 +217,29 @@ def add_pallet():
     thedate = date.today().isoformat()
     pallet_id = data.get("pallet_id")
     house_id = 1
-    total_pallet_weight = float(data.get("weight", 0))
 
     # Get pallet settings from config
     config = load_config()
     pallet_tare = config["farm"].get("pallet_tare", 192)
     cases_per_pallet = config["farm"].get("cases_per_pallet", 30)
 
-    case_weight = (total_pallet_weight - pallet_tare) / cases_per_pallet
+    # Accept either total weight or case weight, calculate the other
+    total_pallet_weight = data.get("weight")
+    case_weight_input = data.get("case_weight")
+
+    if total_pallet_weight is not None and total_pallet_weight != "":
+        # Total weight provided, calculate case weight
+        total_pallet_weight = float(total_pallet_weight)
+        case_weight = (total_pallet_weight - pallet_tare) / cases_per_pallet
+    elif case_weight_input is not None and case_weight_input != "":
+        # Case weight provided, calculate total weight
+        case_weight = float(case_weight_input)
+        total_pallet_weight = (case_weight * cases_per_pallet) + pallet_tare
+    else:
+        # Default to 0 if neither provided
+        total_pallet_weight = 0
+        case_weight = 0
+
     flock_age = 22.5
     yolk_color = data.get("yolk_color")
 
@@ -237,6 +252,12 @@ def add_pallet():
 def get_pallet_logs():
     logs = db.get_recent_pallet_logs(DB_FILE, limit=10)
     return jsonify(logs)
+
+@app.route("/config", methods=["GET"])
+@check_startup_error
+def get_config():
+    config = load_config()
+    return jsonify(config)
 
 @app.route("/add_daily_userlog", methods=["POST"])
 @check_startup_error

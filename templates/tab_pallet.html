@@ -5,12 +5,14 @@
       <tr>
         <th>Pallet ID</th>
         <th>Total Pallet Weight (lbs)</th>
+        <th>Case Weight (lbs)</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td><input type="text" id="palletId" placeholder="Enter Pallet ID"></td>
         <td><input type="number" id="palletWeight" value="0" min="0" step="1"></td>
+        <td><input type="number" id="caseWeight" value="0" min="0" step="0.01"></td>
       </tr>
     </tbody>
   </table>
@@ -50,6 +52,55 @@
 </div>
 
 <script>
+  // Configuration values for weight calculations
+  let palletTare = 192;  // Default, will be fetched from config
+  let casesPerPallet = 30;  // Default, will be fetched from config
+  let isCalculating = false;  // Prevent circular calculation
+
+  // Fetch pallet configuration from server
+  async function fetchPalletConfig() {
+    try {
+      const response = await fetch("/config");
+      if (response.ok) {
+        const config = await response.json();
+        palletTare = config.farm?.pallet_tare || 192;
+        casesPerPallet = config.farm?.cases_per_pallet || 30;
+      }
+    } catch (error) {
+      console.warn("Could not fetch pallet config, using defaults:", error);
+    }
+  }
+
+  // Calculate case weight from total weight
+  function calculateCaseWeight() {
+    if (isCalculating) return;
+    isCalculating = true;
+
+    const totalWeight = parseFloat(document.getElementById("palletWeight").value) || 0;
+    const caseWeight = (totalWeight - palletTare) / casesPerPallet;
+    document.getElementById("caseWeight").value = caseWeight.toFixed(2);
+
+    isCalculating = false;
+  }
+
+  // Calculate total weight from case weight
+  function calculateTotalWeight() {
+    if (isCalculating) return;
+    isCalculating = true;
+
+    const caseWeight = parseFloat(document.getElementById("caseWeight").value) || 0;
+    const totalWeight = (caseWeight * casesPerPallet) + palletTare;
+    document.getElementById("palletWeight").value = Math.round(totalWeight);
+
+    isCalculating = false;
+  }
+
+  // Set up event listeners for bidirectional calculation
+  function setupWeightCalculation() {
+    document.getElementById("palletWeight").addEventListener("input", calculateCaseWeight);
+    document.getElementById("caseWeight").addEventListener("input", calculateTotalWeight);
+  }
+
   async function loadPalletLog() {
     try {
       const response = await fetch("/get_pallet_logs");
@@ -88,13 +139,19 @@
   async function submitPallets() {
     const palletId = document.getElementById("palletId").value;
     const weight = document.getElementById("palletWeight").value;
+    const caseWeight = document.getElementById("caseWeight").value;
     const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
 
     try {
       const response = await fetch("/add_pallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pallet_id: palletId, weight: weight, yolk_color: yolkColor })
+        body: JSON.stringify({
+          pallet_id: palletId,
+          weight: weight,
+          case_weight: caseWeight,
+          yolk_color: yolkColor
+        })
       });
 
       if (!response.ok) {
@@ -115,8 +172,9 @@
         palletIdInput.value = '';
       }
 
-      // Reset weight to 0
+      // Reset both weight fields to 0
       document.getElementById("palletWeight").value = 0;
+      document.getElementById("caseWeight").value = 0;
 
       // Keep yolk color selected (don't reset it)
 
@@ -128,6 +186,10 @@
     }
   }
 
-  // Load pallet log when page loads
-  document.addEventListener('DOMContentLoaded', loadPalletLog);
+  // Load pallet log and setup weight calculation when page loads
+  document.addEventListener('DOMContentLoaded', async () => {
+    await fetchPalletConfig();
+    setupWeightCalculation();
+    loadPalletLog();
+  });
 </script>
