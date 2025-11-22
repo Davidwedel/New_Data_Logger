@@ -266,6 +266,107 @@ def delete_pallet(pallet_id):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/get_current_pallet", methods=["GET"])
+@check_startup_error
+def get_current_pallet():
+    """Get the most recent pallet entry"""
+    pallet = db.get_most_recent_pallet(DB_FILE)
+    if pallet:
+        return jsonify(pallet)
+    else:
+        # No pallets exist yet, return empty structure
+        return jsonify({
+            "id": None,
+            "pallet_id": "",
+            "total_pallet_weight": 0,
+            "case_weight": 0,
+            "yolk_color": ""
+        })
+
+@app.route("/update_pallet/<int:pallet_id>", methods=["POST"])
+@check_startup_error
+def update_pallet(pallet_id):
+    """Update a specific pallet entry (auto-save)"""
+    data = request.json
+
+    # Get pallet settings from config
+    config = load_config()
+    pallet_tare = config["farm"].get("pallet_tare", 192)
+    cases_per_pallet = config["farm"].get("cases_per_pallet", 30)
+
+    # Build update data dict
+    update_data = {}
+
+    # Handle pallet_id
+    if "pallet_id" in data:
+        update_data["pallet_id"] = data["pallet_id"]
+
+    # Handle yolk_color
+    if "yolk_color" in data:
+        update_data["yolk_color"] = data["yolk_color"]
+
+    # Accept either total weight or case weight, calculate the other
+    total_pallet_weight = data.get("weight")
+    case_weight_input = data.get("case_weight")
+
+    if total_pallet_weight is not None and total_pallet_weight != "":
+        # Total weight provided, calculate case weight
+        total_pallet_weight = float(total_pallet_weight)
+        case_weight = (total_pallet_weight - pallet_tare) / cases_per_pallet
+        update_data["total_pallet_weight"] = total_pallet_weight
+        update_data["case_weight"] = case_weight
+    elif case_weight_input is not None and case_weight_input != "":
+        # Case weight provided, calculate total weight
+        case_weight = float(case_weight_input)
+        total_pallet_weight = (case_weight * cases_per_pallet) + pallet_tare
+        update_data["case_weight"] = case_weight
+        update_data["total_pallet_weight"] = total_pallet_weight
+
+    try:
+        db.update_pallet_log(DB_FILE, pallet_id, update_data)
+        return jsonify({"status": "ok", "message": "Pallet updated"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/create_new_pallet", methods=["POST"])
+@check_startup_error
+def create_new_pallet():
+    """Create a new pallet entry with next ID and specified yolk color"""
+    data = request.json
+
+    # Get the most recent pallet to determine next ID
+    recent = db.get_most_recent_pallet(DB_FILE)
+
+    if recent and recent.get("pallet_id"):
+        # Try to parse and increment the pallet ID
+        try:
+            current_id = int(recent["pallet_id"])
+            next_id = str(current_id + 1)
+        except (ValueError, TypeError):
+            # If it's not a number, just use empty string
+            next_id = ""
+    else:
+        # No previous pallet or no ID, start fresh
+        next_id = ""
+
+    # Get yolk color from request (defaults to previous or empty)
+    yolk_color = data.get("yolk_color", "")
+    if not yolk_color and recent:
+        yolk_color = recent.get("yolk_color", "")
+
+    # Create the new pallet entry
+    new_pallet_id = db.create_new_pallet_entry(DB_FILE, pallet_id=next_id, yolk_color=yolk_color)
+
+    # Fetch and return the newly created pallet
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Pallet_Log WHERE id = ?", (new_pallet_id,))
+    new_pallet = dict(cur.fetchone())
+    conn.close()
+
+    return jsonify(new_pallet)
+
 @app.route("/config", methods=["GET"])
 @check_startup_error
 def get_config():

@@ -286,6 +286,36 @@ def get_recent_pallet_logs(db_file, limit=10):
     conn.close()
     return [dict(row) for row in rows]
 
+def get_most_recent_pallet(db_file):
+    """Get the most recent pallet entry"""
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Pallet_Log ORDER BY id DESC LIMIT 1")
+    row = cur.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def create_new_pallet_entry(db_file, pallet_id=None, yolk_color=None):
+    """Create a new pallet entry with defaults (weights = 0)"""
+    thedate = datetime.now().date().isoformat()
+    house_id = 1
+    total_pallet_weight = 0
+    case_weight = 0
+    flock_age = 22.5
+
+    payload = {
+        'thedate': thedate,
+        'pallet_id': pallet_id or "",
+        'house_id': house_id,
+        'total_pallet_weight': total_pallet_weight,
+        'case_weight': case_weight,
+        'flock_age': flock_age,
+        'yolk_color': yolk_color or ""
+    }
+
+    return _insert_into_table(db_file, "Pallet_Log", payload)
+
 # ------------------- UPDATE FUNCTIONS -------------------
 def update_daily_user_log(db_file, date_str, data):
     if not data:
@@ -306,6 +336,18 @@ def update_daily_bot_log(db_file, date, data):
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
     cur.execute(sql, tuple(data.values()) + (date,))
+    conn.commit()
+    conn.close()
+
+def update_pallet_log(db_file, pallet_id, data):
+    """Update a specific pallet log entry by its ID"""
+    if not data:
+        raise ValueError("No data provided to update.")
+    set_clause = ", ".join([f"{k} = ?" for k in data.keys()])
+    sql = f"UPDATE Pallet_Log SET {set_clause} WHERE id = ?"
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(data.values()) + (pallet_id,))
     conn.commit()
     conn.close()
 
