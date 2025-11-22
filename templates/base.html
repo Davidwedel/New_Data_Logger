@@ -260,6 +260,38 @@
         loadTodayData();
       }
     });
+
+    // Periodic polling for database updates (every 5 seconds)
+    (function() {
+      let lastUpdateTime = null;
+      let isFirstPoll = true;
+
+      function checkForUpdates() {
+        fetch('/get_last_update_time')
+          .then(res => res.json())
+          .then(data => {
+            if (data.last_update) {
+              // On first poll, just store the timestamp
+              if (isFirstPoll) {
+                lastUpdateTime = data.last_update;
+                isFirstPoll = false;
+              } else if (lastUpdateTime !== null && data.last_update !== lastUpdateTime) {
+                // Database has been updated, reload the page
+                console.log('Database updated, reloading page...');
+                window.location.reload();
+              }
+            }
+          })
+          .catch(err => {
+            console.error('Failed to check for updates:', err);
+          });
+      }
+
+      // Poll every 5 seconds
+      setInterval(checkForUpdates, 5000);
+      // Do initial check after page loads
+      setTimeout(checkForUpdates, 1000);
+    })();
   </script>
 
   {% block extra_scripts %}{% endblock %}
