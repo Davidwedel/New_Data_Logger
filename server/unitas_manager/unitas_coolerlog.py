@@ -206,12 +206,16 @@ def run_coolerlog_to_unitas(db_file=None, target_date=None):
                 eggs_picked_up = user_log.get('eggs_picked_up', '') if user_log else ''
                 comments = user_log.get('coolerlog_comments', '') if user_log else ''
 
+                # Round temperatures to integers for Unitas form
+                temp_am_str = str(round(cooler_temp_am)) if cooler_temp_am else ''
+                temp_pm_str = str(round(cooler_temp_pm)) if cooler_temp_pm else ''
+
                 # Convert upload_date string to date object for date picker
                 from datetime import datetime as dt
                 date_obj = dt.strptime(upload_date, '%Y-%m-%d').date()
 
                 # valuesToSend: [data_row, date_object]
-                valuesToSend = [[am_hour, am_minute, str(cooler_temp_am), pm_hour, pm_minute, str(cooler_temp_pm), str(eggs_picked_up), comments], date_obj]
+                valuesToSend = [[am_hour, am_minute, temp_am_str, pm_hour, pm_minute, temp_pm_str, str(eggs_picked_up), comments], date_obj]
 
                 # Open coolerlog page and fill form
                 open_coolerlog_page(driver)
