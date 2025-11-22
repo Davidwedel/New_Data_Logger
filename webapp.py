@@ -622,7 +622,18 @@ def get_defaults():
     except Exception:
         return jsonify({})
 
-
+@app.route("/get_last_update_time", methods=["GET"])
+@check_startup_error
+def get_last_update_time():
+    """Return the last modification time of the database file for polling"""
+    try:
+        if DB_FILE and DB_FILE.exists():
+            mtime = DB_FILE.stat().st_mtime
+            return jsonify({"last_update": mtime})
+        else:
+            return jsonify({"last_update": 0})
+    except Exception as e:
+        return jsonify({"last_update": 0, "error": str(e)})
 
 
 # Endpoint to update user log for a specific date
