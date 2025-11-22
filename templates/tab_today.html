@@ -28,6 +28,11 @@
   <div id="palletlog-container">
     <p>Loading...</p>
   </div>
+
+  <h3>Cooler Log</h3>
+  <div id="coolerlog-container">
+    <p>Loading...</p>
+  </div>
 </div>
 
 <script>
@@ -68,6 +73,7 @@
         renderUserLog(dateData.user_log);
         renderBotLog(dateData.bot_log);
         renderPalletLog(dateData.pallet_log);
+        renderCoolerLog(dateData.bot_log);
         updateSentToUnitasIndicator(dateData.user_log);
       })
       .catch(err => {
@@ -818,6 +824,54 @@
       html += `<td style="padding:8px; border:1px solid #ddd;">${yolkColor}</td>`;
       html += '</tr>';
     });
+
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+  }
+
+  function renderCoolerLog(bot_log) {
+    const container = document.getElementById('coolerlog-container');
+
+    if (!bot_log || (!bot_log.cooler_time_am && !bot_log.cooler_time_pm)) {
+      container.innerHTML = '<p>No cooler log for today.</p>';
+      return;
+    }
+
+    // Create table to display cooler log
+    let html = '<div style="max-width:100%; border:1px solid #ccc; border-radius:6px; padding:10px; overflow-x:auto;">';
+    html += '<table style="width:100%; border-collapse:collapse;">';
+    html += '<thead><tr style="background-color:#f0f0f0;">';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Check</th>';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Time</th>';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Temperature (°F)</th>';
+    html += '</tr></thead>';
+    html += '<tbody>';
+
+    // AM Check
+    if (bot_log.cooler_time_am || bot_log.cooler_temp_am) {
+      const timeAM = bot_log.cooler_time_am || 'N/A';
+      const tempAM = bot_log.cooler_temp_am ? bot_log.cooler_temp_am.toFixed(1) : 'N/A';
+      const tempStyle = (bot_log.cooler_temp_am && bot_log.cooler_temp_am > 45) ? 'color: red; font-weight: bold;' : '';
+
+      html += '<tr>';
+      html += `<td style="padding:8px; border:1px solid #ddd;">AM</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd;">${timeAM}</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd; ${tempStyle}">${tempAM}</td>`;
+      html += '</tr>';
+    }
+
+    // PM Check
+    if (bot_log.cooler_time_pm || bot_log.cooler_temp_pm) {
+      const timePM = bot_log.cooler_time_pm || 'N/A';
+      const tempPM = bot_log.cooler_temp_pm ? bot_log.cooler_temp_pm.toFixed(1) : 'N/A';
+      const tempStyle = (bot_log.cooler_temp_pm && bot_log.cooler_temp_pm > 45) ? 'color: red; font-weight: bold;' : '';
+
+      html += '<tr>';
+      html += `<td style="padding:8px; border:1px solid #ddd;">PM</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd;">${timePM}</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd; ${tempStyle}">${tempPM}</td>`;
+      html += '</tr>';
+    }
 
     html += '</tbody></table></div>';
     container.innerHTML = html;
