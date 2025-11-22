@@ -256,6 +256,16 @@ def get_coolerlog_dir() -> str:
     return str(CONFIG_DIR / "coolerlog")
 
 
+def get_corrupt_files_dir() -> str:
+    """Get corrupt files directory path based on CONFIG_DIR
+
+    Returns:
+        - Production mode: /var/lib/datalogger/corrupt_files
+        - Localhost mode: ~/.datalogger/corrupt_files
+    """
+    return str(CONFIG_DIR / "corrupt_files")
+
+
 def get_localhost_port() -> int:
     """Get port for localhost mode"""
     config = load_config()

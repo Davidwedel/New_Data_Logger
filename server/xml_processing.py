@@ -8,10 +8,11 @@ from zoneinfo import ZoneInfo
 from collections import Counter
 import database_helper
 from helpers import get_bird_age
+from config import get_corrupt_files_dir
 
 # Shared variables for all functions
 xmlFolder = None
-failed_dir = "../corrupt_files"
+failed_dir = None
 howLongToSaveOldFiles = None
 getCoolerTempAM = None
 getCoolerTempPM = None
@@ -327,7 +328,7 @@ def getCoolerTemp(theTime, theTolerance, theName):
 def do_xml_setup(secrets):
 
     global xmlFolder, howLongToSaveOldFiles, getCoolerTempAM, getCoolerTempPM
-    global coolerTempTimeTolerance, time_zone
+    global coolerTempTimeTolerance, time_zone, failed_dir
 
     xmlFolder = secrets["path_to_xmls"]
     howLongToSaveOldFiles = secrets["how_long_to_save_old_files"]
@@ -335,6 +336,7 @@ def do_xml_setup(secrets):
     getCoolerTempPM = secrets["get_cooler_temp_PM"]
     coolerTempTimeTolerance = secrets["cooler_temp_time_tolerance"]
     time_zone = secrets["time_zone"]
+    failed_dir = get_corrupt_files_dir()
 def run_xml_stuff(db_file=None, target_date=None):
     """
     Process XML files and insert into database.
