@@ -31,6 +31,11 @@ def fill_input_by_datacy_and_id(driver, data_cy: str, element_id: str, value):
             ))
         )
 
+        # Scroll element into view to avoid obstruction
+        driver.execute_script("arguments[0].scrollIntoView({behavior: 'smooth', block: 'center'});", el)
+        import time
+        time.sleep(0.3)  # Brief pause for smooth scroll to complete
+
         # Use Select class for proper dropdown selection
         from selenium.webdriver.support.ui import Select
         select = Select(el)

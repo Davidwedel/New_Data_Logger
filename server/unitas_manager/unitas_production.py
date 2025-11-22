@@ -62,6 +62,20 @@ def trigger_fill_production_form(driver, db_file, target_date=None):
     door_close_val = merged.get('door_closed', '')
     birds_restricted = 'Yes' if (not door_open_val or not door_close_val) else 'No'
 
+    # Get pallet data for this date
+    pallets = db.get_pallets_by_date(db_file, target_date)
+    if pallets:
+        # Get first pallet (earliest ID) - last item since list is ordered by id DESC
+        first_pallet = pallets[-1]
+        case_weight_val = first_pallet.get('case_weight', '')
+        yolk_color_val = first_pallet.get('yolk_color', '')
+        # Format case weight to 2 decimal places if it exists
+        if case_weight_val:
+            case_weight_val = f"{float(case_weight_val):.2f}"
+    else:
+        case_weight_val = ''
+        yolk_color_val = ''
+
     fill_production_form(
         driver,
         mortality_indoor=merged.get('mortality_indoor', '0'),
@@ -86,8 +100,8 @@ def trigger_fill_production_form(driver, db_file, target_date=None):
         added_supplements=merged.get('added_supplements', ''),
         water_consumption=bot_data.get('water_consumption', ''),
         body_weight=bot_data.get('body_weight', ''),
-        case_weight='',
-        yolk_color='',
+        case_weight=case_weight_val,
+        yolk_color=yolk_color_val,
         door_open_hh=door_open_hh,
         door_open_mm=door_open_mm,
         door_close_hh=door_close_hh,
