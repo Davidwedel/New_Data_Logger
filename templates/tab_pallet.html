@@ -57,6 +57,8 @@
   let palletTare = 192;  // Default, will be fetched from config
   let casesPerPallet = 30;  // Default, will be fetched from config
   let isCalculating = false;  // Prevent circular calculation
+  let currentPalletId = null;  // Track which pallet we're currently editing
+  let palletSaveTimeout = null;  // For debounced auto-save
 
   // Fetch pallet configuration from server
   async function fetchPalletConfig() {
@@ -72,6 +74,45 @@
     }
   }
 
+  // Auto-save current pallet to database (debounced)
+  function autoSavePallet() {
+    if (!currentPalletId) {
+      console.warn("No current pallet ID to auto-save");
+      return;
+    }
+
+    // Clear previous timeout
+    if (palletSaveTimeout) {
+      clearTimeout(palletSaveTimeout);
+    }
+
+    // Set new timeout - save after 500ms of no typing
+    palletSaveTimeout = setTimeout(() => {
+      const palletId = document.getElementById("palletId").value;
+      const weight = document.getElementById("palletWeight").value;
+      const caseWeight = document.getElementById("caseWeight").value;
+      const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
+
+      fetch(`/update_pallet/${currentPalletId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pallet_id: palletId,
+          weight: weight,
+          case_weight: caseWeight,
+          yolk_color: yolkColor
+        })
+      })
+      .then(res => res.json())
+      .then(result => {
+        console.log('Auto-saved pallet:', result.message);
+      })
+      .catch(err => {
+        console.error('Auto-save failed:', err);
+      });
+    }, 500);  // 500ms debounce delay
+  }
+
   // Calculate case weight from total weight
   function calculateCaseWeight() {
     if (isCalculating) return;
@@ -82,6 +123,7 @@
     document.getElementById("caseWeight").value = caseWeight.toFixed(2);
 
     isCalculating = false;
+    autoSavePallet();  // Trigger auto-save after calculation
   }
 
   // Calculate total weight from case weight
@@ -94,12 +136,19 @@
     document.getElementById("palletWeight").value = Math.round(totalWeight);
 
     isCalculating = false;
+    autoSavePallet();  // Trigger auto-save after calculation
   }
 
-  // Set up event listeners for bidirectional calculation
+  // Set up event listeners for auto-save and bidirectional calculation
   function setupWeightCalculation() {
     document.getElementById("palletWeight").addEventListener("input", calculateCaseWeight);
     document.getElementById("caseWeight").addEventListener("input", calculateTotalWeight);
+    document.getElementById("palletId").addEventListener("input", autoSavePallet);
+
+    // Add auto-save to yolk color radio buttons
+    document.querySelectorAll('input[name="yolkColor"]').forEach(radio => {
+      radio.addEventListener("change", autoSavePallet);
+    });
   }
 
   async function loadPalletLog() {
@@ -166,19 +215,15 @@
   }
 
   async function submitPallets() {
-    const palletId = document.getElementById("palletId").value;
-    const weight = document.getElementById("palletWeight").value;
-    const caseWeight = document.getElementById("caseWeight").value;
+    // Get current yolk color to pass to the new pallet
     const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
 
     try {
-      const response = await fetch("/add_pallet", {
+      // Create a new pallet entry with next ID and same yolk color
+      const response = await fetch("/create_new_pallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pallet_id: palletId,
-          weight: weight,
-          case_weight: caseWeight,
           yolk_color: yolkColor
         })
       });
@@ -187,38 +232,100 @@
         throw new Error(`Server error: ${response.status}`);
       }
 
-      const result = await response.json();
-      alert(result.message);
+      const newPallet = await response.json();
+      console.log("Created new pallet:", newPallet);
 
-      // Increment pallet ID by 1
-      const palletIdInput = document.getElementById("palletId");
-      const currentId = palletIdInput.value;
-      // Try to parse as number and increment, otherwise just clear it
-      const numericId = parseInt(currentId);
-      if (!isNaN(numericId)) {
-        palletIdInput.value = numericId + 1;
-      } else {
-        palletIdInput.value = '';
-      }
+      // Load the new pallet into the form
+      loadPalletIntoForm(newPallet);
 
-      // Reset both weight fields to 0
-      document.getElementById("palletWeight").value = 0;
-      document.getElementById("caseWeight").value = 0;
-
-      // Keep yolk color selected (don't reset it)
-
-      // Reload the pallet log to show the new entry
+      // Reload the pallet log to show all entries
       loadPalletLog();
     } catch (error) {
       console.error("Submit failed:", error);
-      alert("Failed to save pallet data. Please try again.");
+      alert("Failed to create new pallet entry. Please try again.");
     }
   }
 
-  // Load pallet log and setup weight calculation when page loads
+  // Load a pallet object into the form
+  function loadPalletIntoForm(pallet) {
+    // Set the current pallet ID we're editing
+    currentPalletId = pallet.id;
+
+    // Fill in the form
+    document.getElementById("palletId").value = pallet.pallet_id || "";
+    document.getElementById("palletWeight").value = pallet.total_pallet_weight || 0;
+    document.getElementById("caseWeight").value = pallet.case_weight ? pallet.case_weight.toFixed(2) : "0.00";
+
+    // Set yolk color if available
+    if (pallet.yolk_color) {
+      const radio = document.querySelector(`input[name="yolkColor"][value="${pallet.yolk_color}"]`);
+      if (radio) {
+        radio.checked = true;
+      }
+    }
+
+    console.log(`Loaded pallet ID ${currentPalletId} into form`);
+  }
+
+  // Smart page load: Check if we need to create a new pallet entry
+  async function loadCurrentPallet() {
+    try {
+      // Get the most recent pallet
+      const response = await fetch("/get_current_pallet");
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const pallet = await response.json();
+
+      // Check if pallet exists and is complete
+      // A pallet is complete if it has yolk_color AND at least one weight > 0
+      const hasYolkColor = pallet.yolk_color && pallet.yolk_color !== "";
+      const hasWeight = (pallet.total_pallet_weight && pallet.total_pallet_weight > 0) ||
+                        (pallet.case_weight && pallet.case_weight > 0);
+      const isComplete = hasYolkColor && hasWeight;
+
+      if (!pallet.id || isComplete) {
+        // No pallet exists OR current pallet is complete
+        // Create a new pallet entry
+        console.log("Creating new pallet entry...");
+        const createResponse = await fetch("/create_new_pallet", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            yolk_color: pallet.yolk_color || ""  // Carry over yolk color if exists
+          })
+        });
+
+        if (!createResponse.ok) {
+          throw new Error(`Failed to create new pallet: ${createResponse.status}`);
+        }
+
+        const newPallet = await createResponse.json();
+        loadPalletIntoForm(newPallet);
+      } else {
+        // Current pallet is incomplete, continue editing it
+        console.log("Loading existing incomplete pallet...");
+        loadPalletIntoForm(pallet);
+      }
+    } catch (error) {
+      console.error('Failed to load current pallet:', error);
+      // If there's an error, just set currentPalletId to null
+      currentPalletId = null;
+    }
+  }
+
+  // Load pallet log, config, and current pallet when page loads
   document.addEventListener('DOMContentLoaded', async () => {
-    await fetchPalletConfig();
-    setupWeightCalculation();
-    loadPalletLog();
+    try {
+      await fetchPalletConfig();
+      setupWeightCalculation();
+      await loadCurrentPallet();  // Load or create current pallet
+    } catch (error) {
+      console.error('Error during page initialization:', error);
+    } finally {
+      // Always load the pallet log table, even if there was an error above
+      loadPalletLog();
+    }
   });
 </script>
