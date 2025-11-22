@@ -382,10 +382,12 @@ def update_pallet_log(db_file, pallet_id, data):
     conn.close()
 
 def mark_pallet_completed(db_file, pallet_id):
-    """Mark a pallet as completed"""
+    """Mark a pallet as completed and set the date to today"""
+    from datetime import date
+    today = date.today().strftime('%Y-%m-%d')
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
-    cur.execute("UPDATE Pallet_Log SET completed = 1 WHERE id = ?", (pallet_id,))
+    cur.execute("UPDATE Pallet_Log SET completed = 1, thedate = ? WHERE id = ?", (today, pallet_id))
     conn.commit()
     rows_updated = cur.rowcount
     conn.close()
