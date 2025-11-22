@@ -309,6 +309,17 @@ def update_daily_bot_log(db_file, date, data):
     conn.commit()
     conn.close()
 
+# ------------------- DELETE FUNCTIONS -------------------
+def delete_pallet_log(db_file, pallet_id):
+    """Delete a pallet log entry by its ID"""
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("DELETE FROM Pallet_Log WHERE id = ?", (pallet_id,))
+    conn.commit()
+    rows_deleted = cur.rowcount
+    conn.close()
+    return rows_deleted
+
 # ------------------- QUERY FUNCTIONS -------------------
 def get_dates_pending_unitas_upload(db_file):
     """
