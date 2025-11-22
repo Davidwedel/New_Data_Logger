@@ -215,11 +215,27 @@
   }
 
   async function submitPallets() {
+    if (!currentPalletId) {
+      alert("No pallet to submit");
+      return;
+    }
+
     // Get current yolk color to pass to the new pallet
     const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
 
     try {
-      // Create a new pallet entry with next ID and same yolk color
+      // Step 1: Mark current pallet as completed
+      const markCompleteResponse = await fetch(`/mark_pallet_completed/${currentPalletId}`, {
+        method: "POST"
+      });
+
+      if (!markCompleteResponse.ok) {
+        throw new Error(`Failed to mark pallet completed: ${markCompleteResponse.status}`);
+      }
+
+      console.log("Marked pallet as completed:", currentPalletId);
+
+      // Step 2: Create a new pallet entry with next ID and same yolk color
       const response = await fetch("/create_new_pallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -238,11 +254,11 @@
       // Load the new pallet into the form
       loadPalletIntoForm(newPallet);
 
-      // Reload the pallet log to show all entries
+      // Reload the pallet log to show all entries (now includes the completed one)
       loadPalletLog();
     } catch (error) {
       console.error("Submit failed:", error);
-      alert("Failed to create new pallet entry. Please try again.");
+      alert("Failed to submit pallet: " + error.message);
     }
   }
 

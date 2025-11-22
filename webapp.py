@@ -367,6 +367,19 @@ def create_new_pallet():
 
     return jsonify(new_pallet)
 
+@app.route("/mark_pallet_completed/<int:pallet_id>", methods=["POST"])
+@check_startup_error
+def mark_pallet_completed(pallet_id):
+    """Mark a pallet as completed"""
+    try:
+        rows_updated = db.mark_pallet_completed(DB_FILE, pallet_id)
+        if rows_updated > 0:
+            return jsonify({"status": "ok", "message": "Pallet marked as completed"})
+        else:
+            return jsonify({"status": "error", "message": "Pallet not found"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/config", methods=["GET"])
 @check_startup_error
 def get_config():
@@ -909,7 +922,8 @@ def api_date_data():
             print(f"DEBUG: Applied updates to user log: {updates}")
 
     bot_log = db.get_daily_bot_log(DB_FILE, date_str)
-    return jsonify({"user_log": user_log, "bot_log": bot_log})
+    pallet_log = db.get_pallets_by_date(DB_FILE, date_str)
+    return jsonify({"user_log": user_log, "bot_log": bot_log, "pallet_log": pallet_log})
 
 # API endpoint to fetch today's data (kept for backward compatibility)
 @app.route("/api/today_data")

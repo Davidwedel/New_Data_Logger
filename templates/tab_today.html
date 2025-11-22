@@ -23,6 +23,11 @@
   <div id="botlog-container">
     <p>Loading...</p>
   </div>
+
+  <h3>Pallet Log</h3>
+  <div id="palletlog-container">
+    <p>Loading...</p>
+  </div>
 </div>
 
 <script>
@@ -62,12 +67,14 @@
         }
         renderUserLog(dateData.user_log);
         renderBotLog(dateData.bot_log);
+        renderPalletLog(dateData.pallet_log);
         updateSentToUnitasIndicator(dateData.user_log);
       })
       .catch(err => {
         console.error('Error loading date data:', err);
         document.getElementById('userlog-container').innerHTML = '<p>Error loading user log.</p>';
         document.getElementById('botlog-container').innerHTML = '<p>Error loading bot log.</p>';
+        document.getElementById('palletlog-container').innerHTML = '<p>Error loading pallet log.</p>';
       });
   }
 
@@ -776,6 +783,43 @@
     }
 
     html += '</div></form></div>';
+    container.innerHTML = html;
+  }
+
+  function renderPalletLog(pallet_log) {
+    const container = document.getElementById('palletlog-container');
+
+    if (!pallet_log || pallet_log.length === 0) {
+      container.innerHTML = '<p>No pallet entries for this date.</p>';
+      return;
+    }
+
+    // Create table to display pallets
+    let html = '<div style="max-width:100%; border:1px solid #ccc; border-radius:6px; padding:10px; overflow-x:auto;">';
+    html += '<table style="width:100%; border-collapse:collapse;">';
+    html += '<thead><tr style="background-color:#f0f0f0;">';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Pallet ID</th>';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Total Weight (lbs)</th>';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Case Weight (lbs)</th>';
+    html += '<th style="padding:8px; border:1px solid #ddd; text-align:left;">Yolk Color</th>';
+    html += '</tr></thead>';
+    html += '<tbody>';
+
+    pallet_log.forEach(pallet => {
+      const palletId = pallet.pallet_id || 'N/A';
+      const totalWeight = pallet.total_pallet_weight ? pallet.total_pallet_weight.toFixed(0) : 'N/A';
+      const caseWeight = pallet.case_weight ? pallet.case_weight.toFixed(2) : 'N/A';
+      const yolkColor = pallet.yolk_color || 'N/A';
+
+      html += '<tr>';
+      html += `<td style="padding:8px; border:1px solid #ddd;">${palletId}</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd;">${totalWeight}</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd;">${caseWeight}</td>`;
+      html += `<td style="padding:8px; border:1px solid #ddd;">${yolkColor}</td>`;
+      html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
     container.innerHTML = html;
   }
 

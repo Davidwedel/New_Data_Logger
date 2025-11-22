@@ -41,7 +41,8 @@ def setup_db(db_file):
         total_pallet_weight REAL,
         case_weight REAL,
         flock_age REAL,
-        yolk_color TEXT
+        yolk_color TEXT,
+        completed INTEGER DEFAULT 0
     )''')
 
     # Daily_User_Log table
@@ -127,6 +128,24 @@ def migrate_schema(conn):
             try:
                 cur.execute(f"ALTER TABLE Daily_Bot_Log ADD COLUMN {col_name} {col_def}")
                 print(f"Added column '{col_name}' to Daily_Bot_Log")
+            except Exception as e:
+                print(f"Error adding column '{col_name}': {e}")
+
+    # Get current columns in Pallet_Log
+    cur.execute("PRAGMA table_info(Pallet_Log)")
+    existing_pallet_columns = {row[1] for row in cur.fetchall()}
+
+    # Define expected columns for Pallet_Log
+    expected_pallet_columns = {
+        'completed': 'INTEGER DEFAULT 0',
+    }
+
+    # Add missing columns to Pallet_Log
+    for col_name, col_def in expected_pallet_columns.items():
+        if col_name not in existing_pallet_columns:
+            try:
+                cur.execute(f"ALTER TABLE Pallet_Log ADD COLUMN {col_name} {col_def}")
+                print(f"Added column '{col_name}' to Pallet_Log")
             except Exception as e:
                 print(f"Error adding column '{col_name}': {e}")
 
@@ -277,11 +296,11 @@ def get_all_bot_logs(db_file):
     return [dict(row) for row in rows]
 
 def get_recent_pallet_logs(db_file, limit=10):
-    """Get recent pallet log entries, most recent first"""
+    """Get recent completed pallet log entries, most recent first"""
     conn = sqlite3.connect(db_file)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    cur.execute("SELECT * FROM Pallet_Log ORDER BY id DESC LIMIT ?", (limit,))
+    cur.execute("SELECT * FROM Pallet_Log WHERE completed = 1 ORDER BY id DESC LIMIT ?", (limit,))
     rows = cur.fetchall()
     conn.close()
     return [dict(row) for row in rows]
@@ -295,6 +314,16 @@ def get_most_recent_pallet(db_file):
     row = cur.fetchone()
     conn.close()
     return dict(row) if row else None
+
+def get_pallets_by_date(db_file, date_str):
+    """Get all completed pallet entries for a specific date"""
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM Pallet_Log WHERE thedate = ? AND completed = 1 ORDER BY id DESC", (date_str,))
+    rows = cur.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
 
 def create_new_pallet_entry(db_file, pallet_id=None, yolk_color=None):
     """Create a new pallet entry with defaults (weights = 0)"""
@@ -311,7 +340,8 @@ def create_new_pallet_entry(db_file, pallet_id=None, yolk_color=None):
         'total_pallet_weight': total_pallet_weight,
         'case_weight': case_weight,
         'flock_age': flock_age,
-        'yolk_color': yolk_color or ""
+        'yolk_color': yolk_color or "",
+        'completed': 0
     }
 
     return _insert_into_table(db_file, "Pallet_Log", payload)
@@ -350,6 +380,16 @@ def update_pallet_log(db_file, pallet_id, data):
     cur.execute(sql, tuple(data.values()) + (pallet_id,))
     conn.commit()
     conn.close()
+
+def mark_pallet_completed(db_file, pallet_id):
+    """Mark a pallet as completed"""
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("UPDATE Pallet_Log SET completed = 1 WHERE id = ?", (pallet_id,))
+    conn.commit()
+    rows_updated = cur.rowcount
+    conn.close()
+    return rows_updated
 
 # ------------------- DELETE FUNCTIONS -------------------
 def delete_pallet_log(db_file, pallet_id):
