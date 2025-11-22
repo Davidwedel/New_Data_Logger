@@ -253,6 +253,19 @@ def get_pallet_logs():
     logs = db.get_recent_pallet_logs(DB_FILE, limit=10)
     return jsonify(logs)
 
+@app.route("/delete_pallet/<int:pallet_id>", methods=["DELETE"])
+@check_startup_error
+def delete_pallet(pallet_id):
+    """Delete a pallet log entry by its ID"""
+    try:
+        rows_deleted = db.delete_pallet_log(DB_FILE, pallet_id)
+        if rows_deleted > 0:
+            return jsonify({"status": "ok", "message": "Pallet deleted successfully"})
+        else:
+            return jsonify({"status": "error", "message": "Pallet not found"}), 404
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/config", methods=["GET"])
 @check_startup_error
 def get_config():
