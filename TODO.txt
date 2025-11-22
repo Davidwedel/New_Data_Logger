@@ -2,15 +2,9 @@ whole nightmare with if settings are all set up
 urgent check all settings there
 check that xmls are right, as in all there
 selinux stuff still isn't all ok. i don't know the best way to deal with selinux
-somethign with pallet stuff and weight
 remove stuff about starting services manually and just start the webapp and give appropiate message, and even open if we can
 should really automate ftp script for my own sanity
 sql security?
 timezone stuff in settings 
 data validation all
-urgent corrupt_files
-show cooler log in daily entry show in red if temps above 37
-show pallet log in daily
-send pallet log to unitas
-urgent cooler log at 00:05 and 23:00
 xml->db doesn't catch up old dates when systemd startup
