@@ -245,7 +245,10 @@ def add_pallet():
 
     db.insert_pallet_log(DB_FILE, thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)
 
-    return jsonify({"status": "ok", "message": "Pallet saved!"})
+    # Get DB timestamp for polling
+    db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+    return jsonify({"status": "ok", "message": "Pallet saved!", "db_timestamp": db_timestamp})
 
 @app.route("/get_pallet_logs", methods=["GET"])
 @check_startup_error
@@ -280,7 +283,8 @@ def get_current_pallet():
             "pallet_id": "",
             "total_pallet_weight": 0,
             "case_weight": 0,
-            "yolk_color": ""
+            "yolk_color": "",
+            "completed": 0
         })
 
 @app.route("/update_pallet/<int:pallet_id>", methods=["POST"])
@@ -324,7 +328,11 @@ def update_pallet(pallet_id):
 
     try:
         db.update_pallet_log(DB_FILE, pallet_id, update_data)
-        return jsonify({"status": "ok", "message": "Pallet updated"})
+
+        # Get DB timestamp for polling
+        db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+        return jsonify({"status": "ok", "message": "Pallet updated", "db_timestamp": db_timestamp})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -365,6 +373,10 @@ def create_new_pallet():
     new_pallet = dict(cur.fetchone())
     conn.close()
 
+    # Get DB timestamp for polling
+    db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+    new_pallet["db_timestamp"] = db_timestamp
+
     return jsonify(new_pallet)
 
 @app.route("/mark_pallet_completed/<int:pallet_id>", methods=["POST"])
@@ -374,7 +386,9 @@ def mark_pallet_completed(pallet_id):
     try:
         rows_updated = db.mark_pallet_completed(DB_FILE, pallet_id)
         if rows_updated > 0:
-            return jsonify({"status": "ok", "message": "Pallet marked as completed"})
+            # Get DB timestamp for polling
+            db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+            return jsonify({"status": "ok", "message": "Pallet marked as completed", "db_timestamp": db_timestamp})
         else:
             return jsonify({"status": "error", "message": "Pallet not found"}), 404
     except Exception as e:
@@ -471,8 +485,10 @@ def add_daily_userlog():
         door_closed=door_closed
     )
 
+    # Get DB timestamp for polling
+    db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
 
-    return jsonify({"status": "ok", "message": "Daily userlog saved!"})
+    return jsonify({"status": "ok", "message": "Daily userlog saved!", "db_timestamp": db_timestamp})
 
 @app.route("/save_settings", methods=["POST"])
 @check_startup_error
@@ -487,7 +503,11 @@ def save_settings():
         config["farm"]["pallet_tare"] = data.get("pallet_tare", 192)
         config["farm"]["cases_per_pallet"] = data.get("cases_per_pallet", 30)
         save_config(config)
-        return jsonify({"status": "ok", "message": "Settings saved!"})
+
+        # Get DB timestamp for polling
+        db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+        return jsonify({"status": "ok", "message": "Settings saved!", "db_timestamp": db_timestamp})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save settings: {e}"}), 500
 
@@ -579,7 +599,11 @@ def save_secrets():
             config["telegram"]["chat_id"] = data["telegram_chat_id"]
 
         save_config(config)
-        return jsonify({"status": "ok", "message": "Configuration saved successfully!"})
+
+        # Get DB timestamp for polling
+        db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+        return jsonify({"status": "ok", "message": "Configuration saved successfully!", "db_timestamp": db_timestamp})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save configuration: {e}"}), 500
 
@@ -608,7 +632,11 @@ def save_defaults():
         config = load_config()
         config["form_defaults"] = data
         save_config(config)
-        return jsonify({"status": "ok", "message": "Defaults saved!"})
+
+        # Get DB timestamp for polling
+        db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+        return jsonify({"status": "ok", "message": "Defaults saved!", "db_timestamp": db_timestamp})
     except Exception as e:
         return jsonify({"status": "error", "message": f"Failed to save defaults: {e}"}), 500
 
@@ -716,7 +744,10 @@ def update_user_log():
             else:
                 message += " Warning: No bot log data found for this date - skipping upload."
 
-        return jsonify({"status": "ok", "message": message})
+        # Get DB timestamp for polling
+        db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+        return jsonify({"status": "ok", "message": message, "db_timestamp": db_timestamp})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -735,7 +766,11 @@ def update_bot_log():
         return jsonify({"status": "error", "message": "No date in bot log."}), 400
     try:
         db.update_daily_bot_log(DB_FILE, date_key, data)
-        return jsonify({"status": "ok", "message": "Bot log updated."})
+
+        # Get DB timestamp for polling
+        db_timestamp = DB_FILE.stat().st_mtime if DB_FILE and DB_FILE.exists() else 0
+
+        return jsonify({"status": "ok", "message": "Bot log updated.", "db_timestamp": db_timestamp})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

@@ -589,6 +589,8 @@
       });
 
       // Include the selected date in the request
+      window.startSaving();  // Mark save as in progress
+
       fetch(`/update_user_log?date=${currentSelectedDate}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -597,11 +599,22 @@
         .then(res => res.json())
         .then(result => {
           console.log('Auto-saved:', result.message);
+          // Store timestamp to prevent unnecessary page reload
+          if (result.db_timestamp) {
+            console.log('[Form] Storing user log timestamp:', result.db_timestamp);
+            localStorage.setItem('myLastUpdate', result.db_timestamp);
+            console.log('[Form] Verified storage:', localStorage.getItem('myLastUpdate'));
+          } else {
+            console.warn('[Form] No db_timestamp in response!', result);
+          }
           // Run validation after save
           validateAndHighlight();
         })
         .catch(err => {
           console.error('Auto-save failed:', err);
+        })
+        .finally(() => {
+          window.endSaving();  // Mark save as complete
         });
     }, 500); // Wait 500ms after user stops typing
   }
@@ -928,6 +941,8 @@
       });
 
       // Include the selected date in the request
+      window.startSaving();  // Mark save as in progress
+
       fetch(`/update_bot_log?date=${currentSelectedDate}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -936,9 +951,20 @@
         .then(res => res.json())
         .then(result => {
           console.log('Bot log auto-saved:', result.message);
+          // Store timestamp to prevent unnecessary page reload
+          if (result.db_timestamp) {
+            console.log('[Form] Storing bot log timestamp:', result.db_timestamp);
+            localStorage.setItem('myLastUpdate', result.db_timestamp);
+            console.log('[Form] Verified storage:', localStorage.getItem('myLastUpdate'));
+          } else {
+            console.warn('[Form] No db_timestamp in response!', result);
+          }
         })
         .catch(err => {
           console.error('Bot log auto-save failed:', err);
+        })
+        .finally(() => {
+          window.endSaving();  // Mark save as complete
         });
     }, 500); // Wait 500ms after user stops typing
   }

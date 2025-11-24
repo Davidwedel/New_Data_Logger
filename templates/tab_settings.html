@@ -213,9 +213,11 @@
     msgDiv.textContent = 'Saving...';
     msgDiv.style.color = '#666';
 
+    window.startSaving();  // Mark save as in progress
+
     try {
       // Save basic settings
-      await fetch('/save_settings', {
+      const settingsResponse = await fetch('/save_settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -227,9 +229,15 @@
           cases_per_pallet: parseInt(document.getElementById('cases_per_pallet').value)
         })
       });
+      const settingsData = await settingsResponse.json();
+
+      // Store timestamp to prevent unnecessary page reload
+      if (settingsData.db_timestamp) {
+        localStorage.setItem('myLastUpdate', settingsData.db_timestamp);
+      }
 
       // Save system config
-      await fetch('/save_secrets', {
+      const secretsResponse = await fetch('/save_secrets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -250,6 +258,12 @@
           Cooler_Log_To_Unitas: document.getElementById('Cooler_Log_To_Unitas').checked
         })
       });
+      const secretsData = await secretsResponse.json();
+
+      // Store timestamp to prevent unnecessary page reload
+      if (secretsData.db_timestamp) {
+        localStorage.setItem('myLastUpdate', secretsData.db_timestamp);
+      }
 
       msgDiv.textContent = 'All settings saved successfully!';
       msgDiv.style.color = 'green';
@@ -263,6 +277,8 @@
     } catch (error) {
       msgDiv.textContent = 'Error saving settings: ' + error.message;
       msgDiv.style.color = 'red';
+    } finally {
+      window.endSaving();  // Mark save as complete
     }
   }
 </script>

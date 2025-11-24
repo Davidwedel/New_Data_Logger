@@ -261,12 +261,40 @@
       }
     });
 
+    // Global flag to track when saves are in progress
+    window.savingInProgress = false;
+    window.pendingSaves = 0;
+    window.lastSaveTime = 0;
+
+    // Helper functions to manage save state
+    window.startSaving = function() {
+      window.pendingSaves++;
+      window.savingInProgress = true;
+      window.lastSaveTime = Date.now();
+      console.log('[SaveState] Save started, pending count:', window.pendingSaves, 'at', window.lastSaveTime);
+    };
+
+    window.endSaving = function() {
+      window.pendingSaves = Math.max(0, window.pendingSaves - 1);
+      if (window.pendingSaves === 0) {
+        window.savingInProgress = false;
+      }
+      window.lastSaveTime = Date.now();
+      console.log('[SaveState] Save ended, pending count:', window.pendingSaves, 'at', window.lastSaveTime);
+    };
+
     // Periodic polling for database updates (every 5 seconds)
     (function() {
       let lastUpdateTime = null;
       let isFirstPoll = true;
 
       function checkForUpdates() {
+        // Skip polling if saves are in progress to avoid race conditions
+        if (window.savingInProgress) {
+          console.log('[Polling] Skipping poll - save in progress');
+          return;
+        }
+
         fetch('/get_last_update_time')
           .then(res => res.json())
           .then(data => {
@@ -275,10 +303,31 @@
               if (isFirstPoll) {
                 lastUpdateTime = data.last_update;
                 isFirstPoll = false;
+                console.log('[Polling] First poll - stored timestamp:', lastUpdateTime);
               } else if (lastUpdateTime !== null && data.last_update !== lastUpdateTime) {
-                // Database has been updated, reload the page
-                console.log('Database updated, reloading page...');
-                window.location.reload();
+                // Check if this update was made by the current user
+                const myLastUpdate = localStorage.getItem('myLastUpdate');
+                const myLastUpdateFloat = myLastUpdate ? parseFloat(myLastUpdate) : null;
+
+                console.log('[Polling] DB changed!');
+                console.log('  Previous DB timestamp:', lastUpdateTime);
+                console.log('  Current DB timestamp:', data.last_update);
+                console.log('  My last update (localStorage):', myLastUpdate);
+                console.log('  My last update (parsed):', myLastUpdateFloat);
+                console.log('  Match?', myLastUpdateFloat === data.last_update);
+
+                if (myLastUpdate && myLastUpdateFloat === data.last_update) {
+                  // This is our own update, just update the stored timestamp without reloading
+                  console.log('[Polling] ✓ Skipping reload - this is my own update');
+                  lastUpdateTime = data.last_update;
+                } else {
+                  // Database has been updated by someone else, reload the page
+                  console.log('[Polling] ⟳ RELOADING - update from another source');
+                  window.location.reload();
+                }
+              } else {
+                // No change detected
+                console.log('[Polling] No changes - DB timestamp still:', data.last_update);
               }
             }
           })
