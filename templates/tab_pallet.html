@@ -93,6 +93,8 @@
       const caseWeight = document.getElementById("caseWeight").value;
       const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
 
+      window.startSaving();  // Mark save as in progress
+
       fetch(`/update_pallet/${currentPalletId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,9 +108,20 @@
       .then(res => res.json())
       .then(result => {
         console.log('Auto-saved pallet:', result.message);
+        // Store timestamp to prevent unnecessary page reload
+        if (result.db_timestamp) {
+          console.log('[Form] Storing pallet timestamp:', result.db_timestamp);
+          localStorage.setItem('myLastUpdate', result.db_timestamp);
+          console.log('[Form] Verified storage:', localStorage.getItem('myLastUpdate'));
+        } else {
+          console.warn('[Form] No db_timestamp in response!', result);
+        }
       })
       .catch(err => {
         console.error('Auto-save failed:', err);
+      })
+      .finally(() => {
+        window.endSaving();  // Mark save as complete
       });
     }, 500);  // 500ms debounce delay
   }
@@ -223,6 +236,8 @@
     // Get current yolk color to pass to the new pallet
     const yolkColor = document.querySelector('input[name="yolkColor"]:checked')?.value || "";
 
+    window.startSaving();  // Mark save as in progress
+
     try {
       // Step 1: Mark current pallet as completed
       const markCompleteResponse = await fetch(`/mark_pallet_completed/${currentPalletId}`, {
@@ -233,7 +248,13 @@
         throw new Error(`Failed to mark pallet completed: ${markCompleteResponse.status}`);
       }
 
+      const markCompleteData = await markCompleteResponse.json();
       console.log("Marked pallet as completed:", currentPalletId);
+
+      // Store timestamp to prevent unnecessary page reload
+      if (markCompleteData.db_timestamp) {
+        localStorage.setItem('myLastUpdate', markCompleteData.db_timestamp);
+      }
 
       // Step 2: Create a new pallet entry with next ID and same yolk color
       const response = await fetch("/create_new_pallet", {
@@ -251,6 +272,11 @@
       const newPallet = await response.json();
       console.log("Created new pallet:", newPallet);
 
+      // Store timestamp to prevent unnecessary page reload
+      if (newPallet.db_timestamp) {
+        localStorage.setItem('myLastUpdate', newPallet.db_timestamp);
+      }
+
       // Load the new pallet into the form
       loadPalletIntoForm(newPallet);
 
@@ -259,6 +285,8 @@
     } catch (error) {
       console.error("Submit failed:", error);
       alert("Failed to submit pallet: " + error.message);
+    } finally {
+      window.endSaving();  // Mark save as complete
     }
   }
 
@@ -294,17 +322,13 @@
 
       const pallet = await response.json();
 
-      // Check if pallet exists and is complete
-      // A pallet is complete if it has yolk_color AND at least one weight > 0
-      const hasYolkColor = pallet.yolk_color && pallet.yolk_color !== "";
-      const hasWeight = (pallet.total_pallet_weight && pallet.total_pallet_weight > 0) ||
-                        (pallet.case_weight && pallet.case_weight > 0);
-      const isComplete = hasYolkColor && hasWeight;
+      // Check if pallet exists and is marked as complete (via Submit button)
+      const isComplete = pallet.completed === 1 || pallet.completed === true;
 
       if (!pallet.id || isComplete) {
-        // No pallet exists OR current pallet is complete
+        // No pallet exists OR current pallet was marked complete via Submit button
         // Create a new pallet entry
-        console.log("Creating new pallet entry...");
+        console.log("Creating new pallet entry (previous was completed)...");
         const createResponse = await fetch("/create_new_pallet", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

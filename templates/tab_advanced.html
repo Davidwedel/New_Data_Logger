@@ -207,6 +207,8 @@
       equipment_functioning: document.getElementById('default_equipment_functioning').checked ? 'Yes' : 'No'
     };
 
+    window.startSaving();  // Mark save as in progress
+
     fetch('/save_defaults', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -215,11 +217,18 @@
       .then(res => res.json())
       .then(result => {
         alert(result.message);
+        // Store timestamp to prevent unnecessary page reload
+        if (result.db_timestamp) {
+          localStorage.setItem('myLastUpdate', result.db_timestamp);
+        }
         advancedHasUnsavedChanges = false;
       })
       .catch(err => {
         console.error('Error saving defaults:', err);
         alert('Failed to save defaults');
+      })
+      .finally(() => {
+        window.endSaving();  // Mark save as complete
       });
   }
 </script>
