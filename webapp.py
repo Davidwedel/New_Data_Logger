@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 import database_helper as db
 from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port, is_config_unconfigured
+from server.helpers import get_bird_age
 import server.unitas_manager.unitas_production as unitas
 
 app = Flask(__name__)
@@ -240,7 +241,13 @@ def add_pallet():
         total_pallet_weight = 0
         case_weight = 0
 
-    flock_age = 22.5
+    # Calculate flock age from hatch date
+    try:
+        flock_age = float(get_bird_age())
+    except Exception as e:
+        print(f"Error calculating bird age: {e}")
+        flock_age = 0.0
+
     yolk_color = data.get("yolk_color")
 
     db.insert_pallet_log(DB_FILE, thedate, pallet_id, house_id, total_pallet_weight, case_weight, flock_age, yolk_color)

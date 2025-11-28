@@ -3,6 +3,7 @@ import shutil
 import pathlib
 from datetime import datetime
 from server.config import get_backup_dir, get_coolerlog_dir
+from server.helpers import get_bird_age
 
 # ------------------- DATABASE SETUP -------------------
 def setup_db(db_file):
@@ -331,7 +332,13 @@ def create_new_pallet_entry(db_file, pallet_id=None, yolk_color=None):
     house_id = 1
     total_pallet_weight = 0
     case_weight = 0
-    flock_age = 22.5
+
+    # Calculate flock age from hatch date
+    try:
+        flock_age = float(get_bird_age())
+    except Exception as e:
+        print(f"Error calculating bird age: {e}")
+        flock_age = 0.0
 
     payload = {
         'thedate': thedate,
