@@ -284,13 +284,20 @@ def get_current_pallet():
     if pallet:
         return jsonify(pallet)
     else:
-        # No pallets exist yet, return empty structure
+        # No pallets exist yet, return empty structure with current bird age
+        try:
+            flock_age = float(get_bird_age())
+        except Exception as e:
+            print(f"Error calculating bird age: {e}")
+            flock_age = 0.0
+
         return jsonify({
             "id": None,
             "pallet_id": "",
             "total_pallet_weight": 0,
             "case_weight": 0,
             "yolk_color": "",
+            "flock_age": flock_age,
             "completed": 0
         })
 
