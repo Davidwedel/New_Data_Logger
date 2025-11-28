@@ -6,6 +6,7 @@
         <th>Pallet ID</th>
         <th>Total Pallet Weight (lbs)</th>
         <th>Case Weight (lbs)</th>
+        <th>Bird Age</th>
       </tr>
     </thead>
     <tbody>
@@ -13,6 +14,7 @@
         <td><input type="text" id="palletId" placeholder="Enter Pallet ID"></td>
         <td><input type="number" id="palletWeight" value="0" min="0" step="1"></td>
         <td><input type="number" id="caseWeight" value="0" min="0" step="0.01"></td>
+        <td><span id="birdAge" style="font-weight: bold;">-</span></td>
       </tr>
     </tbody>
   </table>
@@ -299,6 +301,14 @@
     document.getElementById("palletId").value = pallet.pallet_id || "";
     document.getElementById("palletWeight").value = pallet.total_pallet_weight || 0;
     document.getElementById("caseWeight").value = pallet.case_weight ? pallet.case_weight.toFixed(2) : "0.00";
+
+    // Display bird age
+    const birdAgeDisplay = document.getElementById("birdAge");
+    if (pallet.flock_age !== undefined && pallet.flock_age !== null) {
+      birdAgeDisplay.textContent = pallet.flock_age;
+    } else {
+      birdAgeDisplay.textContent = "-";
+    }
 
     // Set yolk color if available
     if (pallet.yolk_color) {
