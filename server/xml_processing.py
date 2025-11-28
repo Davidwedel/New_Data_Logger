@@ -455,7 +455,7 @@ def run_xml_stuff(db_file=None, target_date=None):
     database_helper.insert_daily_bot_log(
         db_file,
         date=yesterday_readable,
-        bird_age=get_bird_age(),  # set if available
+        bird_age=get_bird_age(yesterday_readable),  # Calculate age for yesterday's data
         feed_consumption=feedConsumption,
         lights_on=lightOnTime,
         lights_off=lightOffTime,

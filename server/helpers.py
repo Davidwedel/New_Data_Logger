@@ -25,13 +25,25 @@ def get_hatch_date():
     except Exception as e:
         raise ValueError(f"Failed to load hatch_date from config: {e}")
 
-def get_bird_age():
+def get_bird_age(target_date=None):
+    """Calculate bird age in week.day format.
 
-    target_date = (date.today() - timedelta(days=1)).isoformat()
+    Args:
+        target_date: Optional date to calculate age for. Can be:
+                    - None (default): uses today's date
+                    - str: date string in "YYYY-MM-DD" format
+                    - date: date object
+
+    Returns:
+        str: Bird age in "week.day" format (e.g., "22.3")
+    """
+    if target_date is None:
+        target_date = date.today()
+    elif isinstance(target_date, str):
+        target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+
     hatch_date_str = get_hatch_date()
     hatch_date = datetime.strptime(hatch_date_str, "%Y-%m-%d").date()
-    if isinstance(target_date, str):
-        target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
     days_diff = (target_date - hatch_date).days
     week = days_diff // 7
     day = days_diff % 7
