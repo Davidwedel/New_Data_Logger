@@ -425,6 +425,12 @@
     dropdown.style.cssText = `position:fixed; top:${rect.bottom + 2}px; left:${rect.left}px; background:white; border:1px solid #ccc; border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.3); z-index:10000; min-width:200px;`;
 
     document.body.appendChild(dropdown);
+
+    // Add global click handler to close dropdown when clicking outside
+    // Use setTimeout to prevent immediate closing from the same click that opened it
+    setTimeout(() => {
+      document.addEventListener('click', handleOutsideClick);
+    }, 0);
   }
 
   function hideDropdown() {
@@ -433,6 +439,21 @@
       dropdown.remove();
     }
     currentDropdownInput = null;
+    // Remove global click handler
+    document.removeEventListener('click', handleOutsideClick);
+  }
+
+  function handleOutsideClick(event) {
+    const dropdown = document.getElementById('field-dropdown');
+    if (!dropdown) return;
+
+    // Check if click is outside both the dropdown and the current input
+    const clickedInsideDropdown = dropdown.contains(event.target);
+    const clickedOnInput = currentDropdownInput && currentDropdownInput.contains(event.target);
+
+    if (!clickedInsideDropdown && !clickedOnInput) {
+      hideDropdown();
+    }
   }
 
   function hideDropdownDelayed() {
