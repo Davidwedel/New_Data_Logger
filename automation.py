@@ -20,15 +20,11 @@ import pathlib
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-# Set config directory for production deployment
-# Automation service uses production config at /var/lib/datalogger/
-os.environ['DATALOGGER_CONFIG_DIR'] = '/var/lib/datalogger'
-
 sys.path.append(os.path.join(os.path.dirname(__file__), "server"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 
 # Local imports
-from server.config import load_config, get_flat_config, get_database_path
+from server.config import load_config, get_flat_config, get_database_path, CONFIG_DIR
 from server.helpers import check_all_settings_there as check_settings
 import server.jobs as jobs
 import server.database_helper as db
@@ -88,7 +84,7 @@ db.backup_database(DB_FILE)
 
 
 # ─── Pending Upload Processing ───
-TRIGGER_FILE_PATH = pathlib.Path("/var/lib/datalogger/pending_upload")
+TRIGGER_FILE_PATH = CONFIG_DIR / "pending_upload"
 
 def check_and_process_pending_uploads():
     """Check database for pending uploads and process them"""
