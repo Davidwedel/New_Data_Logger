@@ -18,7 +18,7 @@ from datetime import date, datetime
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 import database_helper as db
-from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port, is_config_unconfigured
+from server.config import load_config, save_config, get_flat_config, get_database_path, get_deployment_mode, get_localhost_port, is_config_unconfigured, CONFIG_DIR
 from server.helpers import get_bird_age
 import server.unitas_manager.unitas_production as unitas
 
@@ -679,7 +679,7 @@ def get_last_update_time():
 
 
 # Endpoint to update user log for a specific date
-TRIGGER_FILE_PATH = pathlib.Path("/var/lib/datalogger/pending_upload")
+TRIGGER_FILE_PATH = CONFIG_DIR / "pending_upload"
 
 def trigger_unitas_upload(date_str):
     """
@@ -1145,6 +1145,45 @@ def service_control():
         return jsonify({"status": "error", "message": "Command timed out"}), 500
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/manual_send_to_unitas", methods=["POST"])
+@check_startup_error
+def manual_send_to_unitas():
+    """Manually trigger Unitas upload for a specific date"""
+    data = request.json
+    date_str = data.get('date')
+
+    if not date_str:
+        return jsonify({"status": "error", "message": "No date provided"}), 400
+
+    # Validate that bot log exists
+    bot_log = db.get_daily_bot_log(DB_FILE, date_str)
+    if not bot_log:
+        return jsonify({"status": "error", "message": "No bot log data found for this date"}), 400
+
+    # Validate that send_to_bot is checked
+    user_log = db.get_daily_user_log(DB_FILE, date_str)
+    if not user_log or not user_log.get('send_to_bot'):
+        return jsonify({"status": "error", "message": "Schedule Send to Unitas must be checked"}), 400
+
+    # Run Unitas upload in background thread
+    def run_upload():
+        try:
+            config = get_flat_config()
+            unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str, headless=False)
+            print(f"Manual Unitas upload completed for {date_str}")
+        except Exception as e:
+            print(f"Error during manual Unitas upload for {date_str}: {e}")
+            import traceback
+            traceback.print_exc()
+
+    thread = threading.Thread(target=run_upload, daemon=True)
+    thread.start()
+
+    return jsonify({
+        "status": "ok",
+        "message": f"Unitas upload started for {date_str}. Browser window will open - review and save when done."
+    })
 
 if __name__ == "__main__":
     import argparse
