@@ -275,7 +275,10 @@
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showRationUsedDropdown(this)" onblur="hideDropdownDelayed()" onclick="showRationUsedDropdown(this)">`;
       } else if (key === 'send_to_bot') {
         const isChecked = (value === 1 || value === '1' || value === true) ? 'checked' : '';
+        html += `<div style="display:flex; gap:5px; align-items:center;">`;
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="handleSendToUnitasClick(this)" onclick="checkRequiredFieldsBeforeToggle(event, this)" style="width:18px; height:18px;">`;
+        html += `<button type="button" onclick="manualSendToUnitas(event)" style="padding:4px 8px; font-size:11px; cursor:pointer; background:#007bff; color:white; border:none; border-radius:3px; white-space:nowrap;">Manual Send</button>`;
+        html += `</div>`;
       } else if (key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
         const isChecked = (value === 'Yes' || value === 'true' || value === true || value === 1 || value === '1') ? 'checked' : '';
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)" style="width:18px; height:18px;">`;
@@ -988,5 +991,79 @@
           window.endSaving();  // Mark save as complete
         });
     }, 500); // Wait 500ms after user stops typing
+  }
+
+  function manualSendToUnitas(event) {
+    // Get the form and current date
+    const form = document.getElementById('userlog-edit-form');
+    if (!form) {
+      alert('Form not found');
+      return;
+    }
+
+    const dateStr = currentSelectedDate;
+    if (!dateStr) {
+      alert('No date selected');
+      return;
+    }
+
+    // Check if send_to_bot checkbox is checked
+    const sendToBot = form.querySelector('[name="send_to_bot"]');
+    if (!sendToBot || !sendToBot.checked) {
+      alert('Please check "Schedule Send to Unitas" before manually sending.');
+      return;
+    }
+
+    // Check if bot log exists for this date
+    fetch(`/api/date_data?date=${dateStr}`)
+      .then(res => res.json())
+      .then(data => {
+        if (!data.bot_log) {
+          alert('No bot log data found for this date. Cannot send to Unitas.');
+          return;
+        }
+
+        // Show confirmation dialog
+        const confirmed = confirm('This may overwrite existing data on Unitas. Continue?');
+        if (!confirmed) {
+          return;
+        }
+
+        // Show loading state
+        const originalButton = event.target;
+        originalButton.disabled = true;
+        originalButton.textContent = 'Sending...';
+        originalButton.style.background = '#6c757d';
+
+        // Make API call to trigger manual send
+        fetch('/api/manual_send_to_unitas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: dateStr })
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.status === 'ok') {
+              // Reload the date data to show updated timestamp
+              loadDateData(dateStr);
+            } else {
+              alert('Error: ' + (result.message || 'Failed to send data to Unitas'));
+            }
+          })
+          .catch(err => {
+            console.error('Error sending to Unitas:', err);
+            alert('Error sending data to Unitas. Check console for details.');
+          })
+          .finally(() => {
+            // Restore button state
+            originalButton.disabled = false;
+            originalButton.textContent = 'Manual Send';
+            originalButton.style.background = '#007bff';
+          });
+      })
+      .catch(err => {
+        console.error('Error checking bot log:', err);
+        alert('Error checking bot log data. Cannot proceed.');
+      });
   }
 </script>
