@@ -189,7 +189,8 @@
       'depop',
       'door_open',
       'door_closed',
-      'send_to_bot'
+      'send_to_bot',
+      'manual_send_button'
     ];
 
     // Define display names for fields
@@ -197,6 +198,7 @@
       'id': 'ID',
       'date': 'Date',
       'send_to_bot': 'Schedule Send to Unitas',
+      'manual_send_button': 'Manual Send',
       'belt_eggs': 'Belt Eggs',
       'floor_eggs': 'Floor Eggs',
       'total_eggs': 'Total Eggs',
@@ -275,10 +277,9 @@
         html += `<input style="padding:4px; font-size:12px; cursor:pointer;" name="${key}" value="${value}" readonly onfocus="showRationUsedDropdown(this)" onblur="hideDropdownDelayed()" onclick="showRationUsedDropdown(this)">`;
       } else if (key === 'send_to_bot') {
         const isChecked = (value === 1 || value === '1' || value === true) ? 'checked' : '';
-        html += `<div style="display:flex; gap:5px; align-items:center;">`;
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="handleSendToUnitasClick(this)" onclick="checkRequiredFieldsBeforeToggle(event, this)" style="width:18px; height:18px;">`;
-        html += `<button type="button" onclick="manualSendToUnitas(event)" style="padding:4px 8px; font-size:11px; cursor:pointer; background:#007bff; color:white; border:none; border-radius:3px; white-space:nowrap;">Manual Send</button>`;
-        html += `</div>`;
+      } else if (key === 'manual_send_button') {
+        html += `<button type="button" onclick="manualSendToUnitas(event)" style="padding:6px 12px; font-size:13px; cursor:pointer; background:#dc3545; color:white; border:none; border-radius:3px; white-space:nowrap; font-weight:500;">Manual Send</button>`;
       } else if (key === 'eggs_picked_up' || key === 'drinkers_clean' || key === 'birds_under_slats' || key === 'safe_indoors' || key === 'safe_outdoors' || key === 'equipment_functioning' || key === 'predator_activity') {
         const isChecked = (value === 'Yes' || value === 'true' || value === true || value === 1 || value === '1') ? 'checked' : '';
         html += `<input type="checkbox" name="${key}" ${isChecked} onchange="updateCheckboxField(this)" style="width:18px; height:18px;">`;
@@ -1058,7 +1059,7 @@
             // Restore button state
             originalButton.disabled = false;
             originalButton.textContent = 'Manual Send';
-            originalButton.style.background = '#007bff';
+            originalButton.style.background = '#dc3545';
           });
       })
       .catch(err => {
