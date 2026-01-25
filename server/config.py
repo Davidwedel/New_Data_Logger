@@ -7,13 +7,22 @@ import os
 import pathlib
 from typing import Any, Dict
 
-# Allow config directory to be overridden via environment variable
-# This is important for Apache/WSGI where Path.home() may resolve incorrectly
+# Production config location
+PRODUCTION_CONFIG_DIR = pathlib.Path("/var/lib/datalogger")
+PRODUCTION_CONFIG_FILE = PRODUCTION_CONFIG_DIR / "config.json"
+
+# Determine config directory with precedence:
+# 1. Environment variable override (highest priority - used by Apache/WSGI)
+# 2. Production config if it exists (for systemd services)
+# 3. User home directory (for development/testing)
 _config_dir_override = os.environ.get('DATALOGGER_CONFIG_DIR')
 if _config_dir_override:
     CONFIG_DIR = pathlib.Path(_config_dir_override)
+elif PRODUCTION_CONFIG_FILE.exists():
+    CONFIG_DIR = PRODUCTION_CONFIG_DIR
 else:
     CONFIG_DIR = pathlib.Path.home() / ".datalogger"
+
 CONFIG_FILE = CONFIG_DIR / "config.json"
 
 DEFAULT_CONFIG = {
