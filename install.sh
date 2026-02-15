@@ -244,7 +244,8 @@ EOF
     sudo tee $AUTOMATION_SERVICE > /dev/null <<EOF
 [Unit]
 Description=Farm Data Logger Automation
-After=network.target graphical.target
+After=network.target display-manager.service
+Requires=display-manager.service
 
 [Service]
 Type=simple
@@ -252,15 +253,18 @@ ExecStart=$VENV_PYTHON $AUTOMATION_SCRIPT
 WorkingDirectory=$SCRIPT_DIR
 Restart=on-failure
 User=$USER
+Group=$USER
 
 # These ensure logs go to journal
 StandardOutput=journal
 StandardError=journal
 
-# Allow GUI applications to run
+# Allow GUI applications to run (needed for Selenium)
 Environment=PYTHONUNBUFFERED=1
 Environment=DISPLAY=:0.0
 Environment=XAUTHORITY=/run/lightdm/$USER/xauthority
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/\$(id -u $USER)/bus
+Environment=XDG_RUNTIME_DIR=/run/user/\$(id -u $USER)
 
 [Install]
 WantedBy=multi-user.target
@@ -298,7 +302,7 @@ Type=simple
 ExecStart=$VENV_PYTHON $WATCHER_SCRIPT
 WorkingDirectory=$SCRIPT_DIR
 Restart=on-failure
-User=$USER
+User=root
 
 # These ensure logs go to journal
 StandardOutput=journal
