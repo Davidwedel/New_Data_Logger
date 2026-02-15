@@ -150,6 +150,13 @@ elif args.LogToUnitas:
 else:
     logger.info("Running in Forever Mode (continuous automation)")
 
+    # ─── Startup XML Processing ───
+    logger.info("Checking for unprocessed XML files on startup...")
+    try:
+        jobs.xml_to_sheet_job(args, DB_FILE)
+    except Exception as e:
+        logger.error(f"Error processing XML files on startup: {e}")
+
     # ─── Startup Upload Check ───
     logger.info("Checking for pending uploads on startup...")
     check_and_process_pending_uploads()
