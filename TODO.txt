@@ -8,3 +8,5 @@ sql security?
 timezone stuff in settings 
 data validation all
 xml->db doesn't catch up old dates when systemd startup
+the manual send button isnt owrking
+the doors open/close is wrong
