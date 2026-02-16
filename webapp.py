@@ -1170,23 +1170,27 @@ def manual_send_to_unitas():
     if not user_log or not user_log.get('send_to_bot'):
         return jsonify({"status": "error", "message": "Schedule Send to Unitas must be checked"}), 400
 
-    # Run Unitas upload in background thread
-    def run_upload():
-        try:
-            config = get_flat_config()
-            unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str, headless=False)
-            print(f"Manual Unitas upload completed for {date_str}")
-        except Exception as e:
-            print(f"Error during manual Unitas upload for {date_str}: {e}")
-            import traceback
-            traceback.print_exc()
+    # Clear the sent_to_unitas_at timestamp to force a resend
+    try:
+        db.update_daily_user_log(DB_FILE, date_str, {
+            'sent_to_unitas_at': None
+        })
+        print(f"Cleared sent_to_unitas_at timestamp for {date_str} to force manual send")
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to reset upload status: {e}"}), 500
 
-    thread = threading.Thread(target=run_upload, daemon=True)
-    thread.start()
+    # Trigger the datalogger service to process the upload
+    # Create a trigger file that the datalogger service watches for
+    trigger_file = CONFIG_DIR / "pending_upload"
+    try:
+        trigger_file.touch()
+        print(f"Created trigger file for manual upload of {date_str}")
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to trigger upload: {e}"}), 500
 
     return jsonify({
         "status": "ok",
-        "message": f"Unitas upload started for {date_str}. Browser window will open - review and save when done."
+        "message": f"Unitas upload triggered for {date_str}. The datalogger service will process it shortly."
     })
 
 if __name__ == "__main__":

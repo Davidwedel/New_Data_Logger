@@ -606,6 +606,7 @@ def check_last_n_days_unitas_status(db_file, days=7):
 def get_dates_needing_verification(db_file, days=7):
     """
     Get dates from the last N days that have been uploaded to Unitas but not yet verified.
+    Excludes today's date as it may be incomplete.
 
     Args:
         db_file: Path to the database file
@@ -615,14 +616,16 @@ def get_dates_needing_verification(db_file, days=7):
         List of date strings (ISO format) where:
         - sent_to_unitas_at IS NOT NULL (has been uploaded)
         - verified_status IS NULL (has not been verified)
+        - date is NOT today (today's data may be incomplete)
     """
     from datetime import datetime, timedelta
 
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
 
-    # Calculate date range (last N days including today)
-    end_date = datetime.now().date()
+    # Calculate date range (last N days, excluding today)
+    today = datetime.now().date()
+    end_date = today - timedelta(days=1)  # Yesterday
     start_date = end_date - timedelta(days=days-1)
 
     # Query for uploaded but unverified dates

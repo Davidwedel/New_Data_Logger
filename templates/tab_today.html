@@ -995,6 +995,7 @@
   }
 
   function manualSendToUnitas(event) {
+    console.log('[Manual Send] Button clicked');
     // Get the form and current date
     const form = document.getElementById('userlog-edit-form');
     if (!form) {
@@ -1003,6 +1004,7 @@
     }
 
     const dateStr = currentSelectedDate;
+    console.log('[Manual Send] Current date:', dateStr);
     if (!dateStr) {
       alert('No date selected');
       return;
@@ -1036,15 +1038,22 @@
         originalButton.textContent = 'Sending...';
         originalButton.style.background = '#6c757d';
 
+        console.log('[Manual Send] Starting API call for date:', dateStr);
         // Make API call to trigger manual send
         fetch('/api/manual_send_to_unitas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date: dateStr })
         })
-          .then(res => res.json())
+          .then(res => {
+            console.log('[Manual Send] Response status:', res.status);
+            return res.json();
+          })
           .then(result => {
+            console.log('[Manual Send] Response:', result);
             if (result.status === 'ok') {
+              // Show success message to user
+              alert(result.message || 'Unitas upload triggered. The datalogger service will process it shortly.');
               // Reload the date data to show updated timestamp
               loadDateData(dateStr);
             } else {
