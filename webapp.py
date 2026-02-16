@@ -209,7 +209,11 @@ def index():
     bot_log = db.get_daily_bot_log(DB_FILE, today_str)
     user_logs = db.get_all_user_logs(DB_FILE)
     bot_logs = db.get_all_bot_logs(DB_FILE)
-    return render_template("index.html", user_log=user_log, bot_log=bot_log, user_logs=user_logs, bot_logs=bot_logs)
+
+    # Check last 7 days for missing Unitas uploads
+    missing_uploads = db.check_last_n_days_unitas_status(DB_FILE, days=7)
+
+    return render_template("index.html", user_log=user_log, bot_log=bot_log, user_logs=user_logs, bot_logs=bot_logs, missing_uploads=missing_uploads)
 
 @app.route("/add_pallet", methods=["POST"])
 @check_startup_error

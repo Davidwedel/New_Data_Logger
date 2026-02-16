@@ -502,6 +502,105 @@ def has_cooler_been_logged_today(db_file, date_str):
     conn.close()
     return result is not None
 
+def check_last_n_days_unitas_status(db_file, days=7):
+    """
+    Check the last N days for missing Unitas uploads (production or cooler logs).
+
+    Args:
+        db_file: Path to the database file
+        days: Number of days to check (default: 7)
+
+    Returns:
+        List of dicts with missing upload information:
+        [
+            {
+                'date': '2024-01-15',
+                'missing_production': True/False,
+                'missing_cooler': True/False,
+                'has_user_data': True/False,
+                'has_bot_data': True/False
+            },
+            ...
+        ]
+        Only includes dates where data exists but uploads are missing.
+    """
+    from datetime import datetime, timedelta
+
+    conn = sqlite3.connect(db_file)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    # Calculate date range (last N days including today)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days-1)
+
+    # Query to get all dates in range with their upload status
+    sql = """
+        SELECT
+            COALESCE(u.date, b.date) as date,
+            u.sent_to_unitas_at as production_sent,
+            b.cooler_logged_at as cooler_sent,
+            CASE WHEN u.date IS NOT NULL THEN 1 ELSE 0 END as has_user_data,
+            CASE WHEN b.date IS NOT NULL THEN 1 ELSE 0 END as has_bot_data
+        FROM Daily_User_Log u
+        FULL OUTER JOIN Daily_Bot_Log b ON u.date = b.date
+        WHERE COALESCE(u.date, b.date) >= ? AND COALESCE(u.date, b.date) <= ?
+        ORDER BY date DESC
+    """
+
+    # SQLite doesn't support FULL OUTER JOIN, use UNION instead
+    sql = """
+        SELECT
+            u.date as date,
+            u.sent_to_unitas_at as production_sent,
+            b.cooler_logged_at as cooler_sent,
+            1 as has_user_data,
+            CASE WHEN b.date IS NOT NULL THEN 1 ELSE 0 END as has_bot_data
+        FROM Daily_User_Log u
+        LEFT JOIN Daily_Bot_Log b ON u.date = b.date
+        WHERE u.date >= ? AND u.date <= ?
+
+        UNION
+
+        SELECT
+            b.date as date,
+            u.sent_to_unitas_at as production_sent,
+            b.cooler_logged_at as cooler_sent,
+            CASE WHEN u.date IS NOT NULL THEN 1 ELSE 0 END as has_user_data,
+            1 as has_bot_data
+        FROM Daily_Bot_Log b
+        LEFT JOIN Daily_User_Log u ON b.date = u.date
+        WHERE b.date >= ? AND b.date <= ?
+        AND b.date NOT IN (SELECT date FROM Daily_User_Log WHERE date >= ? AND date <= ?)
+
+        ORDER BY date DESC
+    """
+
+    cur.execute(sql, (start_date.isoformat(), end_date.isoformat(),
+                      start_date.isoformat(), end_date.isoformat(),
+                      start_date.isoformat(), end_date.isoformat()))
+
+    rows = cur.fetchall()
+    conn.close()
+
+    # Filter to only dates with missing uploads
+    missing_uploads = []
+    for row in rows:
+        missing_production = row['has_user_data'] and row['production_sent'] is None
+        missing_cooler = row['has_bot_data'] and row['cooler_sent'] is None
+
+        # Only include if something is missing
+        if missing_production or missing_cooler:
+            missing_uploads.append({
+                'date': row['date'],
+                'missing_production': missing_production,
+                'missing_cooler': missing_cooler,
+                'has_user_data': bool(row['has_user_data']),
+                'has_bot_data': bool(row['has_bot_data'])
+            })
+
+    return missing_uploads
+
 # ------------------- DATABASE BACKUP -------------------
 def backup_database(db_file, backup_dir=None):
     """
