@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import unitas_helper as helper
 from unitas_login import login
@@ -9,8 +10,13 @@ from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from datetime import date, timedelta
+from selenium.common.exceptions import NoSuchElementException
+from datetime import date, timedelta, datetime
 import database_helper as db
+
+# Import check_date_status from check_unitas_status.py
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+from check_unitas_status import check_date_status
 
 HEADLESS = None
 FARM_ID = None
@@ -417,6 +423,71 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
                 except:
                     print("Warning: Could not return to production page")
 
+        # ========== VERIFICATION PASS ==========
+        # After uploads complete, verify any dates from the last 7 days that need verification
+        print(f"\n{'='*60}")
+        print(f"VERIFICATION PASS - Checking uploaded dates")
+        print(f"{'='*60}")
+
+        dates_to_verify = db.get_dates_needing_verification(db_file, days=7)
+
+        if dates_to_verify:
+            print(f"Found {len(dates_to_verify)} date(s) needing verification: {dates_to_verify}")
+
+            verified_results = {
+                'Complete': [],
+                'Overdue': [],
+                'Unknown': [],
+                'Not Found': [],
+                'Failed': []
+            }
+
+            for verify_date in dates_to_verify:
+                try:
+                    print(f"\nVerifying {verify_date}...")
+
+                    # Navigate to production page
+                    open_production_page(driver, FARM_ID, HOUSE_ID)
+
+                    # Check the status
+                    status = check_date_status(driver, verify_date, TIMEOUT)
+
+                    # Store verification in database
+                    db.update_daily_user_log(db_file, verify_date, {
+                        'verified_status': status,
+                        'verified_at': datetime.now().isoformat()
+                    })
+
+                    verified_results[status].append(verify_date)
+                    print(f"✓ {verify_date} verification status: {status}")
+
+                except Exception as e:
+                    print(f"✗ Error verifying {verify_date}: {e}")
+                    # Mark as failed in database
+                    try:
+                        db.update_daily_user_log(db_file, verify_date, {
+                            'verified_status': 'Failed',
+                            'verified_at': datetime.now().isoformat()
+                        })
+                        verified_results['Failed'].append(verify_date)
+                    except:
+                        pass
+
+            # Print verification summary
+            print(f"\n{'='*60}")
+            print(f"VERIFICATION RESULTS")
+            print(f"{'='*60}")
+            print(f"Total dates verified: {len(dates_to_verify)}")
+            for status, dates in verified_results.items():
+                if dates:
+                    print(f"{status}: {len(dates)}")
+                    print(f"  {', '.join(dates)}")
+            print(f"{'='*60}")
+        else:
+            print("No dates need verification at this time.")
+            print(f"{'='*60}")
+
+        # ========== UPLOAD SUMMARY ==========
         print(f"\n{'='*60}")
         print(f"UPLOAD SUMMARY")
         print(f"{'='*60}")

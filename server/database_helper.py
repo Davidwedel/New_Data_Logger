@@ -102,6 +102,8 @@ def migrate_schema(conn):
         'ration_used': 'TEXT',
         'sent_to_unitas_at': 'TIMESTAMP',
         'total_eggs': 'INTEGER DEFAULT 0',
+        'verified_status': 'TEXT',
+        'verified_at': 'TIMESTAMP',
     }
 
     # Add missing columns to Daily_User_Log
@@ -600,6 +602,44 @@ def check_last_n_days_unitas_status(db_file, days=7):
             })
 
     return missing_uploads
+
+def get_dates_needing_verification(db_file, days=7):
+    """
+    Get dates from the last N days that have been uploaded to Unitas but not yet verified.
+
+    Args:
+        db_file: Path to the database file
+        days: Number of days to look back (default: 7)
+
+    Returns:
+        List of date strings (ISO format) where:
+        - sent_to_unitas_at IS NOT NULL (has been uploaded)
+        - verified_status IS NULL (has not been verified)
+    """
+    from datetime import datetime, timedelta
+
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+
+    # Calculate date range (last N days including today)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days-1)
+
+    # Query for uploaded but unverified dates
+    sql = """
+        SELECT date
+        FROM Daily_User_Log
+        WHERE date >= ? AND date <= ?
+        AND sent_to_unitas_at IS NOT NULL
+        AND (verified_status IS NULL OR verified_status = '')
+        ORDER BY date ASC
+    """
+
+    cur.execute(sql, (start_date.isoformat(), end_date.isoformat()))
+    results = cur.fetchall()
+    conn.close()
+
+    return [row[0] for row in results]
 
 # ------------------- DATABASE BACKUP -------------------
 def backup_database(db_file, backup_dir=None):
