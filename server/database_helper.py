@@ -426,6 +426,37 @@ def delete_pallet_log(db_file, pallet_id):
     return rows_deleted
 
 # ------------------- QUERY FUNCTIONS -------------------
+def get_unuploaded_days(db_file, days=7):
+    """
+    Get dates from the last N days (excluding today) where sent_to_unitas_at is NULL
+    or no user log entry exists at all.
+    Returns list of date strings in ISO format, sorted ascending.
+    """
+    from datetime import date, timedelta
+    today = date.today()
+    dates_to_check = [
+        (today - timedelta(days=i)).isoformat()
+        for i in range(1, days + 1)
+    ]
+
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+
+    # Find which of those dates have been uploaded
+    placeholders = ",".join("?" for _ in dates_to_check)
+    sql = f"""
+        SELECT date FROM Daily_User_Log
+        WHERE date IN ({placeholders})
+        AND sent_to_unitas_at IS NOT NULL
+    """
+    cur.execute(sql, dates_to_check)
+    uploaded = {row[0] for row in cur.fetchall()}
+    conn.close()
+
+    # Return dates that were NOT uploaded (missing or NULL)
+    unuploaded = [d for d in sorted(dates_to_check) if d not in uploaded]
+    return unuploaded
+
 def get_dates_pending_unitas_upload(db_file):
     """
     Get all dates that have:
