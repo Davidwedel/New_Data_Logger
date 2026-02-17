@@ -1145,6 +1145,13 @@ def service_control():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/api/unuploaded_days")
+@check_startup_error
+def unuploaded_days():
+    """Return dates from the last 7 days (excluding today) not yet uploaded to Unitas"""
+    dates = db.get_unuploaded_days(DB_FILE, days=7)
+    return jsonify({"dates": dates})
+
 @app.route("/api/manual_send_to_unitas", methods=["POST"])
 @check_startup_error
 def manual_send_to_unitas():
