@@ -112,9 +112,9 @@ def check_and_process_pending_uploads():
 
 # ─── File Watcher for Trigger File ───
 class PendingUploadHandler(FileSystemEventHandler):
-    """Watch for pending_upload file creation"""
+    """Watch for pending_upload file creation or modification"""
 
-    def on_created(self, event):
+    def _handle_trigger(self, event):
         if event.src_path == str(TRIGGER_FILE_PATH):
             logger.info("Detected pending_upload trigger file")
             check_and_process_pending_uploads()
@@ -124,6 +124,12 @@ class PendingUploadHandler(FileSystemEventHandler):
                 logger.info("Removed pending_upload trigger file")
             except Exception as e:
                 logger.error(f"Error removing trigger file: {e}")
+
+    def on_created(self, event):
+        self._handle_trigger(event)
+
+    def on_modified(self, event):
+        self._handle_trigger(event)
 
 
 # ─── Main Execution ───

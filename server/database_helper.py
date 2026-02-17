@@ -376,6 +376,20 @@ def update_daily_bot_log(db_file, date, data):
     conn.commit()
     conn.close()
 
+def clear_unitas_send_timestamp(db_file, date_str):
+    """
+    Clear the sent_to_unitas_at timestamp for a given date.
+    This marks the date as not yet sent to Unitas, making it eligible for upload.
+    Used by manual send to re-trigger upload for a previously sent date.
+    """
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+    cur.execute("UPDATE Daily_User_Log SET sent_to_unitas_at = NULL WHERE date = ?", (date_str,))
+    conn.commit()
+    rows_updated = cur.rowcount
+    conn.close()
+    return rows_updated
+
 def update_pallet_log(db_file, pallet_id, data):
     """Update a specific pallet log entry by its ID"""
     if not data:
