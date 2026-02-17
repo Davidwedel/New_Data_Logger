@@ -9,7 +9,6 @@ import json
 import pathlib
 import requests
 import subprocess
-import threading
 from flask import Flask, request, jsonify, render_template
 import sqlite3
 from datetime import date, datetime
@@ -1149,7 +1148,7 @@ def service_control():
 @app.route("/api/manual_send_to_unitas", methods=["POST"])
 @check_startup_error
 def manual_send_to_unitas():
-    """Manually trigger Unitas upload for a specific date"""
+    """Manually trigger Unitas upload for a specific date by creating trigger file"""
     data = request.json
     date_str = data.get('date')
 
@@ -1166,23 +1165,16 @@ def manual_send_to_unitas():
     if not user_log or not user_log.get('send_to_bot'):
         return jsonify({"status": "error", "message": "Schedule Send to Unitas must be checked"}), 400
 
-    # Run Unitas upload in background thread
-    def run_upload():
-        try:
-            config = get_flat_config()
-            unitas.run_unitas_stuff(config, DB_FILE, target_date=date_str, headless=False)
-            print(f"Manual Unitas upload completed for {date_str}")
-        except Exception as e:
-            print(f"Error during manual Unitas upload for {date_str}: {e}")
-            import traceback
-            traceback.print_exc()
+    # Clear the sent_to_unitas_at timestamp to mark as pending
+    db.clear_unitas_send_timestamp(DB_FILE, date_str)
+    print(f"[Manual Send] Cleared sent_to_unitas_at timestamp for {date_str}")
 
-    thread = threading.Thread(target=run_upload, daemon=True)
-    thread.start()
+    # Create trigger file for automation.py to process
+    trigger_unitas_upload(date_str)
 
     return jsonify({
         "status": "ok",
-        "message": f"Unitas upload started for {date_str}. Browser window will open - review and save when done."
+        "message": f"Manual send triggered for {date_str}. The automation service will process the upload shortly."
     })
 
 if __name__ == "__main__":
