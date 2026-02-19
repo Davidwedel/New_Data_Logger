@@ -9,7 +9,8 @@ from webdriver_manager.firefox import GeckoDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from datetime import date, timedelta
+from selenium.common.exceptions import NoSuchElementException
+from datetime import date, timedelta, datetime
 import database_helper as db
 
 HEADLESS = None
@@ -144,6 +145,54 @@ def open_production_page(driver, farm_id: int, house_id: int):
 
     print("Production page opened")
 
+def check_date_status(driver, target_date_str: str):
+    """
+    Check if a date's production form shows as Complete or Overdue on the Unitas page.
+    Requires the production page to already be open.
+
+    Returns:
+        str: "Complete", "Overdue", "Unknown", or "Not Found"
+    """
+    target_date = datetime.fromisoformat(target_date_str)
+    date_formats = [
+        target_date.strftime("%a, %d %b %Y"),   # "Thu, 02 Oct 2025"
+        target_date.strftime("%a, %-d %b %Y"),  # "Thu, 2 Oct 2025" (no leading zero)
+    ]
+
+    for date_fmt in date_formats:
+        try:
+            title_xpath = f"//div[@data-cy='title' and contains(., '{date_fmt}')]"
+            driver.find_element(By.XPATH, title_xpath)
+
+            daily_li_xpath = (
+                f"//div[@data-cy='title' and contains(., '{date_fmt}')]"
+                f"/following-sibling::ul//li[@data-cy='list-item' and @aria-label='daily']"
+            )
+            try:
+                daily_elem = driver.find_element(By.XPATH, daily_li_xpath)
+            except NoSuchElementException:
+                return "Unknown"
+
+            try:
+                daily_elem.find_element(By.XPATH, ".//span[contains(@class, 'text-success-500')]")
+                return "Complete"
+            except NoSuchElementException:
+                pass
+
+            try:
+                daily_elem.find_element(By.XPATH, ".//span[contains(@class, 'text-danger-500')]")
+                return "Overdue"
+            except NoSuchElementException:
+                pass
+
+            return "Unknown"
+
+        except NoSuchElementException:
+            continue
+
+    return "Not Found"
+
+
 def get_form_by_date(driver, timeout, target_date_str):
     """
     Select a specific production form by date.
@@ -157,7 +206,6 @@ def get_form_by_date(driver, timeout, target_date_str):
     from selenium.common.exceptions import TimeoutException
 
     # Parse target date for formatting
-    from datetime import datetime
     target_date = datetime.fromisoformat(target_date_str)
 
     # Try different date formats that Unitas might use
@@ -343,8 +391,6 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
         target_date: Specific date to upload (None = upload all pending)
         headless: Force headless mode (None = use global HEADLESS setting)
     """
-    from datetime import datetime
-
     # Determine which dates to upload BEFORE logging in
     if target_date is not None:
         # Single date mode (backwards compatibility)
@@ -369,6 +415,26 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
     try:
         login(driver, secrets)
         open_production_page(driver, FARM_ID, HOUSE_ID)
+
+        # Verify previously uploaded dates from the last week
+        dates_to_verify = db.get_uploaded_days_last_week(db_file, days=7)
+        if dates_to_verify:
+            print(f"\nVerifying {len(dates_to_verify)} uploaded date(s) against Unitas...")
+            for verify_date in dates_to_verify:
+                try:
+                    status = check_date_status(driver, verify_date)
+                    if status == "Complete":
+                        db.update_daily_user_log(db_file, verify_date, {
+                            'verified_at': datetime.now().isoformat()
+                        })
+                        print(f"  ✓ {verify_date} — Complete (verified)")
+                    else:
+                        db.update_daily_user_log(db_file, verify_date, {
+                            'verified_at': status
+                        })
+                        print(f"  ✗ {verify_date} — {status} (not verified)")
+                except Exception as e:
+                    print(f"  ? {verify_date} — error during verification: {e}")
 
         # Upload each date
         successful_uploads = []
