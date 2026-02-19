@@ -458,6 +458,48 @@ def get_unuploaded_days(db_file, days=7):
     unuploaded = [d for d in sorted(dates_to_check) if d not in uploaded]
     return unuploaded
 
+def get_failed_verification_days(db_file, days=14):
+    """
+    Get dates where data was uploaded to Unitas but verification failed.
+    A failure is indicated by verified_at being a non-datetime string
+    (e.g. "Overdue", "Unknown", "Not Found") as opposed to an ISO datetime.
+    Returns list of dicts with 'date' and 'status' keys, sorted ascending.
+    """
+    from datetime import date, timedelta
+    today = date.today()
+    dates_to_check = [
+        (today - timedelta(days=i)).isoformat()
+        for i in range(1, days + 1)
+    ]
+
+    conn = sqlite3.connect(db_file)
+    cur = conn.cursor()
+
+    placeholders = ",".join("?" for _ in dates_to_check)
+    sql = f"""
+        SELECT date, verified_at FROM Daily_User_Log
+        WHERE date IN ({placeholders})
+        AND sent_to_unitas_at IS NOT NULL
+        AND verified_at IS NOT NULL
+        ORDER BY date ASC
+    """
+    cur.execute(sql, dates_to_check)
+    rows = cur.fetchall()
+    conn.close()
+
+    failed = []
+    for row_date, verified_at in rows:
+        # A successful verification stores an ISO datetime string.
+        # Failures store plain status strings like "Overdue", "Unknown", "Not Found".
+        try:
+            from datetime import datetime
+            datetime.fromisoformat(verified_at)
+            # Parsed successfully → it's a real datetime → success, skip
+        except (ValueError, TypeError):
+            failed.append({"date": row_date, "status": verified_at})
+
+    return failed
+
 def get_uploaded_days_last_week(db_file, days=7):
     """
     Get dates from the last N days (excluding today) where sent_to_unitas_at IS NOT NULL.
