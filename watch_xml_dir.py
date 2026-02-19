@@ -39,7 +39,7 @@ except Exception as e:
     exit(1)
 
 # Configuration
-CHECK_INTERVAL = 5 * 60  # Check every 5 minutes
+CHECK_INTERVAL = 5 * 60 # Check every 5 minutes
 
 def get_latest_file_time(directory):
     """Get the modification time of the most recently added XML file."""
@@ -65,7 +65,7 @@ def send_telegram_notification(message):
     try:
         telegram_bot.send_message(
             chat_id=TELEGRAM_CHAT_ID,
-            text=f"🚨 XML Watcher Alert\n\n{message}"
+            text=f" XML Watcher Alert\n\n{message}"
         )
         return True
     except Exception as e:
@@ -76,15 +76,15 @@ def send_notification(message):
     """Send a notification (console + Telegram)."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"\n{'='*60}")
-    print(f"[{timestamp}] ⚠️  ALERT: {message}")
+    print(f"[{timestamp}] ALERT: {message}")
     print(f"{'='*60}\n")
 
     # Try to send via Telegram
     if telegram_bot:
         if send_telegram_notification(message):
-            print("✓ Telegram notification sent")
+            print(" Telegram notification sent")
         else:
-            print("✗ Failed to send Telegram notification")
+            print(" Failed to send Telegram notification")
 
 def main():
     print(f"Starting XML directory watcher...")
@@ -98,14 +98,14 @@ def main():
     # Send startup notification
     if telegram_bot:
         try:
-            startup_msg = f"✅ XML Watcher Started\n\nMonitoring: {XML_DIR}\nCheck interval: {CHECK_INTERVAL/60:.0f} minutes"
+            startup_msg = f" XML Watcher Started\n\nMonitoring: {XML_DIR}\nCheck interval: {CHECK_INTERVAL/60:.0f} minutes"
             telegram_bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=startup_msg)
-            print("✓ Startup notification sent to Telegram")
+            print(" Startup notification sent to Telegram")
         except Exception as e:
-            print(f"✗ Failed to send startup notification: {e}")
+            print(f" Failed to send startup notification: {e}")
 
     last_file_time = get_latest_file_time(XML_DIR)
-    already_warned = False  # Track if we've already sent a warning
+    already_warned = False # Track if we've already sent a warning
 
     if last_file_time:
         print(f"Initial check: Last file at {datetime.fromtimestamp(last_file_time).strftime('%Y-%m-%d %H:%M:%S')}\n")
@@ -133,7 +133,7 @@ def main():
                         f"Last file at {last_datetime.strftime('%H:%M:%S')}"
                     )
                     already_warned = True
-                print(f"[{timestamp}] ⚠️  No new files since {last_datetime.strftime('%H:%M:%S')}")
+                print(f"[{timestamp}] No new files since {last_datetime.strftime('%H:%M:%S')}")
             else:
                 # New file detected
                 new_datetime = datetime.fromtimestamp(current_file_time)
@@ -141,11 +141,11 @@ def main():
                 # If we had previously warned, send a "resumed" notification
                 if already_warned:
                     send_notification(
-                        f"✅ XML files resumed! New file detected at {new_datetime.strftime('%H:%M:%S')}"
+                        f" XML files resumed! New file detected at {new_datetime.strftime('%H:%M:%S')}"
                     )
-                    already_warned = False  # Reset warning flag for next gap
+                    already_warned = False # Reset warning flag for next gap
 
-                print(f"[{timestamp}] ✓ New file detected at {new_datetime.strftime('%H:%M:%S')}")
+                print(f"[{timestamp}] New file detected at {new_datetime.strftime('%H:%M:%S')}")
                 last_file_time = current_file_time
 
         except KeyboardInterrupt:
