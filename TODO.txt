@@ -10,3 +10,5 @@ data validation all
 xml->db doesn't catch up old dates when systemd startup
 the manual send button isnt owrking
 the doors open/close is wrong
+
+something with 7 days or older not found will be weird
