@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Check Unitas Production Form Status
-Checks if a specific date's production form is Complete or Overdue
+Checks if production forms are Complete or Overdue
+By default checks the last 7 days, or a specific date if --date is provided
 """
 import sys
 import os
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Add server directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "server"))
@@ -116,12 +117,11 @@ def check_date_status(driver, target_date_str: str, timeout: int = 10):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Check Unitas production form status for a specific date"
+        description="Check Unitas production form status. Checks last 7 days by default, or a specific date if provided."
     )
     parser.add_argument(
         "--date", "-d",
-        required=True,
-        help="Date to check in YYYY-MM-DD format (e.g., 2026-01-15)"
+        help="Date to check in YYYY-MM-DD format (e.g., 2026-01-15). If not provided, checks last 7 days."
     )
     parser.add_argument(
         "--headless",
@@ -130,12 +130,24 @@ def main():
     )
     args = parser.parse_args()
 
-    # Validate date format
-    try:
-        datetime.fromisoformat(args.date)
-    except ValueError:
-        print(f"ERROR: Invalid date format. Use YYYY-MM-DD (e.g., 2026-01-15)")
-        sys.exit(2)
+    # Determine dates to check
+    dates_to_check = []
+    if args.date:
+        # Validate date format
+        try:
+            datetime.fromisoformat(args.date)
+            dates_to_check = [args.date]
+        except ValueError:
+            print(f"ERROR: Invalid date format. Use YYYY-MM-DD (e.g., 2026-01-15)")
+            sys.exit(2)
+    else:
+        # Check last 7 days
+        today = datetime.now()
+        dates_to_check = [
+            (today - timedelta(days=i)).strftime("%Y-%m-%d")
+            for i in range(1, 8)
+        ]
+        print(f"No date specified. Checking last 7 days...")
 
     # Load config
     config = get_flat_config()
@@ -157,21 +169,41 @@ def main():
         print("Opening production page...")
         open_production_page(driver, FARM_ID, HOUSE_ID, TIMEOUT)
 
-        # Check status
-        status = check_date_status(driver, args.date, TIMEOUT)
+        # Check status for all dates
+        results = {}
+        for date in dates_to_check:
+            status = check_date_status(driver, date, TIMEOUT)
+            results[date] = status
+            print("")  # Add blank line between checks
 
+        # Display summary
         print("\n" + "="*50)
-        print(f"Date: {args.date}")
-        print(f"Status: {status}")
+        print("SUMMARY")
+        print("="*50)
+        for date, status in results.items():
+            print(f"{date}: {status}")
         print("="*50)
 
         # Exit with appropriate code
-        if status == "Complete":
-            sys.exit(0)
-        elif status == "Overdue":
-            sys.exit(1)
+        # If checking multiple dates: exit 0 if all complete, 1 if any overdue, 2 if any unknown/not found
+        # If checking single date: exit based on that date's status
+        if len(dates_to_check) == 1:
+            status = results[dates_to_check[0]]
+            if status == "Complete":
+                sys.exit(0)
+            elif status == "Overdue":
+                sys.exit(1)
+            else:
+                sys.exit(2)
         else:
-            sys.exit(2)
+            # Multiple dates
+            statuses = set(results.values())
+            if statuses == {"Complete"}:
+                sys.exit(0)
+            elif "Overdue" in statuses:
+                sys.exit(1)
+            else:
+                sys.exit(2)
 
     except Exception as e:
         print(f"ERROR: {e}")
