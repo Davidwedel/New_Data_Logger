@@ -1156,7 +1156,7 @@ def unuploaded_days():
 @check_startup_error
 def failed_verification_days():
     """Return dates that were uploaded to Unitas but failed verification"""
-    days = db.get_failed_verification_days(DB_FILE, days=14)
+    days = db.get_failed_verification_days(DB_FILE, days=7)
     return jsonify({"days": days})
 
 @app.route("/api/manual_send_to_unitas", methods=["POST"])
