@@ -663,6 +663,35 @@ def get_defaults():
     except Exception:
         return jsonify({})
 
+@app.route("/get_nutritionists", methods=["GET"])
+@check_startup_error
+def get_nutritionists():
+    try:
+        config = load_config()
+        return jsonify(config.get("lists", {}).get("nutritionists", []))
+    except Exception:
+        return jsonify([])
+
+@app.route("/save_nutritionists", methods=["POST"])
+@check_startup_error
+def save_nutritionists():
+    data = request.json
+    if not isinstance(data, list):
+        return jsonify({"status": "error", "message": "Expected a list of names"}), 400
+    # Trim, drop blanks, de-duplicate while keeping order
+    names = []
+    for item in data:
+        name = str(item).strip()
+        if name and name not in names:
+            names.append(name)
+    try:
+        config = load_config()
+        config.setdefault("lists", {})["nutritionists"] = names
+        save_config(config)
+        return jsonify({"status": "ok", "message": "Nutritionist list saved!", "nutritionists": names})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Failed to save nutritionist list: {e}"}), 500
+
 @app.route("/get_last_update_time", methods=["GET"])
 @check_startup_error
 def get_last_update_time():

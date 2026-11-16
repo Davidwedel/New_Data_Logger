@@ -449,16 +449,34 @@
     currentDropdownInput = input;
   }
 
+  // Nutritionist list is editable from the Advanced tab (stored in config.json)
+  window.nutritionistOptions = window.nutritionistOptions || [];
+  function loadNutritionistOptions() {
+    return fetch('/get_nutritionists')
+      .then(res => res.json())
+      .then(list => { window.nutritionistOptions = Array.isArray(list) ? list : []; })
+      .catch(err => console.error('Error loading nutritionist list:', err));
+  }
+  loadNutritionistOptions();
+
+  function escapeHtmlAttr(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   function showNutritionistDropdown(input) {
     hideDropdown(); // Close any existing dropdown
 
-    const nutritionistOptions = ['Dr. Bowen', 'Kristjan Bregendahl', 'Ridley', 'Doesnt consult nutritionist'];
+    const nutritionistOptions = window.nutritionistOptions;
     const currentValue = input.value;
 
     let html = '<div style="padding:10px;">';
+    if (nutritionistOptions.length === 0) {
+      html += '<em style="color:#666;">No nutritionists set. Add them in the Advanced tab.</em>';
+    }
     nutritionistOptions.forEach(opt => {
       const checked = currentValue === opt ? 'checked' : '';
-      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="radio" name="nutritionist_dropdown" value="${opt}" ${checked} onchange="updateNutritionistFromDropdown(this)"> ${opt}</label>`;
+      const safe = escapeHtmlAttr(opt);
+      html += `<label style="display:block; margin:3px 0; white-space:nowrap;"><input type="radio" name="nutritionist_dropdown" value="${safe}" ${checked} onchange="updateNutritionistFromDropdown(this)"> ${safe}</label>`;
     });
     html += '</div>';
 

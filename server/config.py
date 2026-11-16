@@ -76,6 +76,14 @@ DEFAULT_CONFIG = {
         "safe_outdoors": "Yes",
         "equipment_functioning": "Yes"
     },
+    "lists": {
+        "nutritionists": [
+            "Dr. Bowen",
+            "Kristjan Bregendahl",
+            "Ridley",
+            "Doesnt consult nutritionist"
+        ]
+    },
     "deployment": {
         "mode": "localhost",
         "localhost_port": 5000,
