@@ -28,6 +28,20 @@
   <!-- Dropdown Lists Section -->
   <div style="margin-bottom:30px;">
     <button type="button" onclick="openNutritionistModal()" style="padding:10px 20px; background-color:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">Edit Nutritionist List</button>
+    <button type="button" onclick="openRationModal()" style="padding:10px 20px; background-color:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer; margin-left:10px;">Edit Ration List</button>
+  </div>
+
+  <!-- Ration List Modal -->
+  <div id="ration-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;" onclick="if (event.target === this) closeRationModal()">
+    <div style="background:white; padding:20px; border-radius:6px; width:90%; max-width:450px; max-height:80vh; display:flex; flex-direction:column; box-shadow:0 4px 16px rgba(0,0,0,0.3);">
+      <h3 style="margin-top:0;">Rations</h3>
+      <p style="margin-top:0; color:#666;">One ration per line. These appear in the Ration Used dropdown on the Today tab.</p>
+      <textarea id="ration-textarea" rows="15" style="width:100%; box-sizing:border-box; padding:6px; font-family:inherit; resize:vertical; flex:1;"></textarea>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:15px;">
+        <button type="button" onclick="closeRationModal()" style="padding:8px 15px; background-color:#6c757d; color:white; border:none; border-radius:4px; cursor:pointer;">Cancel</button>
+        <button type="button" onclick="saveRations()" style="padding:8px 15px; background-color:#007BFF; color:white; border:none; border-radius:4px; cursor:pointer;">Save</button>
+      </div>
+    </div>
   </div>
 
   <!-- Nutritionist List Modal -->
@@ -198,6 +212,49 @@
       .catch(err => {
         console.error('Error saving nutritionist list:', err);
         alert('Failed to save nutritionist list');
+      });
+  }
+
+  // Ration List Editor (one per line)
+  function openRationModal() {
+    fetch('/get_rations')
+      .then(res => res.json())
+      .then(list => {
+        document.getElementById('ration-textarea').value = Array.isArray(list) ? list.join('\n') : '';
+        document.getElementById('ration-modal').style.display = 'flex';
+        document.getElementById('ration-textarea').focus();
+      })
+      .catch(err => {
+        console.error('Error loading ration list:', err);
+        alert('Failed to load ration list');
+      });
+  }
+
+  function closeRationModal() {
+    document.getElementById('ration-modal').style.display = 'none';
+  }
+
+  function saveRations() {
+    const lines = document.getElementById('ration-textarea').value.split('\n');
+
+    fetch('/save_rations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lines)
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.status === 'ok') {
+          window.rationUsedOptions = result.rations;  // Update Today tab dropdown immediately
+          closeRationModal();
+          alert(result.message);
+        } else {
+          alert('Error: ' + result.message);
+        }
+      })
+      .catch(err => {
+        console.error('Error saving ration list:', err);
+        alert('Failed to save ration list');
       });
   }
 

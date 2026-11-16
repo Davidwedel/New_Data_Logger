@@ -663,18 +663,20 @@ def get_defaults():
     except Exception:
         return jsonify({})
 
-@app.route("/get_nutritionists", methods=["GET"])
-@check_startup_error
-def get_nutritionists():
+# Editable dropdown lists stored in config["lists"]
+EDITABLE_LISTS = {
+    "nutritionists": "Nutritionist list",
+    "rations": "Ration list",
+}
+
+def _get_list(key):
     try:
         config = load_config()
-        return jsonify(config.get("lists", {}).get("nutritionists", []))
+        return jsonify(config.get("lists", {}).get(key, []))
     except Exception:
         return jsonify([])
 
-@app.route("/save_nutritionists", methods=["POST"])
-@check_startup_error
-def save_nutritionists():
+def _save_list(key):
     data = request.json
     if not isinstance(data, list):
         return jsonify({"status": "error", "message": "Expected a list of names"}), 400
@@ -684,13 +686,34 @@ def save_nutritionists():
         name = str(item).strip()
         if name and name not in names:
             names.append(name)
+    label = EDITABLE_LISTS[key]
     try:
         config = load_config()
-        config.setdefault("lists", {})["nutritionists"] = names
+        config.setdefault("lists", {})[key] = names
         save_config(config)
-        return jsonify({"status": "ok", "message": "Nutritionist list saved!", "nutritionists": names})
+        return jsonify({"status": "ok", "message": f"{label} saved!", key: names})
     except Exception as e:
-        return jsonify({"status": "error", "message": f"Failed to save nutritionist list: {e}"}), 500
+        return jsonify({"status": "error", "message": f"Failed to save {label.lower()}: {e}"}), 500
+
+@app.route("/get_nutritionists", methods=["GET"])
+@check_startup_error
+def get_nutritionists():
+    return _get_list("nutritionists")
+
+@app.route("/save_nutritionists", methods=["POST"])
+@check_startup_error
+def save_nutritionists():
+    return _save_list("nutritionists")
+
+@app.route("/get_rations", methods=["GET"])
+@check_startup_error
+def get_rations():
+    return _get_list("rations")
+
+@app.route("/save_rations", methods=["POST"])
+@check_startup_error
+def save_rations():
+    return _save_list("rations")
 
 @app.route("/get_last_update_time", methods=["GET"])
 @check_startup_error

@@ -82,7 +82,8 @@ DEFAULT_CONFIG = {
             "Kristjan Bregendahl",
             "Ridley",
             "Doesnt consult nutritionist"
-        ]
+        ],
+        "rations": []
     },
     "deployment": {
         "mode": "localhost",
