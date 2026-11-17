@@ -73,11 +73,20 @@ TIMEOUT = config["Timeout"]
 
 # ─── Init ───
 db.setup_db(DB_FILE)
-check_settings(config)
-unitas.do_unitas_setup(config)
 do_xml_setup(config)
 helper_set_timeout(TIMEOUT)
-coolerlog.do_coolerlog_setup(config, DB_FILE)
+
+# Only setup Unitas if we need it (not for --LogToDatabase or --CoolerLogToDB)
+needs_unitas = (
+    args.LogToUnitas or
+    args.CoolerLogToUnitas or
+    (not args.LogToDatabase and not args.CoolerLogToDB)  # Forever mode needs it
+)
+
+if needs_unitas:
+    check_settings(config)
+    unitas.do_unitas_setup(config)
+    coolerlog.do_coolerlog_setup(config, DB_FILE)
 
 # Backup database on startup
 db.backup_database(DB_FILE)
