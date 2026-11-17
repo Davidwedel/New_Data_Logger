@@ -900,17 +900,32 @@
       'cooler_temp_pm': 'Cooler Temp PM (°F)'
     };
 
-    // Fields to exclude from display
-    const excludeFields = ['id', 'cooler_logged_at', 'cooler_to_db_at', 'date', 'door_open', 'door_closed'];
+    // Define explicit field order for display
+    const botLogFieldOrder = [
+      'bird_age',
+      'feed_consumption',
+      'lights_on',
+      'lights_off',
+      'water_consumption',
+      'body_weight',
+      'birds_restricted',
+      'inside_low_temp',
+      'inside_high_temp',
+      'outside_low_temp',
+      'outside_high_temp',
+      'cooler_time_am',
+      'cooler_temp_am',
+      'cooler_time_pm',
+      'cooler_temp_pm'
+    ];
 
     let html = '<div id="botlog-scroll-container" style="max-width:100%; border:1px solid #ccc; border-radius:6px; padding:10px;">';
     html += '<form id="botlog-edit-form">';
     html += '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 200px)); gap:10px;">';
 
-    // Render each field as a labeled input in a grid (similar to user log)
-    for (const key in bot_log) {
-      // Skip excluded fields
-      if (excludeFields.includes(key)) continue;
+    // Render each field in the defined order
+    for (const key of botLogFieldOrder) {
+      if (bot_log[key] === undefined) continue;
 
       const value = bot_log[key] || '';
       const displayName = botLogFieldDisplayNames[key] || key;
