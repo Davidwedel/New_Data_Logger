@@ -4,7 +4,7 @@
 # Opens browser, logs in, navigates to form, shows data but doesn't submit
 
 # Configuration
-TEST_DATE="2026-11-16"  # Change this to test different dates
+TEST_DATE="2026-11-12"  # Change this to test different dates
 
 # Change to project root
 cd "$(dirname "$0")/.." || exit 1

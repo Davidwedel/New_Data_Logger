@@ -435,7 +435,7 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None, dry_run=
     """
     Upload data to Unitas for dates that are flagged.
 
-    If target_date is provided, uploads only that date.
+    If target_date is provided, validates and uploads only that date if eligible.
     If target_date is None, finds and uploads ALL dates that:
       - Have send_to_bot flag set
       - Have not been sent yet (sent_to_unitas_at is NULL)
@@ -450,9 +450,34 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None, dry_run=
     """
     # Determine which dates to upload BEFORE logging in
     if target_date is not None:
-        # Single date mode (backwards compatibility)
+        # Single date mode - validate the date is eligible for upload
+        print(f"Single date mode: validating {target_date}")
+
+        # Check if user log exists with send_to_bot flag
+        user_log = db.get_daily_user_log(db_file, target_date)
+        if not user_log:
+            print(f"ERROR: No user log found for {target_date}")
+            print("User must enter data and click 'Schedule Send to Unitas' first")
+            return
+
+        if not user_log.get('send_to_bot'):
+            print(f"ERROR: Date {target_date} not scheduled for upload")
+            print("User must click 'Schedule Send to Unitas' button first")
+            return
+
+        if user_log.get('sent_to_unitas_at'):
+            print(f"WARNING: Date {target_date} already sent to Unitas at {user_log.get('sent_to_unitas_at')}")
+            print("Proceeding anyway (re-upload)")
+
+        # Check if bot log data exists
+        bot_log = db.get_daily_bot_log(db_file, target_date)
+        if not bot_log:
+            print(f"ERROR: No bot log data found for {target_date}")
+            print("XML processing must run first to generate bot data")
+            return
+
         dates_to_upload = [target_date]
-        print(f"Single date mode: uploading {target_date}")
+        print(f"Date validated successfully")
     else:
         # Multi-date mode: find all pending dates
         dates_to_upload = db.get_dates_pending_unitas_upload(db_file)
