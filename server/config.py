@@ -60,11 +60,6 @@ DEFAULT_CONFIG = {
         "bot_token": "",
         "chat_id": ""
     },
-    "legacy": {
-        "spreadsheet_id": "",
-        "xml_to_sheet_range_name": "Nightly_Bot_Responses!A3",
-        "sheet_to_unitas_range_name": "Send_To_Bot!D3:AU3"
-    },
     "form_defaults": {
         "air_sensory": 1,
         "added_supplements": "",
@@ -220,13 +215,7 @@ def get_flat_config() -> Dict[str, Any]:
     flat["time_zone"] = config["system"]["time_zone"]
     flat["Timeout"] = str(config["system"]["timeout"])
 
-    # Legacy settings
-    flat["spreadsheet_id"] = config["legacy"]["spreadsheet_id"]
-    flat["xml_to_sheet_range_name"] = config["legacy"]["xml_to_sheet_range_name"]
-    flat["sheet_to_unitas_range_name"] = config["legacy"]["sheet_to_unitas_range_name"]
-
     return flat
-
 
 def get_deployment_mode() -> str:
     """Get current deployment mode (localhost or production)

@@ -415,7 +415,7 @@ def run_xml_stuff(db_file=None, target_date=None):
 
     #end figuring various things we need to know
 
-    #for the spreadsheet
+    #for the db
     now = datetime.now()
     formatted_now = now.strftime("%m-%d-%Y %H:%M:%S")
 

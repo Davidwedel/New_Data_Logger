@@ -56,7 +56,7 @@ def find_oldest_complete_day_missing_from_db(db_file):
 
     return None
 
-def xml_to_sheet_job(args, db_file):
+def xml_to_db_job(args, db_file):
     """
     Run XML → DB logging for all unprocessed complete days.
     Processes all missing days until caught up.

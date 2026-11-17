@@ -144,7 +144,7 @@ class PendingUploadHandler(FileSystemEventHandler):
 # ─── Main Execution ───
 if args.LogToDatabase:
     logger.info("Running one-shot: XML → Database")
-    jobs.xml_to_sheet_job(args, DB_FILE)
+    jobs.xml_to_db_job(args, DB_FILE)
 
 elif args.CoolerLogToUnitas:
     logger.info("Running one-shot: Cooler Log → Unitas")
@@ -168,7 +168,7 @@ else:
     # ─── Startup XML Processing ───
     logger.info("Checking for unprocessed XML files on startup...")
     try:
-        jobs.xml_to_sheet_job(args, DB_FILE)
+        jobs.xml_to_db_job(args, DB_FILE)
     except Exception as e:
         logger.error(f"Error processing XML files on startup: {e}")
 
@@ -185,7 +185,7 @@ else:
             logger.error(f"Error processing pending coolerlog uploads on startup: {e}")
 
     # ─── Scheduling ───
-    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_sheet_job, args, DB_FILE)  # XML → DB
+    schedule.every().day.at(RETRIEVE_FROM_XML_TIME).do(jobs.xml_to_db_job, args, DB_FILE)  # XML → DB
     schedule.every().day.at("00:05").do(db.backup_database, DB_FILE)  # Daily backup at 12:05 AM
 
     # Schedule cooler log backup 1 minute after XML processing
