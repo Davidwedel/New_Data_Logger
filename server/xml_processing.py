@@ -173,10 +173,9 @@ def extract_daily_temperature_and_light_data(file_list, corruption_report=None):
           Files with invalid Time (-9999) are skipped.
           Corrupt files are moved to failed_dir.
     """
-    lightStatus = False
     lightOnTime = "=NA()"
     lightOffTime = "=NA()"
-    lightFlag = 0
+    previousLightValue = "Off"
     outsideTemps = []
     insideTemps = []
 
@@ -190,7 +189,7 @@ def extract_daily_temperature_and_light_data(file_list, corruption_report=None):
     # Sort by time string (HH:MM format sorts correctly)
     files_with_time.sort(key=lambda x: x[1])
 
-    for filename, _ in files_with_time:
+    for filename, time_str in files_with_time:
         try: 
             tree = ET.parse(filename)
             root = tree.getroot()
@@ -211,60 +210,26 @@ def extract_daily_temperature_and_light_data(file_list, corruption_report=None):
                 if temp != -9999:
                     insideTemps.append(temp)
 
-            ## Light on and off calcs
-            ## 99999 means a failure, 100000 means total success, so no reason 
-            ## to continue calculations
-            if lightFlag < 99999:
+            ## Light on and off detection
+            ## Uses AnalogOut/Light1 which is either "Off" or a numeric intensity value
+            ## Records FIRST on transition and LAST off transition
+            light_element = root.find(".//AnalogOut/Light1")
+            if light_element is not None:
+                current_light_value = light_element.text.strip()
 
-                ##light processing stuff
-                light = root.find(".//Light")
+                # Detect transition from Off to On (record first occurrence only)
+                if previousLightValue == "Off" and current_light_value != "Off":
+                    if lightOnTime == "=NA()":
+                        lightOnTime = time_str
 
-                def grabTime():
-                    tm = root.find(".//Headers/TimeStamp").text
-                    tm = datetime.strptime(tm, "%Y/%m/%d %H:%M:%S").replace(tzinfo=ZoneInfo("UTC"))
+                # Detect transition from On to Off (always update to get last occurrence)
+                elif previousLightValue != "Off" and current_light_value == "Off":
+                    lightOffTime = time_str
 
-                    # Convert to local time (e.g., America/Chicago)
-                    tm_local = tm.astimezone(ZoneInfo(time_zone))
-                    tm_local = tm_local.strftime("%H:%M")
+                # Update state for next iteration
+                previousLightValue = current_light_value
 
-                    return tm_local
-
-                if light is not None:
-                    active_text = light.findtext("Active")
-                    if active_text is not None:
-                        #print("found active")
-                        active = int(active_text)
-                    else:
-                        print("fail")
-                        print(active)
-
-                    ## first file of the day shows light was already on, so we 
-                    ## don't kow when it was turned on. 
-                    if lightFlag == 0 and active != 0:
-                        lightFlag = 99999
-                        print("First file showed light on. Error")
-                    
-                    ##light turned on in this file
-                    elif active > 0  and lightStatus is False:
-                        lightStatus = True
-                        lightOnTime = grabTime()
-
-                    ## light went off this file
-                    elif active == 0 and lightStatus is True:
-                        lightStatus = False
-                        lightOffTime = grabTime()
-                        lightFlag = 100000
-
-                    #just advance the counter
-                    else:
-                        lightFlag = lightFlag + 1
-
-                    
-
-                else:
-                    print("Light element not found in XML file ", filename)
-
-            ## end of light on and off calcs
+            ## end of light on and off detection
 
         except Exception as e:
             print(f"Failed to process {filename}: {e}")
@@ -276,15 +241,9 @@ def extract_daily_temperature_and_light_data(file_list, corruption_report=None):
             if corruption_report:
                 corruption_report.add_moved(filename, f"XML parse error: {e}")
 
-    ## verify that our light data is good 
-    if lightStatus is True:
-        print("LightStatus Failure. Light was on in last file")
-
-    elif lightFlag != 100000:
-        print("lightFlag failed")
-        print("LightFlag: ", lightFlag)
-
-    ## end of verify light data
+    ## Verify light data
+    if lightOnTime == "=NA()" or lightOffTime == "=NA()":
+        print(f"WARNING: Light timing incomplete (On: {lightOnTime}, Off: {lightOffTime})")
 
     if outsideTemps:
         outsideHigh = max(outsideTemps)
