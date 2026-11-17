@@ -998,8 +998,8 @@
     // AM Check
     if (bot_log.cooler_time_am || bot_log.cooler_temp_am) {
       const timeAM = bot_log.cooler_time_am || 'N/A';
-      const tempAM = bot_log.cooler_temp_am ? bot_log.cooler_temp_am.toFixed(1) : 'N/A';
-      const tempStyle = (bot_log.cooler_temp_am && bot_log.cooler_temp_am > 45) ? 'color: red; font-weight: bold;' : '';
+      const tempAM = (typeof bot_log.cooler_temp_am === 'number') ? bot_log.cooler_temp_am.toFixed(1) : 'N/A';
+      const tempStyle = (typeof bot_log.cooler_temp_am === 'number' && bot_log.cooler_temp_am > 45) ? 'color: red; font-weight: bold;' : '';
 
       html += '<tr>';
       html += `<td style="padding:8px; border:1px solid #ddd;">AM</td>`;
@@ -1011,8 +1011,8 @@
     // PM Check
     if (bot_log.cooler_time_pm || bot_log.cooler_temp_pm) {
       const timePM = bot_log.cooler_time_pm || 'N/A';
-      const tempPM = bot_log.cooler_temp_pm ? bot_log.cooler_temp_pm.toFixed(1) : 'N/A';
-      const tempStyle = (bot_log.cooler_temp_pm && bot_log.cooler_temp_pm > 45) ? 'color: red; font-weight: bold;' : '';
+      const tempPM = (typeof bot_log.cooler_temp_pm === 'number') ? bot_log.cooler_temp_pm.toFixed(1) : 'N/A';
+      const tempStyle = (typeof bot_log.cooler_temp_pm === 'number' && bot_log.cooler_temp_pm > 45) ? 'color: red; font-weight: bold;' : '';
 
       html += '<tr>';
       html += `<td style="padding:8px; border:1px solid #ddd;">PM</td>`;
