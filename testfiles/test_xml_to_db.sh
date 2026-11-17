@@ -42,9 +42,34 @@ echo ""
 echo ""
 echo "================================================================"
 echo "After test - checking for $TEST_DATE:"
-RESULT=$(sqlite3 "$DB_FILE" "SELECT date, bird_age FROM Daily_Bot_Log WHERE date='$TEST_DATE';" 2>/dev/null)
+RESULT=$(sqlite3 "$DB_FILE" "SELECT date FROM Daily_Bot_Log WHERE date='$TEST_DATE';" 2>/dev/null)
 if [ -n "$RESULT" ]; then
-    echo "   Success! Found: $RESULT"
+    echo "   Success! Row created for $TEST_DATE"
+    echo ""
+    echo "Data saved to database:"
+    echo "----------------------------------------------------------------"
+
+    # Query and display all data in readable format
+    sqlite3 "$DB_FILE" <<EOF
+.mode line
+SELECT
+    date,
+    bird_age,
+    outside_high_temp,
+    outside_low_temp,
+    inside_high_temp,
+    inside_low_temp,
+    lights_on,
+    lights_off,
+    feed_consumption,
+    water_consumption,
+    body_weight,
+    cooler_temp_am,
+    cooler_temp_pm,
+    cooler_to_db_at
+FROM Daily_Bot_Log
+WHERE date='$TEST_DATE';
+EOF
 else
     echo "   Failed - row not created"
 fi
