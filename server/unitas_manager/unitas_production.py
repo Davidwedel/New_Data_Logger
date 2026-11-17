@@ -34,10 +34,16 @@ def do_unitas_setup(secrets):
 
     helper.set_timeout(TIMEOUT)
 
-def trigger_fill_production_form(driver, db_file, target_date=None):
+def trigger_fill_production_form(driver, db_file, target_date=None, dry_run=False):
     """
     Fetches data from Daily_User_Log and Daily_Bot_Log for the given date (default: yesterday),
     merges them, and calls fill_production_form with named arguments.
+
+    Args:
+        driver: Selenium WebDriver instance
+        db_file: Path to database
+        target_date: Date to process (default: yesterday)
+        dry_run: If True, print data instead of filling form
     """
     if target_date is None:
         target_date = (date.today() - timedelta(days=1)).isoformat()
@@ -121,7 +127,8 @@ def trigger_fill_production_form(driver, db_file, target_date=None):
         safe_environment_outdoors=merged.get('safe_outdoors', ''),
         equipment_functioning=merged.get('equipment_functioning', ''),
         predator_activity=merged.get('predator_activity', ''),
-        comment=merged.get('comments', '')
+        comment=merged.get('comments', ''),
+        dry_run=dry_run
     )
 
 def make_driver(headless: bool = False):
@@ -312,8 +319,57 @@ def fill_production_form(
     safe_environment_outdoors="",
     equipment_functioning="",
     predator_activity="",
-    comment=""
+    comment="",
+    dry_run=False
 ):
+    if dry_run:
+        print("\n" + "="*60)
+        print("DRY RUN MODE - Form data to be submitted:")
+        print("="*60)
+        print(f"Mortality (Indoor): {mortality_indoor or '0'}")
+        print(f"Mortality (Outdoor): {mortality_outdoor or '0'}")
+        print(f"Euthanized (Indoor): {euthanized_indoor or '0'}")
+        print(f"Euthanized (Outdoor): {euthanized_outdoor or '0'}")
+        print(f"Depopulation Number: {depop_number}")
+        print(f"Cull Reason: {cull_reason}")
+        print(f"Mortality Reason: {mortality_reason}")
+        print(f"Mortality Comments: {mortality_comments}")
+        print(f"Total Eggs: {total_eggs}")
+        print(f"Floor Eggs: {floor_eggs}")
+        print(f"Nutritionist: {nutritionist}")
+        print(f"Ration Used: {ration_used}")
+        print(f"Feed Consumption: {feed_consumption}")
+        print(f"Ration Delivered: {ration_delivered}")
+        print(f"Amount Delivered: {amount_delivered}")
+        print(f"Lights On: {lights_on_hh}:{lights_on_mm}")
+        print(f"Lights Off: {lights_off_hh}:{lights_off_mm}")
+        print(f"Added Supplements: {added_supplements}")
+        print(f"Water Consumption: {water_consumption}")
+        print(f"Body Weight: {body_weight}")
+        print(f"Case Weight: {case_weight}")
+        print(f"Yolk Color: {yolk_color}")
+        print(f"Door Open: {door_open_hh}:{door_open_mm}")
+        print(f"Door Close: {door_close_hh}:{door_close_mm}")
+        print(f"Birds Restricted: {birds_restricted}")
+        print(f"Birds Restricted Reason: {birds_restricted_reason}")
+        print(f"Inside High Temp: {inside_high}")
+        print(f"Inside Low Temp: {inside_low}")
+        print(f"Outside High Temp: {outside_high}")
+        print(f"Outside Low Temp: {outside_low}")
+        print(f"Air Sensory: {air_sensory}")
+        print(f"Weather Conditions: {weather_conditions}")
+        print(f"Outside Drinkers Clean: {outside_drinkers_clean}")
+        print(f"Birds Found Under Slats: {birds_found_under_slats}")
+        print(f"Safe Environment (Indoors): {safe_environment_indoors}")
+        print(f"Safe Environment (Outdoors): {safe_environment_outdoors}")
+        print(f"Equipment Functioning: {equipment_functioning}")
+        print(f"Predator Activity: {predator_activity}")
+        print(f"Comment: {comment}")
+        print("="*60)
+        print("\nDRY RUN: Form not filled. Browser will remain open.")
+        print("Press Enter to continue...")
+        input()
+        return
 
     helper.fill_input_by_id(driver, "V33-H1", mortality_indoor or "0")
     helper.fill_input_by_id(driver, "V35-H1", mortality_outdoor or "0")
@@ -375,7 +431,7 @@ def fill_production_form(
     helper.fill_input_by_id(driver, "V88-H1", predator_activity)
     helper.fill_input_by_id(driver, "Comment-H1", comment)
 
-def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
+def run_unitas_stuff(secrets, db_file, target_date=None, headless=None, dry_run=False):
     """
     Upload data to Unitas for dates that are flagged.
 
@@ -390,6 +446,7 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
         db_file: Path to database
         target_date: Specific date to upload (None = upload all pending)
         headless: Force headless mode (None = use global HEADLESS setting)
+        dry_run: If True, navigate to form and show data but don't fill it
     """
     # Determine which dates to upload BEFORE logging in
     if target_date is not None:
@@ -450,21 +507,24 @@ def run_unitas_stuff(secrets, db_file, target_date=None, headless=None):
                 get_form_by_date(driver, TIMEOUT, upload_date)
 
                 # Fill the form
-                trigger_fill_production_form(driver, db_file, upload_date)
+                trigger_fill_production_form(driver, db_file, upload_date, dry_run=dry_run)
 
-                # Scroll back to top
-                element = driver.find_element(By.ID, "V33-H1")
-                driver.execute_script("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", element)
+                if not dry_run:
+                    # Scroll back to top
+                    element = driver.find_element(By.ID, "V33-H1")
+                    driver.execute_script("arguments[0].scrollIntoView({ behavior: 'smooth', block: 'center' });", element)
 
-                print(f"Form filled for {upload_date}!")
+                    print(f"Form filled for {upload_date}!")
 
-                # Mark as sent to Unitas with timestamp
-                user_log = db.get_daily_user_log(db_file, upload_date)
-                if user_log:
-                    db.update_daily_user_log(db_file, upload_date, {
-                        'sent_to_unitas_at': datetime.now().isoformat()
-                    })
-                    print(f"✓ Marked {upload_date} as sent to Unitas")
+                    # Mark as sent to Unitas with timestamp
+                    user_log = db.get_daily_user_log(db_file, upload_date)
+                    if user_log:
+                        db.update_daily_user_log(db_file, upload_date, {
+                            'sent_to_unitas_at': datetime.now().isoformat()
+                        })
+                        print(f"✓ Marked {upload_date} as sent to Unitas")
+                else:
+                    print(f"DRY RUN: Data displayed for {upload_date}, not submitted")
 
                 successful_uploads.append(upload_date)
 

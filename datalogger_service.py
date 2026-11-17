@@ -55,6 +55,7 @@ parser.add_argument("--CoolerLogToUnitas", "-CTU", action="store_true", help="Lo
 parser.add_argument("--CoolerLogToDB", "-CTD", action="store_true", help="Backup cooler logs → Cooler DB (one-shot)")
 parser.add_argument("--NoDelete", "-ND", action="store_true", help="Don't delete old XML files")
 parser.add_argument("--date", "-d", type=str, help="Specific date for Unitas upload (YYYY-MM-DD format)")
+parser.add_argument("--dry-run", action="store_true", help="Dry run: open browser, login, navigate to form but don't fill data")
 args = parser.parse_args()
 
 # ─── Config ───
@@ -155,12 +156,14 @@ elif args.CoolerLogToDB:
     db.backup_cooler_logs(DB_FILE)
 
 elif args.LogToUnitas:
+    if args.dry_run:
+        logger.info("DRY RUN MODE: Will open browser and show data but not submit")
     if args.date:
         logger.info(f"Running one-shot: Database → Unitas for date {args.date}")
-        unitas.run_unitas_stuff(config, DB_FILE, target_date=args.date)
+        unitas.run_unitas_stuff(config, DB_FILE, target_date=args.date, dry_run=args.dry_run)
     else:
         logger.info("Running one-shot: Database → Unitas (all pending)")
-        unitas.run_unitas_stuff(config, DB_FILE)
+        unitas.run_unitas_stuff(config, DB_FILE, dry_run=args.dry_run)
 
 else:
     logger.info("Running in Forever Mode (continuous automation)")
