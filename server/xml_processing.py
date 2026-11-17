@@ -6,9 +6,75 @@ import xml.etree.ElementTree as ET
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 from collections import Counter
+from dataclasses import dataclass
+from typing import Union
 import database_helper
 from helpers import get_bird_age
 from config import get_corrupt_files_dir
+
+@dataclass
+class TemperatureAndLightData:
+    """Data extracted from processing all XML files for a day"""
+    outside_high: float
+    outside_low: float
+    inside_high: float
+    inside_low: float
+    light_on_time: str
+    light_off_time: str
+
+@dataclass
+class DailyTotalsData:
+    """Daily totals extracted from the last XML file of the day"""
+    mortality: int
+    feed_consumption: float
+    water_consumption: int
+    avg_weight: float
+
+@dataclass
+class CoolerTempData:
+    """Cooler temperature at a specific time"""
+    time: str
+    temperature: Union[float, str]  # Can be float or '=NA()'
+
+@dataclass
+class CorruptionReport:
+    """Track corrupt/invalid files encountered during processing"""
+    files_skipped: list  # [(filename, reason), ...]
+    files_moved: list    # [(filename, reason), ...]
+
+    def add_skipped(self, filename: str, reason: str):
+        """Record a file that was skipped but not moved"""
+        self.files_skipped.append((filename, reason))
+
+    def add_moved(self, filename: str, reason: str):
+        """Record a file that was moved to failed_dir"""
+        self.files_moved.append((filename, reason))
+
+    def has_issues(self) -> bool:
+        """Return True if any files had problems"""
+        return len(self.files_skipped) > 0 or len(self.files_moved) > 0
+
+    def print_report(self):
+        """Print summary of all corruption issues"""
+        if not self.has_issues():
+            print("No corrupt or invalid files detected")
+            return
+
+        print("\n" + "="*60)
+        print("CORRUPTION REPORT")
+        print("="*60)
+
+        if self.files_moved:
+            print(f"\nMoved to corrupt_files/ ({len(self.files_moved)} files):")
+            for filename, reason in self.files_moved:
+                print(f"  - {os.path.basename(filename)}: {reason}")
+
+        if self.files_skipped:
+            print(f"\nSkipped ({len(self.files_skipped)} files):")
+            for filename, reason in self.files_skipped:
+                print(f"  - {os.path.basename(filename)}: {reason}")
+
+        print("="*60 + "\n")
 
 # Shared variables for all functions
 xmlFolder = None
@@ -85,11 +151,27 @@ def c_to_f(celsius):
 def kg_to_lb(kg):
     return kg * 2.20462
 
-def doProcessingOnAllFiles(file_list):
+def extract_daily_temperature_and_light_data(file_list, corruption_report=None):
     """
-    Process all files in the provided list (not a glob pattern).
-    Files are sorted by internal <General><Time> field.
-    Files with invalid Time (-9999) are skipped.
+    Extract temperature ranges and light on/off times from a day's XML files.
+
+    Args:
+        file_list: List of XML file paths to process
+        corruption_report: Optional CorruptionReport to track moved files
+
+    Returns:
+        TemperatureAndLightData: Dataclass containing:
+            - outside_high/low: Max/min outside temperatures (Celsius)
+            - inside_high/low: Max/min inside temperatures (Celsius)
+            - light_on_time: Time lights turned on (HH:MM)
+            - light_off_time: Time lights turned off (HH:MM)
+
+    Raises:
+        ValueError: If no valid temperature data found
+
+    Note: Files are sorted by internal <General><Time> field, not filename.
+          Files with invalid Time (-9999) are skipped.
+          Corrupt files are moved to failed_dir.
     """
     lightStatus = False
     lightOnTime = "=NA()"
@@ -189,8 +271,10 @@ def doProcessingOnAllFiles(file_list):
             dst = os.path.join(failed_dir, os.path.basename(filename))
             # Ensure destination directory exists
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            ## get it out so it doens't cause any more trouble
+            # Move corrupt file out of the way
             shutil.move(filename, dst)
+            if corruption_report:
+                corruption_report.add_moved(filename, f"XML parse error: {e}")
 
     ## verify that our light data is good 
     if lightStatus is True:
@@ -204,57 +288,127 @@ def doProcessingOnAllFiles(file_list):
 
     if outsideTemps:
         outsideHigh = max(outsideTemps)
-        outsideLow = min (outsideTemps)
-
+        outsideLow = min(outsideTemps)
     else:
-        print(f"Something failed in Outside Temps!")
+        print(f"ERROR: No valid outside temperature data found")
+        raise ValueError("No valid outside temperature data in XML files")
 
     if insideTemps:
         insideHigh = max(insideTemps)
-        insideLow = min (insideTemps)
-
+        insideLow = min(insideTemps)
     else:
-        print(f"Something failed in Inside! Temps")
+        print(f"ERROR: No valid inside temperature data found")
+        raise ValueError("No valid inside temperature data in XML files")
 
-    return outsideHigh, outsideLow, insideHigh, insideLow, lightOnTime, lightOffTime
+    return TemperatureAndLightData(
+        outside_high=outsideHigh,
+        outside_low=outsideLow,
+        inside_high=insideHigh,
+        inside_low=insideLow,
+        light_on_time=lightOnTime,
+        light_off_time=lightOffTime
+    )
    
-def everythingfromlastfile(last_yesterdayFile):
-        datawesendback = []
-        try: 
-            tree = ET.parse(last_yesterdayFile)
+def extract_daily_totals_from_last_file(last_file_path, corruption_report=None):
+        """
+        Extract daily totals from the last XML file of the day.
+
+        Args:
+            last_file_path: Path to the last XML file of the day
+            corruption_report: Optional CorruptionReport to track moved files
+
+        Returns:
+            DailyTotalsData: Dataclass containing:
+                - mortality: Total daily female mortality count
+                - feed_consumption: Daily feed consumption (kg)
+                - water_consumption: Daily water consumption
+                - avg_weight: Average bird weight (kg)
+
+        Raises:
+            ValueError: If required XML elements are missing
+            Exception: If file cannot be parsed
+
+        Note: Corrupt files are moved to failed_dir.
+        """
+        try:
+            tree = ET.parse(last_file_path)
             root = tree.getroot()
 
-            ##mortality stuff
-            temp_element = root.find(".//TotalDailyFemaleMortality")
-            if temp_element is not None:
-                temp = int(temp_element.text)
-                datawesendback.append(temp)
-                
-            ##feed consumption stuff
-            temp_element = root.find(".//DailyFeed")
-            if temp_element is not None:
-                temp = int(temp_element.text)
-                datawesendback.append(temp)
+            # Extract mortality
+            mortality_element = root.find(".//TotalDailyFemaleMortality")
+            if mortality_element is None:
+                raise ValueError("TotalDailyFemaleMortality not found")
+            mortality = int(mortality_element.text)
 
-            ##water consumption stuff
-            temp_element = root.find(".//DailyWater")
-            if temp_element is not None:
-                temp = int(temp_element.text)
-                datawesendback.append(temp)
-                
-            ##avg weight stuff
-            temp_element = root.find(".//AverageWeight")
-            if temp_element is not None:
-                temp = float(temp_element.text)
-                datawesendback.append(temp)
+            # Extract feed consumption
+            feed_element = root.find(".//DailyFeed")
+            if feed_element is None:
+                raise ValueError("DailyFeed not found")
+            feed = int(feed_element.text)
 
-            return datawesendback
-                
+            # Extract water consumption
+            water_element = root.find(".//DailyWater")
+            if water_element is None:
+                raise ValueError("DailyWater not found")
+            water = int(water_element.text)
+
+            # Extract avg weight
+            weight_element = root.find(".//AverageWeight")
+            if weight_element is None:
+                raise ValueError("AverageWeight not found")
+            weight = float(weight_element.text)
+
+            return DailyTotalsData(
+                mortality=mortality,
+                feed_consumption=feed,
+                water_consumption=water,
+                avg_weight=weight
+            )
+
         except Exception as e:
-            print(f"Failed to process {last_yesterdayFile}: {e}")
-            dst = os.path.join(failed_dir, last_yesterdayFile)
-            ## get it out so it doens't cause any more trouble
-            shutil.move(last_yesterdayFile, dst)
+            print(f"Failed to process {last_file_path}: {e}")
+            dst = os.path.join(failed_dir, os.path.basename(last_file_path))
+            # Ensure destination directory exists
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            # Move corrupt file out of the way
+            shutil.move(last_file_path, dst)
+            if corruption_report:
+                corruption_report.add_moved(last_file_path, f"Failed to extract daily totals: {e}")
+            raise  # Re-raise so caller can try fallback
+
+def extract_daily_totals_with_fallback(sorted_files_with_time, corruption_report=None, max_attempts=3):
+    """
+    Try to extract daily totals from last files, with fallback.
+
+    Args:
+        sorted_files_with_time: List of (filename, time_str) tuples, sorted by time
+        corruption_report: Optional CorruptionReport to track issues
+        max_attempts: Maximum number of files to try (default: 3)
+
+    Returns:
+        DailyTotalsData or None if all attempts fail
+
+    Note: Tries last file, then second-to-last, etc.
+    """
+    if not sorted_files_with_time:
+        return None
+
+    # Try from last to first (reverse order)
+    for attempt_num in range(min(max_attempts, len(sorted_files_with_time))):
+        file_index = -(attempt_num + 1)  # -1, -2, -3, ...
+        file_path, file_time = sorted_files_with_time[file_index]
+
+        attempt_label = "last" if attempt_num == 0 else f"{attempt_num+1} from last"
+        print(f"Attempting to extract daily totals from {attempt_label} file (time: {file_time})")
+
+        try:
+            return extract_daily_totals_from_last_file(file_path, corruption_report)
+        except Exception as e:
+            if attempt_num < max_attempts - 1 and attempt_num < len(sorted_files_with_time) - 1:
+                print(f"  Failed, trying next earlier file...")
+            else:
+                print(f"  Failed, no more files to try")
+                raise  # Re-raise on final attempt
 
 def deleteOldFiles():
     #print(f"howlong {howLongToSaveOldFiles}")
@@ -301,29 +455,28 @@ def getCoolerTemp(theTime, theTolerance, theName):
             candidates.append((f, time_str))
 
     if not candidates:
-        return '=NA()', '=NA()'
+        return CoolerTempData(time='=NA()', temperature='=NA()')
 
     # Return closest file among candidates
     closest_file = min(candidates, key=lambda x: diff_minutes(x[1]))[0]
 
-    try: 
+    try:
         tree = ET.parse(closest_file)
         root = tree.getroot()
 
-        ##egg room temp stuff
+        # Extract egg room temp and time
         temp_element = root.find(".//EggRoom")
-        temp_element1 = root.find(".//Time")
-        if (temp_element is not None) and (temp_element1 is not None):
+        time_element = root.find(".//Time")
+        if (temp_element is not None) and (time_element is not None):
             room_temp = float(temp_element.text)
-            time_temp = temp_element1.text
-            return time_temp, room_temp
-            
+            time_temp = time_element.text
+            return CoolerTempData(time=time_temp, temperature=room_temp)
         else:
-            return '=NA()', '=NA()'
-
+            return CoolerTempData(time='=NA()', temperature='=NA()')
 
     except Exception as e:
         print(f"Failed to process {closest_file}: {e}")
+        return CoolerTempData(time='=NA()', temperature='=NA()')
             
 def do_xml_setup(secrets):
 
@@ -343,7 +496,8 @@ def run_xml_stuff(db_file=None, target_date=None):
     If target_date is provided (YYYY-MM-DD format), process that date.
     Otherwise, process yesterday's date.
     """
-    databack = []
+    # Create corruption report to track issues
+    corruption_report = CorruptionReport(files_skipped=[], files_moved=[])
 
     # Determine which date to process
     if target_date:
@@ -358,6 +512,33 @@ def run_xml_stuff(db_file=None, target_date=None):
 
     print(f"Processing XML files for date: {yesterday_readable}")
 
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # GrowthDay Matching Logic
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    #
+    # Problem: We cannot rely solely on file timestamps (filename dates).
+    #
+    # Why: The farm equipment generates one XML file per hour, but:
+    #   - File timestamps reflect when the file was created (UTC time)
+    #   - The <GrowthDay> inside the XML reflects the farm's calendar day
+    #   - Due to timezone differences, files near midnight may have:
+    #     * Filename date = Day N
+    #     * Internal GrowthDay = Day N+1 (or N-1)
+    #
+    # Example:
+    #   File: 20241115230000_...xml (Nov 15, 23:00 UTC)
+    #   Internal GrowthDay: 256 (which corresponds to Nov 16 local time)
+    #
+    # Solution:
+    #   1. Use filename date to get candidate files (fast, gets most of them)
+    #   2. Parse GrowthDay from each candidate to find the most common value
+    #   3. Search ALL XMLs (even from other dates) for that GrowthDay
+    #   4. Process only files matching the target GrowthDay
+    #
+    # This ensures we get a complete 24-hour day of data (all 24 files)
+    # even when files span multiple filename dates.
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
     # Step 1: Get initial file list using filename pattern (most will be correct day)
     yesterdayFiles = os.path.join(xmlFolder, (yesterday+"*.xml"))
     candidate_files = glob.glob(yesterdayFiles)
@@ -369,13 +550,21 @@ def run_xml_stuff(db_file=None, target_date=None):
     # Step 2: Parse GrowthDay from candidate files to determine which GrowthDay to process
     print(f"Found {len(candidate_files)} candidate files, determining target GrowthDay...")
     growthdays = []
+    skipped_count = 0
     for filename in candidate_files:
         _, growthday = extract_time_and_growthday(filename)
         if growthday is not None:
             growthdays.append(growthday)
+        else:
+            skipped_count += 1
+            corruption_report.add_skipped(filename, "Invalid/missing GrowthDay or Time field")
+
+    if skipped_count > 0:
+        print(f"  Skipped {skipped_count} candidate files with invalid GrowthDay/Time")
 
     if not growthdays:
-        print("No valid GrowthDay values found in candidate files. Exiting...")
+        print("ERROR: No valid GrowthDay values found in candidate files.")
+        corruption_report.print_report()
         return None
 
     # Step 3: Find most common GrowthDay (should be 23-24 out of 24 files)
@@ -384,6 +573,7 @@ def run_xml_stuff(db_file=None, target_date=None):
     print(f"Target GrowthDay: {target_growthday} (appears in {growthday_counts[target_growthday]}/{len(candidate_files)} candidate files)")
 
     # Step 4: Get ALL files from directory that match target GrowthDay
+    # This catches any files with different filename dates but same GrowthDay
     all_xml_files = glob.glob(os.path.join(xmlFolder, "*.xml"))
     xmlNameOnly = []
     for filename in all_xml_files:
@@ -423,35 +613,55 @@ def run_xml_stuff(db_file=None, target_date=None):
     formatted_yesterday = yesterdayDate.strftime("%m-%d-%Y")
 
 
-    #parse all files from yesterday and average the outside temp
-    #return outsideHigh, outsideLow, insideHigh, insideLow !!What gets returned!!
-    databack = doProcessingOnAllFiles(xmlNameOnly)
+    # Parse all files from yesterday and extract temperature and light data
+    try:
+        temp_light_data = extract_daily_temperature_and_light_data(xmlNameOnly, corruption_report)
+        if not temp_light_data:
+            raise ValueError("Failed to extract temperature and light data")
 
-    outsideHigh = c_to_f(databack[0])
-    outsideLow = c_to_f(databack[1])
-    insideHigh = c_to_f(databack[2])
-    insideLow = c_to_f(databack[3])
-    lightOnTime = round_hhmm_to_15(databack[4])
-    lightOffTime = round_hhmm_to_15(databack[5])
+        outsideHigh = c_to_f(temp_light_data.outside_high)
+        outsideLow = c_to_f(temp_light_data.outside_low)
+        insideHigh = c_to_f(temp_light_data.inside_high)
+        insideLow = c_to_f(temp_light_data.inside_low)
+        lightOnTime = round_hhmm_to_15(temp_light_data.light_on_time)
+        lightOffTime = round_hhmm_to_15(temp_light_data.light_off_time)
+    except Exception as e:
+        print(f"ERROR: Failed processing temperature/light data: {e}")
+        raise
 
-    #returns mortality, feed consumption, water consumption, average weight
-    databack = everythingfromlastfile(last_yesterdayFile)
+    # Extract daily totals from last file (with fallback to earlier files if needed)
+    try:
+        daily_totals = extract_daily_totals_with_fallback(files_with_time, corruption_report)
+        if not daily_totals:
+            raise ValueError("Failed to extract daily totals from any file")
 
-    mortality = databack[0]
-    feedConsumption = kg_to_lb(databack[1])
-    waterConsumption = databack[2]
-    avgWeight = kg_to_lb(databack[3])
+        mortality = daily_totals.mortality
+        feedConsumption = kg_to_lb(daily_totals.feed_consumption)
+        waterConsumption = daily_totals.water_consumption
+        avgWeight = kg_to_lb(daily_totals.avg_weight)
+    except Exception as e:
+        print(f"ERROR: Failed extracting daily totals: {e}")
+        corruption_report.print_report()  # Show what went wrong
+        raise
 
-    t = getCoolerTemp(getCoolerTempAM, coolerTempTimeTolerance, xmlNameOnly)
-    coolerTempTimeAM = round_hhmm_to_15(t[0])
-    coolerTempAM = c_to_f(t[1])
+    # Extract cooler temperatures
+    cooler_am = getCoolerTemp(getCoolerTempAM, coolerTempTimeTolerance, xmlNameOnly)
+    coolerTempTimeAM = round_hhmm_to_15(cooler_am.time)
+    coolerTempAM = c_to_f(cooler_am.temperature)
 
-    t = getCoolerTemp(getCoolerTempPM, coolerTempTimeTolerance, xmlNameOnly)
-    coolerTempTimePM = round_hhmm_to_15(t[0])
-    coolerTempPM = c_to_f(t[1])
+    cooler_pm = getCoolerTemp(getCoolerTempPM, coolerTempTimeTolerance, xmlNameOnly)
+    coolerTempTimePM = round_hhmm_to_15(cooler_pm.time)
+    coolerTempPM = c_to_f(cooler_pm.temperature)
 
-    # null values may be added at a later date.
+    # Validation before DB insert
+    file_count = len(xmlNameOnly)
+    print(f"\nProcessing Summary:")
+    print(f"  Files processed: {file_count}")
 
+    if coolerTempAM == '=NA()' or coolerTempPM == '=NA()':
+        print(f"  WARNING: Cooler temperatures not available (AM: {coolerTempAM}, PM: {coolerTempPM})")
+
+    # Insert into database
     database_helper.insert_daily_bot_log(
         db_file,
         date=yesterday_readable,
@@ -473,6 +683,9 @@ def run_xml_stuff(db_file=None, target_date=None):
         cooler_time_pm=coolerTempTimePM,
         cooler_temp_pm=coolerTempPM
     )
+
+    # Print corruption report if any issues were found
+    corruption_report.print_report()
 
     return f"Successfully logged data for {yesterday_readable}"
 
