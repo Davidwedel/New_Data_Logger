@@ -70,7 +70,7 @@ fi
 
 # Stuff for Systemd
 AUTOMATION_NAME="datalogger"
-AUTOMATION_SCRIPT="$SCRIPT_DIR/automation.py"
+AUTOMATION_SCRIPT="$SCRIPT_DIR/datalogger_service.py"
 AUTOMATION_SERVICE="/etc/systemd/system/${AUTOMATION_NAME}.service"
 
 UPLOAD_DIR="/srv/ftp/upload"
@@ -380,8 +380,8 @@ else
     echo " - Access at: http://localhost:5000"
     echo ""
     echo " Test automation scripts:"
-    echo " - python3 automation.py --LogToDatabase"
-    echo " - python3 automation.py --LogToUnitas"
+    echo " - python3 datalogger_service.py --LogToDatabase"
+    echo " - python3 datalogger_service.py --LogToUnitas"
     echo ""
 fi
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

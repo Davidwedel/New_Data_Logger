@@ -51,16 +51,16 @@ sudo systemctl status xml-watcher.service
 # ─── One-shot commands (for manual runs) ───
 
 # One-shot XML to Database logging
-python3 automation.py --LogToDatabase
+python3 datalogger_service.py --LogToDatabase
 
 # One-shot Database to Unitas upload
-python3 automation.py --LogToUnitas
+python3 datalogger_service.py --LogToUnitas
 
 # One-shot Cooler log to Unitas
-python3 automation.py --CoolerLogToUnitas
+python3 datalogger_service.py --CoolerLogToUnitas
 
 # One-shot Cooler log backup
-python3 automation.py --CoolerLogToDB
+python3 datalogger_service.py --CoolerLogToDB
 ```
 
 ### Configuration
@@ -124,7 +124,7 @@ Settings organized in sections:
 
 ### Key Modules
 
-- **automation.py** - Automation service (XML→DB, scheduled jobs). Runs as systemd service. Always uses production DB.
+- **datalogger_service.py** - Automation service (XML→DB, scheduled jobs). Runs as systemd service. Always uses production DB.
 - **webapp.py** - Flask web application for data entry and viewing. Deployment mode determines database path.
 - **wsgi.py** - WSGI entry point for Apache deployment. Forces production mode via environment variable.
 - **watch_xml_dir.py** - XML directory monitor. Sends Telegram alerts if no new files. Runs as systemd service.

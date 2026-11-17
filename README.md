@@ -120,13 +120,13 @@ Run specific operations manually:
 
 ```bash
 # One-shot XML to Database
-python automation.py --LogToDatabase
+python datalogger_service.py --LogToDatabase
 
 # One-shot Database to Unitas
-python automation.py --LogToUnitas
+python datalogger_service.py --LogToUnitas
 
 # One-shot Cooler Log to Unitas
-python automation.py --CoolerLogToUnitas
+python datalogger_service.py --CoolerLogToUnitas
 
 # Run web app only (for development)
 python webapp.py
@@ -181,7 +181,7 @@ sudo systemctl restart farm-webapp.service
 
 ### Key Components
 
-- `automation.py` - Main automation service, scheduling, forever mode
+- `datalogger_service.py` - Main automation service, scheduling, forever mode
 - `webapp.py` - Flask web application
 - `server/config.py` - Configuration management
 - `server/jobs.py` - Scheduled job definitions
@@ -222,7 +222,7 @@ Fields with missing required data are highlighted with red borders.
 
 ## Scheduled Jobs
 
-When running in forever mode (`python automation.py`):
+When running in forever mode (`python datalogger_service.py`):
 
 - **00:05** - Daily database backup
 - **00:15** (configurable) - XML → Database
@@ -279,7 +279,7 @@ Environment=XAUTHORITY=/run/lightdm/davidwedel/xauthority
 
 ```
 newdatalog/
-├── automation.py           # Main automation script
+├── datalogger_service.py  # Main automation script
 ├── webapp.py              # Flask web application
 ├── watch_xml_dir.py       # XML watcher with Telegram notifications
 ├── install.sh             # Installation script

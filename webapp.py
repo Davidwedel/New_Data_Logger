@@ -1173,7 +1173,7 @@ def manual_send_to_unitas():
     db.clear_unitas_send_timestamp(DB_FILE, date_str)
     print(f"[Manual Send] Cleared sent_to_unitas_at timestamp for {date_str}")
 
-    # Create trigger file for automation.py to process
+    # Create trigger file for datalogger_service.py to process
     trigger_unitas_upload(date_str)
 
     return jsonify({
