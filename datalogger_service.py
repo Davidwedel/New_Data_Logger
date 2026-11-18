@@ -24,7 +24,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "server"))
 sys.path.append(os.path.join(os.path.dirname(__file__), "server/unitas_manager"))
 
 # Local imports
-from server.config import load_config, get_flat_config, get_database_path, CONFIG_DIR
+from server.config import load_config, get_flat_config, get_database_path, get_deployment_mode, CONFIG_DIR
 from server.helpers import check_all_settings_there as check_settings
 import server.jobs as jobs
 import server.database_helper as db
@@ -97,7 +97,12 @@ db.backup_database(DB_FILE)
 TRIGGER_FILE_PATH = CONFIG_DIR / "pending_upload"
 
 def check_and_process_pending_uploads():
-    """Check database for pending uploads and process them"""
+    """Check database for pending uploads and process them (production only)"""
+    # Safety check: only run in production mode
+    if get_deployment_mode() != "production":
+        logger.warning("check_and_process_pending_uploads called in non-production mode, skipping")
+        return
+
     try:
         pending_dates = db.get_dates_pending_unitas_upload(DB_FILE)
 
@@ -176,8 +181,12 @@ else:
         logger.error(f"Error processing XML files on startup: {e}")
 
     # ─── Startup Upload Check ───
-    logger.info("Checking for pending uploads on startup...")
-    check_and_process_pending_uploads()
+    deployment_mode = get_deployment_mode()
+    if deployment_mode == "production":
+        logger.info("Checking for pending uploads on startup...")
+        check_and_process_pending_uploads()
+    else:
+        logger.info(f"Skipping startup upload check (deployment mode: {deployment_mode})")
 
     # Check for pending coolerlog uploads if enabled
     if LOG_COOLER_TO_UNITAS:
@@ -202,19 +211,26 @@ else:
         schedule.every().day.at(unitas_time).do(coolerlog.run_coolerlog_to_unitas, DB_FILE)
         logger.info(f"Cooler log to Unitas scheduled at {unitas_time}")
 
-    # Schedule daily database check for pending Unitas uploads at 3 AM
-    schedule.every().day.at("03:00").do(check_and_process_pending_uploads)
-    logger.info("Daily Unitas upload check scheduled at 03:00")
+    # Schedule daily database check for pending Unitas uploads at 3 AM (production only)
+    if deployment_mode == "production":
+        schedule.every().day.at("03:00").do(check_and_process_pending_uploads)
+        logger.info("Daily Unitas upload check scheduled at 03:00")
+    else:
+        logger.info(f"Skipping daily Unitas upload scheduling (deployment mode: {deployment_mode})")
 
     logger.info("Daily database backup scheduled at 00:05")
 
-    # ─── File Watcher Setup ───
-    event_handler = PendingUploadHandler()
-    observer = Observer()
-    watch_dir = str(TRIGGER_FILE_PATH.parent)
-    observer.schedule(event_handler, watch_dir, recursive=False)
-    observer.start()
-    logger.info(f"File watcher started for {watch_dir}")
+    # ─── File Watcher Setup (production only) ───
+    if deployment_mode == "production":
+        event_handler = PendingUploadHandler()
+        observer = Observer()
+        watch_dir = str(TRIGGER_FILE_PATH.parent)
+        observer.schedule(event_handler, watch_dir, recursive=False)
+        observer.start()
+        logger.info(f"File watcher started for {watch_dir}")
+    else:
+        observer = None
+        logger.info(f"Skipping file watcher setup (deployment mode: {deployment_mode})")
 
     try:
         # Forever loop
@@ -224,5 +240,6 @@ else:
 
     except KeyboardInterrupt:
         logger.info("Stopped by user")
-        observer.stop()
-        observer.join()
+        if observer:
+            observer.stop()
+            observer.join()
